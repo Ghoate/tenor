@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Tenor"/>
+<meta name="theme-color" content="#f5f4f0"/>
+<title>Tenor — emotional bearings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="src/style.css"/>
+</head>
+<body>
+<div id="app"></div>
+<script src="src/core/constants.js"></script>
+<script src="src/core/db.js"></script>
+<script src="src/core/utils.js"></script>
+<script src="src/core/state.js"></script>
+<script src="src/data/scoring.js"></script>
+<script src="src/data/experimental.js"></script>
+<script src="src/core/modal.js"></script>
+<script src="src/forms/shared.js"></script>
+<script src="src/forms/restore.js"></script>
+<script src="src/forms/wobble.js"></script>
+<script src="src/forms/physical.js"></script>
+<script src="src/forms/bonding.js"></script>
+<script src="src/forms/repair.js"></script>
+<script src="src/forms/med.js"></script>
+<script src="src/forms/conflict.js"></script>
+<script src="src/forms/turndown.js"></script>
+<script src="src/forms/notes.js"></script>
+<script src="src/forms/steadying.js"></script>
+<script src="src/data/data.js"></script>
+<script src="src/data/export.js"></script>
+<script src="src/ui/managers.js"></script>
+<script src="src/panels/lovebank.js"></script>
+<script src="src/panels/needs.js"></script>
+<script src="src/panels/needs2.js"></script>
+<script src="src/panels/library.js"></script>
+<script src="src/panels/attachment.js"></script>
+<script src="src/panels/config.js"></script>
+<script src="src/ui/insights.js"></script>
+<script src="src/ui/charts.js"></script>
+<script src="src/ui/onboarding.js"></script>
+<script src="src/ui/ui.js"></script>
+<script src="src/ui/render.js"></script>
+<script>
+(function(){
+  const m={name:'Tenor — emotional bearings',short_name:'Tenor',start_url:location.origin+location.pathname,display:'standalone',
+    background_color:'#f5f4f0',theme_color:'#f5f4f0',orientation:'portrait',
+    icons:[
+      {src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23f5f4f0'/%3E%3Ctext x='96' y='130' font-size='100' text-anchor='middle'%3E%F0%9F%93%94%3C/text%3E%3C/svg%3E",sizes:'192x192',type:'image/svg+xml'},
+      {src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23f5f4f0'/%3E%3Ctext x='256' y='340' font-size='280' text-anchor='middle'%3E%F0%9F%93%94%3C/text%3E%3C/svg%3E",sizes:'512x512',type:'image/svg+xml'},
+    ]};
+  const l=document.createElement('link');
+  l.rel='manifest';
+  l.href=URL.createObjectURL(new Blob([JSON.stringify(m)],{type:'application/json'}));
+  document.head.appendChild(l);
+})();
+</script>
+</body>
+</html>
