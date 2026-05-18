@@ -191,27 +191,28 @@ function buildCombinedForm() {
     // ── Relational ↔ Personal split ──
     h('div',{style:{borderTop:'1px solid var(--border)',margin:'28px 0 0'}}),
     h('div',{class:'form-section',style:{marginTop:'18px'}},
-      h('label',{class:'form-label'},'How should this one event count?'),
-      h('div',{style:{fontSize:'11px',color:'var(--muted)',margin:'-4px 0 8px'}},
-        'One activity, so its impact is shared between the two ledgers. Slide toward the side it leaned.'),
+      h('label',{class:'form-label'},'How this one event counts'),
+      h('div',{style:{fontSize:'11px',color:'var(--muted)',margin:'-2px 0 10px',lineHeight:'1.5'}},
+        'A single activity counts toward both sides, so its weight is divided rather than doubled. Set how it leaned.'),
       h('div',{class:'scale-wrap'},
-        h('input',{type:'range',class:'scale-slider',min:'0',max:'100',value:String(Math.round(split*100)),
+        // Handle-as-seam: the thumb position IS the colour boundary.
+        // value = relational %, so pink fills 0→value, blue value→100.
+        h('input',{type:'range',class:'scale-slider',min:'0',max:'100',value:String(relPct),
           style:{background:`linear-gradient(to right,${CAT_COLORS.affection} ${relPct}%,${CAT_COLORS.restore} ${relPct}%)`},
           oninput: e => {
             const v = Number(e.target.value);
-            const relStop = 100 - v; // pink = relational share, blue = personal share
-            e.target.style.background = `linear-gradient(to right,${CAT_COLORS.affection} ${relStop}%,${CAT_COLORS.restore} ${relStop}%)`;
+            e.target.style.background = `linear-gradient(to right,${CAT_COLORS.affection} ${v}%,${CAT_COLORS.restore} ${v}%)`;
             const el = document.getElementById('combo-split-label');
-            if (el) el.textContent = `Relational ${relStop}%   ·   Personal ${v}%`;
+            if (el) el.textContent = `Relational ${v}%   ·   Personal ${100 - v}%`;
           },
-          onchange: e => { f.comboSplit = Number(e.target.value) / 100; render(); }
+          onchange: e => { f.comboSplit = (100 - Number(e.target.value)) / 100; render(); }
         }),
         h('div',{id:'combo-split-label',style:{textAlign:'center',padding:'6px 0 2px',fontSize:'13px',fontFamily:"'Libre Baskerville',serif",fontStyle:'italic',color:'var(--text)'}},
           `Relational ${relPct}%   ·   Personal ${perPct}%`)
       ),
-      h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},
-        h('span',{},'🩷 All relational'),
-        h('span',{},'All personal 🌊')
+      h('div',{style:{display:'flex',justifyContent:'space-between',fontSize:'11px',marginTop:'2px'}},
+        h('span',{style:{color:CAT_COLORS.affection}},'🩷 Relational'),
+        h('span',{style:{color:CAT_COLORS.restore}},'Personal 🌊')
       )
     ),
 

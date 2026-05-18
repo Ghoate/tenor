@@ -440,9 +440,10 @@ function buildCard(e) {
   const cardCap   = bankDayCap(dayLibido);
   const fmtScore  = s => {
     if (!S.showCardPoints) return null;
-    const rounded = Math.round(s);
-    if (rounded === 0) return null;
-    return (rounded > 0 ? '+' : '') + rounded + ' pts';
+    const r = Math.round(s * 10) / 10;          // keep one decimal
+    if (r === 0) return null;                    // only hide a true ~0
+    const txt = Number.isInteger(r) ? String(r) : r.toFixed(1);
+    return (r > 0 ? '+' : '') + txt + ' pts';
   };
 
   if (e.category==='physical') {

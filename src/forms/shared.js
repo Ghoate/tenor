@@ -182,24 +182,32 @@ function buildMultiSelectChips(opts) {
 // the same Combined log is independent, so the two can sum to more or less
 // than 100% if the user wants. Mutates f.scoreScale; commits on release
 // (live DOM update during drag, mirroring the Daily Check-In sliders).
+// A logged activity always carries some weight, so the scale can't be
+// driven to zero — it floors at SCORE_SCALE_MIN%.
+const SCORE_SCALE_MIN = 10;
 function buildScoreScaleSlider(f, accentColor) {
   if (f.scoreScale == null) return null;
-  const pct = Math.round(f.scoreScale * 100);
+  const pct = Math.max(SCORE_SCALE_MIN, Math.round(f.scoreScale * 100));
   const col = accentColor || 'var(--interactive)';
+  // The native thumb maps the SCORE_SCALE_MIN..100 range onto 0..100% of the
+  // track, so the colour fill must use that normalised position to line up
+  // with the handle (not the raw percent).
+  const fillOf = v => (v - SCORE_SCALE_MIN) / (100 - SCORE_SCALE_MIN) * 100;
   return h('div',{class:'form-section'},
     h('label',{class:'form-label'},'How much does this combined event count?'),
     h('div',{style:{fontSize:'11px',color:'var(--muted)',margin:'-4px 0 8px'}},
-      'This was logged as one side of a combined activity. Adjusting this only changes this entry — the paired entry is independent.'),
+      'This was logged as one side of a combined activity. Adjusting this only changes this entry — the paired entry is independent. It always counts for at least ' + SCORE_SCALE_MIN + '%.'),
     h('div',{class:'scale-wrap'},
-      h('input',{type:'range',class:'scale-slider',min:'0',max:'100',value:String(pct),
-        style:{background:`linear-gradient(to right,${col} ${pct}%,var(--bg3) ${pct}%)`},
+      h('input',{type:'range',class:'scale-slider',min:String(SCORE_SCALE_MIN),max:'100',value:String(pct),
+        style:{background:`linear-gradient(to right,${col} ${fillOf(pct)}%,var(--bg3) ${fillOf(pct)}%)`},
         oninput: e => {
-          const v = Number(e.target.value);
-          e.target.style.background = `linear-gradient(to right,${col} ${v}%,var(--bg3) ${v}%)`;
+          const v = Math.max(SCORE_SCALE_MIN, Number(e.target.value));
+          const fp = fillOf(v);
+          e.target.style.background = `linear-gradient(to right,${col} ${fp}%,var(--bg3) ${fp}%)`;
           const el = document.getElementById('scorescale-label');
           if (el) el.textContent = `Counts ${v}%`;
         },
-        onchange: e => { f.scoreScale = Number(e.target.value) / 100; render(); }
+        onchange: e => { f.scoreScale = Math.max(SCORE_SCALE_MIN, Number(e.target.value)) / 100; render(); }
       }),
       h('div',{id:'scorescale-label',style:{textAlign:'center',padding:'6px 0 2px',fontSize:'13px',fontFamily:"'Libre Baskerville',serif",fontStyle:'italic',color:'var(--text)'}},
         `Counts ${pct}%`)
