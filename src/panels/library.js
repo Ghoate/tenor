@@ -117,7 +117,7 @@ function buildLibraryPanel() {
           return n;
         };
 
-        const renderTag = (tag) => {
+        const renderTag = (tag, isLast) => {
           const realIdx = tags.indexOf(tag);
           const isEditing = f.editTagIdx === realIdx;
           const isDirtyOther = f.editTagDirty && !isEditing;
@@ -125,7 +125,7 @@ function buildLibraryPanel() {
           const pvLabel = pvState === 'activated' ? 'Activated' : pvState === 'withdrawal' ? 'Withdrawal' : 'Mixed';
           return h('div',{
             style:{display:'flex',alignItems:'center',justifyContent:'space-between',
-              padding:'6px 0',borderBottom:'1px solid var(--border)',gap:'8px',
+              padding:'7px 0',borderBottom: isLast ? 'none' : '1px solid var(--border)',gap:'8px',
               cursor: isEditing ? 'default' : (f.editTagDirty ? 'default' : 'pointer'),
               opacity: isDirtyOther ? '0.4' : '1'},
             onclick: isEditing ? null : (ev) => {
@@ -154,7 +154,7 @@ function buildLibraryPanel() {
                     if (e.key === 'Escape') { f.editTagIdx = -1; f.editTagVal = ''; f.editTagDirty = false; render(); }
                   }
                 })
-              : h('span',{style:{fontSize:'13px',color:'var(--text)',flex:'1',fontWeight: starredTags.has(tag) ? '600' : '400'}},
+              : h('span',{style:{fontSize:'13px',color:'var(--text)',flex:'1'}},
                   tag,
                   (() => { const n = countUsage(tag); return n > 0 ? h('span',{style:{fontSize:'11px',color:'var(--muted)',marginLeft:'8px',fontWeight:'400'}}, n+'×') : null; })()
                 ),
@@ -190,13 +190,14 @@ function buildLibraryPanel() {
                       saveSettings(); render();
                     }}, 'Delete')
                 )
-              : h('div',{style:{display:'flex',alignItems:'center',gap:'8px',flexShrink:'0'}},
-                  h('span',{style:{fontSize:'11px',color:'var(--muted)',flexShrink:'0'}}, pvLabel),
-                  h('span',{style:{fontSize:'11px',color:'var(--muted)'}},'tap to edit'),
+              : h('div',{style:{display:'flex',alignItems:'center',gap:'10px',flexShrink:'0'}},
+                  h('span',{style:{fontSize:'10px',letterSpacing:'0.04em',textTransform:'uppercase',
+                    color:'var(--muted)',border:'1px solid var(--border)',borderRadius:'10px',
+                    padding:'2px 8px',whiteSpace:'nowrap'}}, pvLabel),
                   h('button',{
-                    style:{background:'none',border:'none',color:'var(--muted)',fontSize:'14px',
+                    style:{background:'none',border:'none',color:'var(--muted)',fontSize:'15px',
                       cursor:'pointer',padding:'0 2px',lineHeight:'1',fontFamily:"'DM Sans',sans-serif",
-                      opacity:'0.5'},
+                      opacity:'0.45'},
                     onclick: ev => {
                       ev.stopPropagation();
                       S.challengingEmotionTags = tags.filter((_,i) => i !== realIdx);
@@ -207,12 +208,6 @@ function buildLibraryPanel() {
                 )
           );
         };
-
-        // Build set of starred (default) tags across all families
-        const starredTags = new Set();
-        for (const preset of Object.values(EMOTION_TONE_PRESETS)) {
-          for (const p of preset) { if (p.starred) starredTags.add(p.tag); }
-        }
 
         // Group tags by tone — check tagToneOverrides first for custom-assigned tags
         const byFamily = {};
@@ -230,111 +225,55 @@ function buildLibraryPanel() {
           const missingFromPreset = preset ? preset.filter(p => !tags.includes(p.tag)) : [];
           const allPresetPresent = preset && missingFromPreset.length === 0;
 
+          const presentCount = preset ? preset.filter(p => tags.includes(p.tag)).length : 0;
           const prefillBtn = preset
             ? h('button',{
                 style:{background:'none',border:'1px solid var(--border)',borderRadius:'6px',
-                  color: allPresetPresent ? 'var(--muted)' : 'var(--text)',
+                  color:'var(--text)',
                   fontSize:'11px',cursor:'pointer',padding:'3px 8px',
                   fontFamily:"'DM Sans',sans-serif",flexShrink:'0'},
                 onclick: ev => {
                   ev.stopPropagation();
-                  if (allPresetPresent) {
-                    // Remove non-starred preset tags only; keep defaults and custom/renamed tags
-                    S.challengingEmotionTags = S.challengingEmotionTags.filter(t => !presetTags.includes(t) || starredTags.has(t));
-                  } else {
-                    const next = [...S.challengingEmotionTags];
-                    for (const p of missingFromPreset) {
-                      next.push(p.tag);
-                      if (!S.tagPolyvagalOverrides) S.tagPolyvagalOverrides = {};
-                      if (!S.tagPolyvagalOverrides[p.tag]) S.tagPolyvagalOverrides[p.tag] = p.pv;
-                    }
-                    S.challengingEmotionTags = next;
-                  }
-                  saveSettings(); render();
+                  S.modal = 'wobble-presets';
+                  S._wobblePresetFam = fam.val;
+                  render();
                 }
-              }, allPresetPresent ? 'Remove pre-fill' : 'Pre-fill all')
-            : null;
-
-          // Always-visible add row for families that have a preset
-          const addKey = 'famNewTag_' + fam.val;
-          // Default polyvagal state for new tags — majority pv among starred entries
-          const famDefaultPv = (() => {
-            if (!preset) return null;
-            const counts = {};
-            for (const p of preset) if (p.starred) counts[p.pv] = (counts[p.pv]||0) + 1;
-            const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
-            return top ? top[0] : 'activated';
-          })();
-          const addNewTag = (val) => {
-            if (!val || tags.includes(val)) return;
-            S.challengingEmotionTags = [...tags, val];
-            if (!S.tagToneOverrides) S.tagToneOverrides = {};
-            S.tagToneOverrides[val] = fam.val;
-            if (famDefaultPv) {
-              if (!S.tagPolyvagalOverrides) S.tagPolyvagalOverrides = {};
-              if (!S.tagPolyvagalOverrides[val]) S.tagPolyvagalOverrides[val] = famDefaultPv;
-            }
-            f[addKey] = '';
-            saveSettings(); render();
-          };
-          const addRow = preset
-            ? h('div',{style:{display:'flex',gap:'6px',marginTop:'8px'}},
-                h('input',{
-                  id:'fam-add-input-'+fam.val, type:'text', placeholder:'New tag…',
-                  value: f[addKey]||'',
-                  style:{flex:'1',background:'var(--surface-1)',border:'1px solid var(--border)',
-                    borderRadius:'8px',padding:'7px 10px',fontSize:'12px',
-                    color:'var(--text)',outline:'none',fontFamily:"'DM Sans',sans-serif"},
-                  oninput: e => { f[addKey] = e.target.value; },
-                  onkeydown: e => {
-                    if (e.key === 'Enter') {
-                      const inp = document.getElementById('fam-add-input-'+fam.val);
-                      addNewTag((inp ? inp.value : f[addKey]||'').trim());
-                    }
-                  }
-                }),
-                h('button',{
-                  style:{background:'var(--c-wobble)',border:'none',borderRadius:'8px',
-                    color:'#fff',fontSize:'12px',cursor:'pointer',padding:'7px 12px',
-                    fontFamily:"'DM Sans',sans-serif",fontWeight:'500',flexShrink:'0'},
-                  onclick: () => {
-                    const inp = document.getElementById('fam-add-input-'+fam.val);
-                    addNewTag((inp ? inp.value : f[addKey]||'').trim());
-                  }
-                }, 'Add')
-              )
+              }, `Browse list (${presentCount}/${preset.length})`)
             : null;
 
           return h('div',{style:{
-            padding:'10px 12px',borderRadius:'10px',
-            background:'var(--bg3)',border:'1px solid var(--border)',marginBottom:'8px',
+            padding:'12px 14px',borderRadius:'10px',
+            background:'var(--bg3)',border:'1px solid var(--border)',
+            borderLeft:'3px solid '+fam.color,marginBottom:'10px',
           }},
-            h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom: famTags.length > 0 ? '6px' : '0'}},
+            h('div',{style:{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'10px',marginBottom: famTags.length > 0 ? '8px' : '0'}},
               h('div',{style:{flex:'1',minWidth:'0'}},
-                h('span',{style:{fontSize:'12px',fontWeight:'600',color:'var(--text)'}}, fam.label),
-                fam.desc ? h('span',{style:{fontSize:'11px',color:'var(--muted)',marginLeft:'6px'}}, fam.desc) : null
+                h('div',{style:{fontSize:'11px',fontWeight:'700',letterSpacing:'0.07em',textTransform:'uppercase',color:fam.color}}, fam.label),
+                fam.desc ? h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'3px',lineHeight:'1.4'}}, fam.desc) : null
               ),
               prefillBtn
             ),
             famTags.length > 0
-              ? h('div',{}, ...famTags.map(renderTag))
-              : h('div',{style:{fontSize:'11px',color:'var(--muted)',fontStyle:'italic',paddingTop:'2px'}},'No tags yet'),
-            addRow
+              ? h('div',{}, ...famTags.map((t,i)=>renderTag(t, i===famTags.length-1)))
+              : h('div',{style:{fontSize:'11px',color:'var(--muted)',fontStyle:'italic',padding:'4px 0 2px'}},'No tags yet — open Browse list to add')
           );
         });
 
         const otherTags = (byFamily['other'] || []).slice().sort((a,b) => a.localeCompare(b));
         const otherCard = otherTags.length > 0
-          ? h('div',{style:{padding:'10px 12px',borderRadius:'10px',background:'var(--bg3)',border:'1px solid var(--border)',marginBottom:'8px'}},
-              h('div',{style:{fontSize:'12px',fontWeight:'600',color:'var(--muted)',marginBottom:'6px'}},'Other'),
-              h('div',{}, ...otherTags.map(renderTag))
+          ? h('div',{style:{padding:'12px 14px',borderRadius:'10px',background:'var(--bg3)',border:'1px solid var(--border)',borderLeft:'3px solid var(--muted)',marginBottom:'10px'}},
+              h('div',{style:{fontSize:'11px',fontWeight:'700',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'8px'}},'Other'),
+              h('div',{}, ...otherTags.map((t,i)=>renderTag(t, i===otherTags.length-1)))
             )
           : null;
 
         return h('div',{},
           ...familyCards,
           otherCard,
-          h('div',{style:{display:'flex',gap:'8px',marginTop:'4px',marginBottom:'16px'}},
+          h('div',{style:{borderTop:'1px solid var(--border)',margin:'18px 0 0'}}),
+          h('div',{style:{fontSize:'11px',color:'var(--muted)',margin:'14px 0 8px',lineHeight:'1.5'}},
+            'Add a tag that doesn’t fit any family above — it will appear under “Other.”'),
+          h('div',{style:{display:'flex',gap:'8px',marginBottom:'16px'}},
             h('input',{
               id:'manage-tag-input-challengingEmotionTags', type:'text', placeholder:'New tag…',
               value: f.newTag||'',
@@ -354,7 +293,7 @@ function buildLibraryPanel() {
                 const val = (f.newTag||'').trim();
                 if (val && !tags.includes(val)) { S.challengingEmotionTags = [...tags, val]; f.newTag = ''; saveSettings(); render(); }
               }
-            }, 'Add')
+            }, 'Add other')
           )
         );
       })()
@@ -552,4 +491,127 @@ function buildLibraryPanel() {
     })() : null
 
   );
+}
+
+// Per-family preset browser for Life Wobble emotion tags. Lets the user
+// add/remove individual preset tags instead of the old all-or-nothing
+// pre-fill, so cherry-picking one or two isn't burdensome.
+function buildWobblePresetModal() {
+  const fam = EMOTION_TONES.find(x => x.val === S._wobblePresetFam);
+  if (!fam) return overlay(h('div',{},
+    h('div',{class:'sheet-title'},'Emotion tags'),
+    h('button',{class:'sec-btn',style:{width:'100%'},onclick:()=>closeModal()},'Close')
+  ));
+
+  const preset = EMOTION_TONE_PRESETS[fam.val] || [];
+  const tags   = S.challengingEmotionTags || (S.challengingEmotionTags = []);
+  const presetTags = preset.map(p => p.tag);
+  const present = preset.filter(p => tags.includes(p.tag)).length;
+  const pvLabel = pv => pv === 'activated' ? 'Activated' : pv === 'withdrawal' ? 'Withdrawal' : 'Mixed';
+
+  const addTag = p => {
+    if (!tags.includes(p.tag)) {
+      S.challengingEmotionTags = [...tags, p.tag];
+      if (!S.tagPolyvagalOverrides) S.tagPolyvagalOverrides = {};
+      if (!S.tagPolyvagalOverrides[p.tag]) S.tagPolyvagalOverrides[p.tag] = p.pv;
+      saveSettings(); render();
+    }
+  };
+  const removeTag = p => {
+    S.challengingEmotionTags = tags.filter(t => t !== p.tag);
+    saveSettings(); render();
+  };
+
+  // Default polyvagal state for a custom tag — majority pv among the
+  // family's starred presets.
+  const famDefaultPv = (() => {
+    const counts = {};
+    for (const p of preset) if (p.starred) counts[p.pv] = (counts[p.pv]||0) + 1;
+    const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
+    return top ? top[0] : 'activated';
+  })();
+  if (S._wobblePresetNewTag == null) S._wobblePresetNewTag = '';
+  const addCustom = (val) => {
+    val = (val || '').trim();
+    if (!val || tags.includes(val)) { S._wobblePresetNewTag = ''; render(); return; }
+    S.challengingEmotionTags = [...tags, val];
+    if (!S.tagToneOverrides) S.tagToneOverrides = {};
+    S.tagToneOverrides[val] = fam.val;
+    if (!S.tagPolyvagalOverrides) S.tagPolyvagalOverrides = {};
+    if (!S.tagPolyvagalOverrides[val]) S.tagPolyvagalOverrides[val] = famDefaultPv;
+    S._wobblePresetNewTag = '';
+    saveSettings(); render();
+  };
+
+  return overlay(h('div',{},
+    h('div',{class:'sheet-title'}, fam.label + ' emotion tags'),
+    h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'4px',marginTop:'-4px',lineHeight:'1.5'}},
+      'Tap a tag to add or remove it from your Life Wobble list. Only the ones you pick are added.'),
+    h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}},
+      h('span',{style:{fontSize:'11px',color:'var(--muted)'}}, present + ' of ' + preset.length + ' in your list'),
+      h('div',{style:{display:'flex',gap:'10px'}},
+        h('span',{style:{fontSize:'11px',color:fam.color,cursor:'pointer',fontWeight:'500'},
+          onclick:()=>{
+            const next=[...tags];
+            for (const p of preset) if (!next.includes(p.tag)) {
+              next.push(p.tag);
+              if (!S.tagPolyvagalOverrides) S.tagPolyvagalOverrides = {};
+              if (!S.tagPolyvagalOverrides[p.tag]) S.tagPolyvagalOverrides[p.tag] = p.pv;
+            }
+            S.challengingEmotionTags=next; saveSettings(); render();
+          }}, 'Add all'),
+        h('span',{style:{fontSize:'11px',color:'var(--muted)',cursor:'pointer'},
+          onclick:()=>{ S.challengingEmotionTags = tags.filter(t => !presetTags.includes(t)); saveSettings(); render(); }},
+          'Remove all')
+      )
+    ),
+    h('div',{style:{display:'flex',flexDirection:'column',gap:'6px'}},
+      ...preset.map(p => {
+        const sel = tags.includes(p.tag);
+        return h('div',{
+          style:{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'10px',
+            padding:'10px 12px',borderRadius:'10px',cursor:'pointer',
+            border:'1px solid '+(sel ? fam.color : 'var(--border)'),
+            background: sel ? fam.color+'1f' : 'var(--bg3)'},
+          onclick:()=> sel ? removeTag(p) : addTag(p)
+        },
+          h('div',{style:{display:'flex',flexDirection:'column',gap:'2px',minWidth:'0'}},
+            h('span',{style:{fontSize:'13px',color:'var(--text)',fontWeight: sel ? '600' : '400'}}, p.tag),
+            h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, pvLabel(p.pv))
+          ),
+          h('span',{style:{fontSize:'15px',color: sel ? fam.color : 'var(--muted)',flexShrink:'0',width:'18px',textAlign:'center'}},
+            sel ? '✓' : '+')
+        );
+      })
+    ),
+    h('div',{style:{borderTop:'1px solid var(--border)',margin:'18px 0 0'}}),
+    h('div',{style:{fontSize:'11px',color:'var(--muted)',margin:'14px 0 6px'}},
+      'Don’t see it? Add your own to ' + fam.label),
+    h('div',{style:{display:'flex',gap:'6px'}},
+      h('input',{
+        id:'wobble-preset-add-input', type:'text', placeholder:'New emotion…',
+        value: S._wobblePresetNewTag || '',
+        style:{flex:'1',background:'var(--surface-1)',border:'1px solid var(--border)',
+          borderRadius:'8px',padding:'9px 11px',fontSize:'13px',
+          color:'var(--text)',outline:'none',fontFamily:"'DM Sans',sans-serif"},
+        oninput: e => { S._wobblePresetNewTag = e.target.value; },
+        onkeydown: e => {
+          if (e.key === 'Enter') {
+            const inp = document.getElementById('wobble-preset-add-input');
+            addCustom(inp ? inp.value : S._wobblePresetNewTag);
+          }
+        }
+      }),
+      h('button',{
+        style:{background:fam.color,border:'none',borderRadius:'8px',color:'#fff',
+          fontSize:'12px',cursor:'pointer',padding:'9px 14px',
+          fontFamily:"'DM Sans',sans-serif",fontWeight:'500',flexShrink:'0'},
+        onclick: () => {
+          const inp = document.getElementById('wobble-preset-add-input');
+          addCustom(inp ? inp.value : S._wobblePresetNewTag);
+        }
+      }, 'Add')
+    ),
+    h('button',{class:'sec-btn',style:{width:'100%',marginTop:'18px'},onclick:()=>closeModal()},'Done')
+  ));
 }

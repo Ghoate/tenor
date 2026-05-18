@@ -83,6 +83,7 @@ function buildBondingForm() {
         }, q.label, h('span',{class:'sub'},resolveSub(q.sub))))
       )
     ),
+    buildScoreScaleSlider(f, CAT_COLORS.affection),
     h('div',{class:'form-section'},
       h('label',{class:'form-label'},'Notes'),
       h('textarea',{class:'form-input',placeholder:'Optional notes…',rows:'3',oninput:e=>{f.notes=e.target.value;}},f.notes||'')
@@ -115,8 +116,15 @@ function buildBondingForm() {
         const cqLabel = CONNECTION_QUALITY.find(q=>q.val===f.connectionQuality)?.label||'';
         push('R  Connection quality', cqM, `"${cqLabel}" — ×0.20 to ×1.00`);
         push('C  Day capacity', +cap.toFixed(3), S.showPhysical ? 'From mood/energy/libido — 0.50 to 1.25' : 'From mood/energy — 0.50 to 1.25');
-        const score = (raw * cap * cqM / SCORE_MAX_RAW) * 100;
-        push('Final score', +score.toFixed(1), `(geomean × needs × C × R) / 5 × 100`);
+        const scale = f.scoreScale ?? 1;
+        let score = (raw * cap * cqM / SCORE_MAX_RAW) * 100;
+        if (scale !== 1) {
+          push('S  Combined split', scale, `combined activity — counts ${Math.round(scale*100)}%`);
+          score *= scale;
+          push('Final score', +score.toFixed(1), `(geomean × needs × C × R) / 5 × 100 × split`);
+        } else {
+          push('Final score', +score.toFixed(1), `(geomean × needs × C × R) / 5 × 100`);
+        }
         return buildDebugPanel(score, breakdown);
       }
 
@@ -140,6 +148,7 @@ function saveBonding(){
     attachmentTags: Array.isArray(f.attachmentTags) ? f.attachmentTags.slice() : [],
     notes:f.notes||''
   };
+  if (f.scoreScale != null) rec.scoreScale = f.scoreScale;
   if (f._editId) rec.id = f._editId;
   closeModalSilent();
   dbPut('entries', rec).then(loadDay).then(loadAll).then(render).catch(e=>{console.error('Save failed:',e);alert('Save failed — '+e.message);});

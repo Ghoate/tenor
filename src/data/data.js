@@ -96,8 +96,9 @@ function loadSettings(){
       if(s&&s.value) S.restoreTypes=s.value.map(t=>typeof t==='string'?{name:t,needsMap:{}}:t);
     }),
     dbGet('settings','challengingEmotionTags').then(s=>{
-      if(s&&s.value&&Array.isArray(s.value)) {
-        // Migrate legacy broad tags to granular equivalents
+      if (s && Array.isArray(s.value)) {
+        // Existing user — respect their list exactly, including an
+        // explicitly-emptied one. Migrate legacy broad tags to granular.
         S.challengingEmotionTags = s.value.map(t =>
           t === 'Fear'       ? 'Apprehension' :
           t === 'Anger'      ? 'Angry' :
@@ -109,7 +110,12 @@ function loadSettings(){
           t === 'Grief'      ? 'Grieving' :
           t
         );
-      } else S.challengingEmotionTags = [...DEFAULT_CHALLENGING_EMOTION_TAGS];
+      } else {
+        // Genuinely new user (no saved record) — seed defaults and
+        // persist so the list is the single source of truth from the start.
+        S.challengingEmotionTags = [...DEFAULT_CHALLENGING_EMOTION_TAGS];
+        dbPut('settings',{key:'challengingEmotionTags',value:S.challengingEmotionTags});
+      }
     }),
     dbGet('settings','whomList').then(s=>{
       if(s&&s.value&&Array.isArray(s.value)) S.whomList = s.value;

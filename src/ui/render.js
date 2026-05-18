@@ -114,6 +114,7 @@ function render() {
     picker:           buildPicker,
     physical:         buildPhysicalForm,
     affection:        buildBondingForm,
+    combined:         buildCombinedForm,
     libido:           buildMedForm,
     conflict:         buildConflictForm,
     turndown:          buildTurndownForm,
@@ -124,6 +125,8 @@ function render() {
     repair:           buildRepairForm,
     export:           buildExportSheet,
     'cal-filter':     buildCalFilterModal,
+    'wobble-presets': buildWobblePresetModal,
+    'wobble-emotion-guide': buildWobbleEmotionGuide,
   };
   if(S.modal && builders[S.modal]) {
     try {

@@ -11,3 +11,6 @@ desktop.ini
 
 # Logs
 *.log
+
+# Claude Code agent memory / session data
+.claude/

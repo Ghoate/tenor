@@ -174,6 +174,39 @@ function buildMultiSelectChips(opts) {
 }
 
 
+// Per-entry score-scale slider. Only rendered when the entry carries a
+// `scoreScale` (i.e. it was logged through the Combined screen as one side
+// of a split). Plain entries have no scoreScale and get nothing here.
+//
+// The slider adjusts ONLY this entry's multiplier — the sibling entry from
+// the same Combined log is independent, so the two can sum to more or less
+// than 100% if the user wants. Mutates f.scoreScale; commits on release
+// (live DOM update during drag, mirroring the Daily Check-In sliders).
+function buildScoreScaleSlider(f, accentColor) {
+  if (f.scoreScale == null) return null;
+  const pct = Math.round(f.scoreScale * 100);
+  const col = accentColor || 'var(--interactive)';
+  return h('div',{class:'form-section'},
+    h('label',{class:'form-label'},'How much does this combined event count?'),
+    h('div',{style:{fontSize:'11px',color:'var(--muted)',margin:'-4px 0 8px'}},
+      'This was logged as one side of a combined activity. Adjusting this only changes this entry — the paired entry is independent.'),
+    h('div',{class:'scale-wrap'},
+      h('input',{type:'range',class:'scale-slider',min:'0',max:'100',value:String(pct),
+        style:{background:`linear-gradient(to right,${col} ${pct}%,var(--bg3) ${pct}%)`},
+        oninput: e => {
+          const v = Number(e.target.value);
+          e.target.style.background = `linear-gradient(to right,${col} ${v}%,var(--bg3) ${v}%)`;
+          const el = document.getElementById('scorescale-label');
+          if (el) el.textContent = `Counts ${v}%`;
+        },
+        onchange: e => { f.scoreScale = Number(e.target.value) / 100; render(); }
+      }),
+      h('div',{id:'scorescale-label',style:{textAlign:'center',padding:'6px 0 2px',fontSize:'13px',fontFamily:"'Libre Baskerville',serif",fontStyle:'italic',color:'var(--text)'}},
+        `Counts ${pct}%`)
+    )
+  );
+}
+
 /* ── Shared debug panel renderer ───────────────────── */
 // breakdown: [{label, value, note}] — value null = label-only row
 // score: number — shown large at top, null = hide score line

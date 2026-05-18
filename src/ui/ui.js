@@ -69,8 +69,11 @@ function entryHasMissingType(e) {
   if (e.category === 'burnout' && Array.isArray(e.caretakerTypes) && e.caretakerTypes.length > 0)
     return e.caretakerTypes.some(n => !S.caretakerTypes.find(t => t.name === n));
   if (e.category === 'regulation' && Array.isArray(e.regulationEmotions) && e.regulationEmotions.length > 0) {
+    // Only warn for genuinely lost CUSTOM tags. Canonical/system tags
+    // (anything in TAG_TO_EMOTION_TONE) are still recognised and easily
+    // re-added, so removing them from the active list isn't data loss.
     const activeTags = new Set(S.challengingEmotionTags || DEFAULT_CHALLENGING_EMOTION_TAGS);
-    return e.regulationEmotions.some(t => !activeTags.has(t));
+    return e.regulationEmotions.some(t => !activeTags.has(t) && !(t in TAG_TO_EMOTION_TONE));
   }
   return false;
 }
@@ -657,6 +660,7 @@ function buildPicker() {
     {key:'turndown',   icon:'🌒', name:'Turn Down',      desc:'Desire unmet or turned down'},
     {key:'burnout',    icon:'🕯️', name:'Steadying',      desc:'You showed up to steady someone'},
     {key:'notes',    icon:'🌿', name:'Notes', desc:'Log anything worth remembering today'},
+    {key:'combined',   icon:'🔀', name:'Combined',       desc:'One activity — both bonding & restorative'},
   ].filter(c => c.key !== 'turndown' || S.showPhysical)
    .filter(c => c.key !== 'burnout'  || S.showCaretaker);
 
@@ -695,11 +699,14 @@ function buildPicker() {
     h('div',{class:'sheet-title'},'What are you logging?'),
     h('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'6px'}},
       ...(() => {
+        // Interleave left/right for the familiar personal|relational pairing,
+        // but skip empty slots so the shorter column's tail is back-filled by
+        // the longer one — no holes, fewest possible rows.
         const maxLen = Math.max(left.length, right.length);
         const cells = [];
         for (let i = 0; i < maxLen; i++) {
-          cells.push(left[i]  ? makeCard(left[i])  : h('div',{}));
-          cells.push(right[i] ? makeCard(right[i]) : h('div',{}));
+          if (left[i])  cells.push(makeCard(left[i]));
+          if (right[i]) cells.push(makeCard(right[i]));
         }
         return cells;
       })()

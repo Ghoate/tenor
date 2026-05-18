@@ -784,6 +784,7 @@ const CAT_COLORS = {
   physical:'#e07a4a', affection:'#e085b8', libido:'#9b7fd4',
   conflict:'#e03535', turndown:'#7a9ec4',  partner:'#4dc478', burnout:'#d4a030',
   restore:'#5ab8d4', regulation:'#a07fd4', repair:'#4dc478',
+  notes:'#88a892', combined:'#5fb89a',
 };
 const CAT_LABELS = {
   physical:'Intimacy',

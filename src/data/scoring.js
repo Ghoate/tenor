@@ -30,7 +30,8 @@ function bankScoreEntry(e, cap) {
     const typeObj = S.affectionTypes.find(t => t.name === e.eventType);
     const raw = typeObj ? deriveActivityWeight(typeObj) : 1.0;
     const R   = BANK_OUTCOME_M[e.connectionQuality || 3] || 0.60;
-    const score = (raw * cap * R / SCORE_MAX_RAW) * 100;
+    // scoreScale: optional per-entry multiplier (Combined-screen split). Absent = full.
+    const score = (raw * cap * R / SCORE_MAX_RAW) * 100 * (e.scoreScale ?? 1);
     return { score, color: CAT_COLORS.affection, label: '🩷 ' + (e.eventType || bondingLabel()) };
   }
   if (e.category === 'physical' && !e.solo) {
@@ -108,7 +109,8 @@ function restoreScore(e, typeObj, cap) {
   const ri            = RESTORE_IMMERSION.find(i => i.val === (e.restoreImmersion || 3));
   const qualityMult   = rq ? rq.mult : 0.80;
   const immersionMult = ri ? ri.mult : 0.60;
-  return (rawW * immersionMult * qualityMult * cap / SCORE_MAX_RAW) * 100;
+  // scoreScale: optional per-entry multiplier (Combined-screen split). Absent = full.
+  return (rawW * immersionMult * qualityMult * cap / SCORE_MAX_RAW) * 100 * (e.scoreScale ?? 1);
 }
 function bankConfLoad(e) {
   return Math.abs(bankScoreEntry(e, 1.0).score);

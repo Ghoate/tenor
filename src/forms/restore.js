@@ -69,6 +69,7 @@ function buildRestoreForm() {
         )
       ) : null
     ),
+    buildScoreScaleSlider(f, CAT_COLORS.restore),
     h('div',{class:'form-section'},
       h('label',{class:'form-label'},'Notes'),
       h('textarea',{class:'form-input',placeholder:'Optional notes…',rows:'3',oninput:e=>{f.notes=e.target.value;}},f.notes||'')
@@ -98,7 +99,8 @@ function buildRestoreForm() {
       const rawW      = deriveRestoreWeight(typeObj);
       const pnWeight  = derivePersonalNeedsWeight(typeObj.needsMap);
       const wDisplay  = Math.round(rawW / SCORE_MAX_RAW * 100);
-      const totalScore = (rawW * immersionMult * qualityMult * cap / SCORE_MAX_RAW) * 100;
+      const scale     = f.scoreScale ?? 1;
+      let totalScore  = (rawW * immersionMult * qualityMult * cap / SCORE_MAX_RAW) * 100;
 
       const breakdown = [];
       const push = (label, value, note) => breakdown.push({label, value, note});
@@ -108,7 +110,13 @@ function buildRestoreForm() {
       push('I  Immersion', immersionMult, `"${immersionLabel}" — ×0.20 to ×1.00`);
       push('R  Quality', qualityMult, `"${qualityLabel}" — ×0.20 to ×1.00`);
       push('C  Day capacity', +cap.toFixed(3), S.showPhysical ? 'From mood/energy/desire — capacity multiplier' : 'From mood/energy — 0.76 to 1.302');
-      push('Final score', +totalScore.toFixed(1), `(W × I × R × C) / 5 × 100`);
+      if (scale !== 1) {
+        push('S  Combined split', scale, `combined activity — counts ${Math.round(scale*100)}%`);
+        totalScore *= scale;
+        push('Final score', +totalScore.toFixed(1), `(W × I × R × C) / 5 × 100 × split`);
+      } else {
+        push('Final score', +totalScore.toFixed(1), `(W × I × R × C) / 5 × 100`);
+      }
 
       return buildDebugPanel(totalScore, breakdown);
     })() : null
@@ -127,6 +135,7 @@ function saveRestore(){
     notes: f.notes || '',
     rqMigrated: true,
   };
+  if (f.scoreScale != null) rec.scoreScale = f.scoreScale;
   if (f._editId) rec.id = f._editId;
   closeModalSilent();
   dbPut('entries', rec).then(loadDay).then(loadAll).then(render).catch(e=>{console.error('Save failed:',e);alert('Save failed — '+e.message);});
