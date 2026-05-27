@@ -16,6 +16,40 @@ function getBounds(days) {
   return { cap, thriving, stable, neutral:0, strained:-stable, depleted:-thriving, critical:-cap };
 }
 
+// Returns entries that are still meaningfully contributing right now under
+// the experimental decay model — i.e. those whose decayed score has not yet
+// faded to zero. Used by the threshold observations on the Insights page so
+// "what's going on right now" reflects what's still alive, not a hard
+// calendar window. For categories without a scoring path (libido, notes,
+// repair), falls back to a 30-day recency window so observations that
+// reference them still get a fresh frame.
+function aliveEntries(refDate) {
+  const ref = refDate || S.today;
+  const src = calcEntries();
+  const byDate = {};
+  for (const e of src) {
+    if (!byDate[e.date]) byDate[e.date] = [];
+    byDate[e.date].push(e);
+  }
+  const capCache = {};
+  const getCap = (date) => {
+    if (date in capCache) return capCache[date];
+    const dayEs = byDate[date] || [];
+    return capCache[date] = bankDayCap(dayEs.find(le => le.category === 'libido'));
+  };
+  return src.filter(e => {
+    if (e.date > ref) return false;
+    const daysAgo = daysBetween(e.date, ref);
+    const { rel, per } = expEntryScores(e, getCap(e.date));
+    if (rel !== 0 || per !== 0) {
+      if (rel !== 0 && expRemaining(rel, daysAgo) !== 0) return true;
+      if (per !== 0 && expRemaining(per, daysAgo) !== 0) return true;
+      return false;
+    }
+    return daysAgo <= 30;
+  });
+}
+
 function dateStr(d) {
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }

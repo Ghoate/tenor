@@ -287,8 +287,8 @@ function computeCorrelations(winEntries) {
       const diff = best.avg - worst.avg;
       results.push({
         icon:'🕯️→🌡️🔍', title:'Steadying type & next-day desire',
-        desc:`${typeLabel(worst.type)} is hardest on next-day desire (avg ${worst.avg.toFixed(1)}/5). `+
-             `${typeLabel(best.type)} has the least impact (avg ${best.avg.toFixed(1)}/5).`,
+        desc:`Next-day desire averages lowest after ${typeLabel(worst.type)} (${worst.avg.toFixed(1)}/5) `+
+             `and highest after ${typeLabel(best.type)} (${best.avg.toFixed(1)}/5).`,
         strength: diff>=1.5?'strong':diff>=0.7?'moderate':'weak',
         lowData: worst.n < 3,
         n: worst.n,
@@ -485,7 +485,7 @@ function computeCorrelations(winEntries) {
       const tdDesc = avgOn != null
         ? `On days you turned ${P.obj} down, avg relational balance was ` + (avgOn >= 0 ? '+' : '') + avgOn.toFixed(0)
           + (avgOff != null ? ' vs ' + (avgOff >= 0 ? '+' : '') + avgOff.toFixed(0) + ' on other days.' : '.')
-          + (lowerOnTD ? ' Your turn downs tend to follow lower-balance periods.' : '')
+          + (lowerOnTD ? ' Turn-down days have a noticeably lower average balance than other days.' : '')
         : 'Not enough data yet.';
       results.push({
         icon:'🌒↩', title:'Your turn downs & relational balance',
@@ -640,7 +640,7 @@ function computeCorrelations(winEntries) {
         desc:`Across ${bondingLabel().toLowerCase()} and physical events, you initiated ${mePct}% vs ${P.obj} ${herPct}%`+
              (mutual > 0 ? ` (${Math.round(mutual/total*100)}% mutual).` : '.') +
              (breakdown ? ' ' + breakdown + '.' : '') +
-             (asymmetry >= 35 ? ' Connection is mostly initiated by you.' : asymmetry <= -10 ? ` ${P.Sub} is initiating more connection than you.` : ' Initiation is broadly balanced.'),
+             (asymmetry >= 35 ? ' You\'re initiating the larger share.' : asymmetry <= -10 ? ` ${P.Sub} is initiating the larger share.` : ' Initiation is broadly balanced.'),
         strength,
         lowData: total < 5,
         n: total,
@@ -696,6 +696,40 @@ function computeCorrelations(winEntries) {
     }
   }
 
+  // 20b. Mood / energy decline trend — flags when this week's daily check-in
+  // averages slip ≥1 point vs the prior week. A leading-edge signal that
+  // often precedes drops in desire / rises in load.
+  {
+    const _meDays = 7;
+    const _meCur  = addDays(S.today, -(_meDays - 1));
+    const _mePrv  = addDays(S.today, -(_meDays * 2 - 1));
+    const _libi   = e => e.category === 'libido';
+    const curLib  = calcEntries().filter(e => _libi(e) && e.date >= _meCur && e.date <= S.today);
+    const prvLib  = calcEntries().filter(e => _libi(e) && e.date >= _mePrv && e.date < _meCur);
+    if (curLib.length >= 3 && prvLib.length >= 3) {
+      const meanOf = (arr, k) => { const v = arr.map(e=>e[k]).filter(x=>x!=null); return v.length ? v.reduce((s,x)=>s+x,0)/v.length : null; };
+      const cM = meanOf(curLib, 'mood'),   pM = meanOf(prvLib, 'mood');
+      const cE = meanOf(curLib, 'energy'), pE = meanOf(prvLib, 'energy');
+      const dM = (cM != null && pM != null) ? cM - pM : 0;
+      const dE = (cE != null && pE != null) ? cE - pE : 0;
+      const moodDrop   = dM <= -1.0;
+      const energyDrop = dE <= -1.0;
+      if (moodDrop || energyDrop) {
+        const parts = [];
+        if (moodDrop)   parts.push(`mood ${cM.toFixed(1)} vs ${pM.toFixed(1)}`);
+        if (energyDrop) parts.push(`energy ${cE.toFixed(1)} vs ${pE.toFixed(1)}`);
+        const both = moodDrop && energyDrop;
+        const worst = Math.min(moodDrop ? dM : 0, energyDrop ? dE : 0);
+        results.push({
+          icon:'🌡️📉', title: both ? 'Mood and energy slipping' : moodDrop ? 'Mood slipping' : 'Energy slipping',
+          desc: `Daily check-ins this week show ${parts.join(' and ')} (out of 5) vs the prior week. A leading-edge dip — often shows up before desire or load shifts.`,
+          strength: both || worst <= -1.5 ? 'strong' : 'moderate',
+          n: curLib.length,
+        });
+      }
+    }
+  }
+
   // 21. Tones in your wobbles — dominant emotional tones + polyvagal lean
   if (S.showRegulation) {
     const wobbleWithEmotions = winEntries.filter(e =>
@@ -728,9 +762,9 @@ function computeCorrelations(winEntries) {
         for (const e of wobbleWithEmotions) stateCounts[entryPolyvagalState(e)]++;
         const topState = Object.entries(stateCounts).sort((a,b) => b[1]-a[1])[0][0];
         const leanText = {
-          activated:  'Most of your wobbles were activating — the nervous system tending to mobilize rather than collapse.',
-          withdrawal: 'Most of your wobbles trended toward shutdown — the nervous system tending to collapse rather than mobilize when overwhelmed.',
-          mixed:      'Your wobbles were split across activating and shutdown tones — the nervous system shifting rather than settling in one direction.',
+          activated:  'Most leaned activating — energy mobilising more than collapsing.',
+          withdrawal: 'Most leaned toward shutdown — energy collapsing more than mobilising.',
+          mixed:      'A mix of activating and shutdown — no single direction dominated.',
         };
 
         const topToneCount = sortedTones[0][1];
@@ -740,6 +774,31 @@ function computeCorrelations(winEntries) {
           strength: Math.round(topToneCount/total*100) >= 50 ? 'moderate' : 'weak',
           lowData: wobbleWithEmotions.length < 8,
           n: wobbleWithEmotions.length,
+        });
+      }
+    }
+  }
+
+  // 21b. Body-family wobbles dominant — flags when physical/circumstantial
+  // states (poor sleep, illness, pain, hormonal) are driving most of the
+  // recent wobbles. The lever there is usually physical, not emotional.
+  if (S.showRegulation) {
+    const wobblesWithTone = winEntries.filter(e =>
+      e.category === 'regulation' && Array.isArray(e.regulationEmotions) && e.regulationEmotions.length > 0
+    );
+    if (wobblesWithTone.length >= 5) {
+      let bodyCount = 0;
+      for (const e of wobblesWithTone) {
+        if (entryDominantTone(e) === 'body') bodyCount++;
+      }
+      const bodyPct = bodyCount / wobblesWithTone.length;
+      if (bodyCount >= 3 && bodyPct >= 0.4) {
+        const pctRound = Math.round(bodyPct * 100);
+        results.push({
+          icon:'🛌🫧', title:'Body load is driving wobbles',
+          desc: `${pctRound}% of recent wobbles trace to Body tones (sleep, illness, pain, hormonal). When the body is depleted, the most useful lever tends to be physical — rest, food, recovery — rather than emotional regulation.`,
+          strength: bodyPct >= 0.6 ? 'strong' : bodyPct >= 0.5 ? 'moderate' : 'weak',
+          n: bodyCount,
         });
       }
     }
@@ -778,7 +837,7 @@ function computeCorrelations(winEntries) {
           const pLabel = (EMOTION_TONES.find(t => t.val === prevTop[0]) || {label: prevTop[0]}).label;
 
           const activatedTones = new Set(['fear','anger','activation']);
-          const withdrawalTones = new Set(['sadness','shame','shutdown']);
+          const withdrawalTones = new Set(['sadness','shame','shutdown','body']);
           const prevDir = activatedTones.has(prevTop[0]) ? 'activated' : withdrawalTones.has(prevTop[0]) ? 'withdrawal' : 'mixed';
           const currDir = activatedTones.has(currTop[0]) ? 'activated' : withdrawalTones.has(currTop[0]) ? 'withdrawal' : 'mixed';
 
@@ -811,6 +870,45 @@ function computeCorrelations(winEntries) {
           });
         }
       }
+    }
+  }
+
+  // 22b. Same tone dominating across multiple periods — flags a chronic
+  // pattern where one family has been top for 3+ consecutive weeks.
+  // Distinct from C22 (one-period snapshot) and C23 (week-vs-prior shift).
+  if (S.showRegulation) {
+    const PERIOD_DAYS = 7;
+    const LOOKBACK_PERIODS = 4; // current + 3 prior
+    const isToneWobble = e => e.category === 'regulation'
+      && Array.isArray(e.regulationEmotions) && e.regulationEmotions.length > 0;
+    const periodTops = [];
+    for (let i = 0; i < LOOKBACK_PERIODS; i++) {
+      const pEnd   = addDays(S.today, -(PERIOD_DAYS * i));
+      const pStart = addDays(pEnd, -(PERIOD_DAYS - 1));
+      const wobs = calcEntries().filter(e => isToneWobble(e) && e.date >= pStart && e.date <= pEnd);
+      if (wobs.length < 2) { periodTops.push(null); continue; }
+      const counts = {};
+      for (const e of wobs) { const tv = entryDominantTone(e); if (tv) counts[tv] = (counts[tv]||0) + 1; }
+      const top = Object.entries(counts).sort((a,b) => b[1]-a[1])[0];
+      periodTops.push(top ? top[0] : null);
+    }
+    const currentTop = periodTops[0];
+    let streak = 0;
+    if (currentTop) {
+      for (let i = 0; i < periodTops.length; i++) {
+        if (periodTops[i] === currentTop) streak++;
+        else break;
+      }
+    }
+    if (streak >= 3) {
+      const tone = EMOTION_TONES.find(t => t.val === currentTop);
+      const label = tone ? tone.label : currentTop;
+      results.push({
+        icon:'🫧🔁', title:'Same tone keeps showing up',
+        desc: `${label} has been the top wobble tone for ${streak} weeks running. When one tone persists this long, the driver is usually recurring — worth looking at what keeps surfacing it.`,
+        strength: streak >= 4 ? 'strong' : 'moderate',
+        n: streak,
+      });
     }
   }
 
@@ -939,6 +1037,41 @@ function computeCorrelations(winEntries) {
     }
   }
 
+  // 25b. Wobble resolution trend — comparing how readily wobbles settled
+  // this week vs the prior week. Uses a binary good/not-good split
+  // (resolved or coming-down vs the rest) so the wording is concrete.
+  if (S.showRegulation) {
+    const _rDays   = 7;
+    const _rCurFrom = addDays(S.today, -(_rDays - 1));
+    const _rPrvFrom = addDays(S.today, -(_rDays * 2 - 1));
+    const _hasRes   = e => e.category === 'regulation' && e.regulationResolution;
+    const _goodSet  = new Set(['resolved','coming-down']);
+    const curStat = calcEntries().filter(e => _hasRes(e) && e.date >= _rCurFrom && e.date <= S.today)
+                                  .map(e => e.regulationResolution);
+    const prvStat = calcEntries().filter(e => _hasRes(e) && e.date >= _rPrvFrom && e.date < _rCurFrom)
+                                  .map(e => e.regulationResolution);
+    if (curStat.length >= 3 && prvStat.length >= 3) {
+      const goodPct = arr => arr.filter(s => _goodSet.has(s)).length / arr.length;
+      const cPct = goodPct(curStat);
+      const pPct = goodPct(prvStat);
+      const diff = cPct - pPct;
+      if (Math.abs(diff) >= 0.20) {
+        const better = diff > 0;
+        const cR = Math.round(cPct * 100);
+        const pR = Math.round(pPct * 100);
+        results.push({
+          icon: better ? '🫧↘' : '🫧↗',
+          title: better ? 'Wobbles settling more' : 'Wobbles settling less',
+          desc: better
+            ? `${cR}% of recent wobbles reached "at peace" or "better" — up from ${pR}% the prior week. They're landing softer.`
+            : `${cR}% of recent wobbles reached "at peace" or "better" — down from ${pR}% the prior week. They're staying heavier than the prior period.`,
+          strength: Math.abs(diff) >= 0.35 ? 'strong' : 'moderate',
+          n: curStat.length,
+        });
+      }
+    }
+  }
+
   // 26. Capacity-tone correlation — which tone clusters on low-capacity days
   if (S.showRegulation) {
     const wobbleWithTone = winEntries.filter(e =>
@@ -1002,6 +1135,45 @@ function computeCorrelations(winEntries) {
           lowData: conflictsWithHorsemen.length < 5,
           n: count,
         });
+      }
+    }
+  }
+
+  // 27b. Horseman escalation — fires when a horseman appeared in more
+  // conflicts this 7-day window than the prior 7-day window. Turns C28's
+  // static horseman list into a trend signal so escalating patterns get
+  // flagged.
+  {
+    const _hsDays   = 7;
+    const _hsCurFrom = addDays(S.today, -(_hsDays - 1));
+    const _hsPrvFrom = addDays(S.today, -(_hsDays * 2 - 1));
+    const _isConf   = e => e.category === 'conflict';
+    const _hasHM    = e => _isConf(e) && Array.isArray(e.horsemen) && e.horsemen.length > 0;
+    const _curConf  = calcEntries().filter(e => _isConf(e) && e.date >= _hsCurFrom && e.date <= S.today);
+    const _prvConf  = calcEntries().filter(e => _isConf(e) && e.date >= _hsPrvFrom && e.date < _hsCurFrom);
+    const _curHm    = _curConf.filter(_hasHM);
+    const _prvHm    = _prvConf.filter(_hasHM);
+    // Require at least 3 horseman-tagged conflicts this period and at least
+    // 2 conflicts last period, so the comparison reflects similar territory.
+    if (_curHm.length >= 3 && _prvConf.length >= 2) {
+      const curCounts = {}, prvCounts = {};
+      for (const e of _curHm) for (const h of e.horsemen) curCounts[h] = (curCounts[h]||0) + 1;
+      for (const e of _prvHm) for (const h of e.horsemen) prvCounts[h] = (prvCounts[h]||0) + 1;
+      for (const [val, cur] of Object.entries(curCounts)) {
+        const prv = prvCounts[val] || 0;
+        const diff = cur - prv;
+        if (cur >= 3 && diff >= 2) {
+          const label = CONFLICT_HORSEMEN.find(h => h.val === val)?.label || val;
+          const newPattern = prv === 0;
+          results.push({
+            icon:'🔄📈', title: newPattern ? `New pattern: ${label}` : `${label} showing up more`,
+            desc: newPattern
+              ? `${label} appeared in ${cur} conflicts this week — wasn't in your conflict log the prior week.`
+              : `${label} appeared in ${cur} conflicts this week, up from ${prv} the prior week.`,
+            strength: diff >= 3 ? 'strong' : 'moderate',
+            n: cur,
+          });
+        }
       }
     }
   }
@@ -1115,7 +1287,7 @@ function buildHomePage() {
   const zoneBand7 = tenorScore7 === null ? null
     : tenorScore7 >= zones7.thriving ? { label:'Thriving',  color:'var(--c-partner)' }
     : tenorScore7 >= zones7.stable   ? { label:'Healthy',   color:'rgba(77,196,120,0.85)' }
-    : tenorScore7 >= 0               ? { label:'Progressing',   color:'var(--c-burnout)' }
+    : tenorScore7 >= 0               ? { label:'Progressing',   color:'#a8b870' }
     : tenorScore7 >= zones7.strained ? { label:'Unsettled', color:'rgba(210,130,50,1)' }
     : tenorScore7 >= zones7.depleted ? { label:'Difficult', color:'var(--c-warning)' }
     :                                  { label:'Hurting',   color:'var(--c-conflict)' };
@@ -1210,7 +1382,7 @@ function buildHomePage() {
   const _zoneIcon = v =>
       v >= zones7.thriving  ? { icon:'☀️',  label:'Thriving',    color:'var(--c-partner)' }
     : v >= zones7.stable    ? { icon:'🌤️', label:'Healthy',     color:'rgba(77,196,120,0.85)' }
-    : v >= 0                ? { icon:'⛅',  label:'Progressing', color:'var(--c-burnout)' }
+    : v >= 0                ? { icon:'⛅',  label:'Progressing', color:'#a8b870' }
     : v >= zones7.strained  ? { icon:'☁️',  label:'Unsettled',   color:'rgba(210,130,50,1)' }
     : v >= zones7.depleted  ? { icon:'🌧️', label:'Difficult',   color:'var(--c-warning)' }
     :                         { icon:'⛈️', label:'Hurting',     color:'var(--c-conflict)' };
@@ -1351,7 +1523,7 @@ function buildHomePage() {
   // ── Intimacy nudges / kudos ──
   if (S.showPhysical && hasEnoughData) {
     if (week7Physical >= 3)
-      kudos.push(card('🌹', 'Intimate week', week7Physical+' shared intimacy events this week — above your usual pace.', 'var(--c-physical)', 'rgba(224,122,74,0.25)', 'rgba(224,122,74,0.06)', goInsights));
+      kudos.push(card('🌹', 'Intimate week', week7Physical+' shared intimacy events this week.', 'var(--c-physical)', 'rgba(224,122,74,0.25)', 'rgba(224,122,74,0.06)', goInsights));
     else if (daysSincePhysical !== null && daysSincePhysical >= 10 && recentTurndowns === 0) {
       const msg = week7Conflict >= 1
         ? daysSincePhysical+' days since last intimacy, and conflict logged this week — the two can compound each other.'
@@ -1709,15 +1881,30 @@ function buildInsightsPanel() {
     // Threshold alerts surfaced as cards, mirroring the visual style of
     // Correlations below but without strength badges (these aren't statistical).
     (() => {
-      const wLabel = w===7?'Last 7 days':w===30?'Last 30 days':'Last 60 days';
-      const pRef   = w===7?'this week':w===30?'this month':'in this window';
-      const pRefCap= w===7?'This week':w===30?'This month':'This window';
+      // In experimental mode, threshold observations look at what's still
+      // alive (events whose decayed score is non-zero) rather than a fixed
+      // 7-day calendar window — that matches the lifetime-sum model the
+      // Tenor gauge uses. Legacy windowed mode keeps the calendar frame.
+      let obsWin, obsPrev, wLabel, pRef, pRefCap, hint;
+      if (S.useExperimentalScoring) {
+        obsWin  = aliveEntries(S.today);
+        obsPrev = aliveEntries(addDays(S.today, -7));
+        wLabel  = 'Active right now';
+        pRef    = 'in your active stretch';
+        pRefCap = 'Active stretch';
+        hint    = 'Notable signals from events still contributing to your tenor — thresholds crossed, conditions aligned.';
+      } else {
+        obsWin  = winEntries;
+        obsPrev = prevEntries;
+        wLabel  = w===7?'Last 7 days':w===30?'Last 30 days':'Last 60 days';
+        pRef    = w===7?'this week':w===30?'this month':'in this window';
+        pRefCap = w===7?'This week':w===30?'This month':'This window';
+        hint    = 'Notable signals from this window — thresholds crossed, conditions aligned.';
+      }
       return h('div',{style:{marginBottom:'14px'}},
         h('div',{class:'ins-section'},h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'Observations')),
-        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'10px',lineHeight:'1.6'}},
-          'Notable signals from this window — thresholds crossed, conditions aligned.'
-        ),
-        buildWindowSummary(winEntries, prevEntries, wLabel, pRef, pRefCap, S.today, 'observationCards')
+        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'10px',lineHeight:'1.6'}}, hint),
+        buildWindowSummary(obsWin, obsPrev, wLabel, pRef, pRefCap, S.today, 'observationCards')
       );
     })(),
 
@@ -2949,6 +3136,21 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
   const avgRestoreQ = avg(restore.map(e=>migrateRestoreQuality(e.restoreQuality, e)).filter(Boolean));
   const restoreGood = restore.length > 0 && avgRestoreQ !== null && avgRestoreQ >= 3;
 
+  // Repair ↔ Conflict pairing: a conflict is "closed" if a repair entry sits
+  // within REPAIR_WINDOW_DAYS after it; "open" if it's older than that window
+  // and still has no repair logged. Uses all entries (not just this window)
+  // so a repair just outside the window still counts.
+  const REPAIR_WINDOW_DAYS = 5;
+  const allRepairsByDate = (S.allEntries || []).filter(e => e.category === 'repair');
+  const conflictRepaired = (c) => allRepairsByDate.some(r => {
+    const days = daysBetween(c.date, r.date);
+    return days >= 0 && days <= REPAIR_WINDOW_DAYS;
+  });
+  const closedConflicts = conflict.filter(conflictRepaired);
+  const openConflicts   = conflict.filter(c =>
+    !conflictRepaired(c) && daysBetween(c.date, end) >= REPAIR_WINDOW_DAYS
+  );
+
   // Scored observations with priority — highest priority first, first match wins
   const candidates = [
 
@@ -2956,7 +3158,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
     {
       icon:'📉', title:'Balance in critical range', tone:'critical',
       test: weekBal !== null && weekBal < zones.depleted,
-      text: `Relational balance ended ${periodRef} at ${weekBal>=0?'+':''}${weekBal?.toFixed(0)} — in the depleted or critical range. The numbers reflect accumulated strain; restoration takes time.`
+      text: `Relational balance is at ${weekBal>=0?'+':''}${weekBal?.toFixed(0)} ${periodRef} — in the depleted or critical range. The numbers reflect accumulated strain; restoration takes time.`
     },
     {
       icon:'⚡🌒', title:'Conflict and turn-downs', tone:'critical',
@@ -2992,6 +3194,20 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       icon:'🌒', title:'Heavy turn-down weight', tone:'concern',
       test: S.showPhysical && herTurndownLoad >= 120,
       text: `High turn-down weight ${periodRef} (${herTurndownLoad} pts) — significant anticipated investment went unmet.`
+    },
+    {
+      icon:'🌒🌒', title:'Mutual withdrawal', tone:'concern',
+      test: (() => {
+        if (!S.showPhysical) return false;
+        const myTDs  = turndown.filter(e => e.initiatedBy === 'me').length;
+        const herTDs = turndown.filter(e => e.initiatedBy === 'her').length;
+        return myTDs >= 2 && herTDs >= 2;
+      })(),
+      text: (() => {
+        const myTDs  = turndown.filter(e => e.initiatedBy === 'me').length;
+        const herTDs = turndown.filter(e => e.initiatedBy === 'her').length;
+        return `Both directions of turn-downs ${periodRef} (you: ${myTDs}, ${P.Sub}: ${herTDs}) — when both sides withdraw at once, distance tends to compound rather than recover on its own.`;
+      })()
     },
     {
       icon:'⚡', title:'Heavy conflict load', tone:'concern',
@@ -3084,6 +3300,14 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       text: `Turn-downs followed conflict on the same or next day ${periodRef} — the two events overlapped.`
     },
     {
+      icon:'⚡🤝', title:'Conflict without a repair logged', tone:'concern',
+      test: S.showRepair && openConflicts.length > 0,
+      text: (() => {
+        const n = openConflicts.length;
+        return `${n === 1 ? 'A conflict' : n + ' conflicts'} from at least ${REPAIR_WINDOW_DAYS} days ago ${n === 1 ? 'has' : 'have'} no repair entry yet — the relational loop is still open.`;
+      })()
+    },
+    {
       icon:'🌹', title:'Intimacy without '+bondingLabel().toLowerCase(), tone:'mixed',
       test: S.showPhysical && physical.length > 0 && affection.length === 0,
       text: `Physical intimacy without logged ${bondingLabel().toLowerCase()} ${periodRef} — unusually direct path.`
@@ -3098,12 +3322,12 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
     {
       icon:'📈', title:'Balance in thriving range', tone:'positive',
       test: weekBal !== null && weekBal >= zones.thriving,
-      text: `Relational balance ended ${periodRef} at +${weekBal?.toFixed(0)} — in the thriving range. The connection is tracking well.`
+      text: `Relational balance is at +${weekBal?.toFixed(0)} ${periodRef} — in the thriving range. The connection is tracking well.`
     },
     {
       icon:'🩷🌹', title:'A good week', tone:'positive',
       test: S.showPhysical && physical.length >= 2 && affection.length >= 2 && conflict.length === 0 && (!S.showCaretaker || burnoutLoad <= 30) && (!S.showRegulation || wobbleLoad <= 20),
-      text: `A genuinely good ${'period'} — connection on both sides, no conflict, light load throughout.`
+      text: `A genuinely good period — connection on both sides, no conflict, light load throughout.`
     },
     {
       icon:'✨', title:'Conditions aligned', tone:'positive',
@@ -3114,6 +3338,42 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       icon:'🩷→🌹', title:bondingLabel()+'-to-intimacy flow', tone:'positive',
       test: S.showPhysical && affection.length >= 3 && physical.length >= 1,
       text: `Good ${bondingLabel().toLowerCase()}-to-intimacy flow ${periodRef} — the connection-first pattern working as it should.`
+    },
+    {
+      icon:'🤝', title:'Repair followed conflict', tone:'positive',
+      test: S.showRepair && closedConflicts.length > 0,
+      text: (() => {
+        const n = closedConflicts.length;
+        return `${n === 1 ? 'A conflict was' : n + ' conflicts were'} followed by a logged repair within ${REPAIR_WINDOW_DAYS} days — the relational loop closing.`;
+      })()
+    },
+    {
+      icon:'🔀', title:'Combined activities carrying weight', tone:'positive',
+      test: (() => {
+        // Combined-origin entries are the affection + restore entries written
+        // by the Combined screen; they're identifiable by the scoreScale
+        // multiplier on partial splits.
+        const combo = weekEntries.filter(e => e.scoreScale != null);
+        if (combo.length < 3) return false;
+        const cBond = combo.filter(e => e.category === 'affection').length;
+        const cRest = combo.filter(e => e.category === 'restore').length;
+        const tBond = affection.length;
+        const tRest = restore.length;
+        const bondShare = tBond > 0 ? cBond / tBond : 0;
+        const restShare = tRest > 0 ? cRest / tRest : 0;
+        return bondShare >= 0.4 || restShare >= 0.4;
+      })(),
+      text: (() => {
+        const combo = weekEntries.filter(e => e.scoreScale != null);
+        const cBond = combo.filter(e => e.category === 'affection').length;
+        const cRest = combo.filter(e => e.category === 'restore').length;
+        const bondShare = affection.length > 0 ? Math.round(cBond / affection.length * 100) : 0;
+        const restShare = restore.length > 0 ? Math.round(cRest / restore.length * 100) : 0;
+        const parts = [];
+        if (bondShare >= 40) parts.push(`${bondShare}% of ${bondingLabel().toLowerCase()}`);
+        if (restShare >= 40) parts.push(`${restShare}% of restorative`);
+        return `Combined activities make up ${parts.join(' and ')} entries ${periodRef} — dual-purpose time is doing meaningful work on the ${parts.length > 1 ? 'ledgers' : 'ledger'}.`;
+      })()
     },
     {
       icon:'🌡️', title:'High desire', tone:'positive',
@@ -3146,8 +3406,8 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
   const observationEl = matched.length > 0
     ? matched.map(c => h('p',{style:{margin:'0 0 6px 0'}}, c.text))
     : [h('p',{style:{margin:'0'}}, weekEntries.length === 0
-        ? 'Nothing logged this week yet.'
-        : `A quiet ${'period'} — no notable patterns to flag.`)];
+        ? 'No entries to flag yet.'
+        : `A quiet period — no notable patterns to flag.`)];
 
   // Card-format render for the new always-visible Observations section.
   // Mirrors the visual structure of the Correlations cards (icon + title +
@@ -3160,8 +3420,8 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
         borderRadius:'12px', padding:'12px 14px',
         fontSize:'12px',color:'var(--muted)',fontStyle:'italic',lineHeight:'1.6',
       }}, weekEntries.length === 0
-        ? 'Nothing logged this week yet.'
-        : `A quiet ${periodRef} — no notable patterns to flag.`);
+        ? 'No entries to flag yet.'
+        : `A quiet period — no notable patterns to flag.`);
     }
     const borderForTone = (tone) => {
       if (tone === 'positive') return 'var(--c-partner-subtle)';

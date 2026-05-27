@@ -773,13 +773,16 @@ function buildScoreBar() {
   ];
 
   const zones = getBounds(wDays);
-  // Background color using the same red→gold→green palette as the relational arc
+  // Background color using the same red→gold→green palette as the relational arc.
+  // Use the same rounded value the user sees, so a displayed "50" lands in the
+  // same band the home page would put it in (which also rounds before testing).
   const scoreBg = val => {
-    if (val >= zones.thriving)  return 'rgba(30,160,80,0.18)';
-    if (val >= zones.stable)    return 'rgba(77,196,120,0.09)';
-    if (val >= 0)               return 'rgba(210,160,40,0.12)';
-    if (val >= zones.strained)  return 'rgba(224,130,40,0.14)';
-    if (val >= zones.depleted)  return 'rgba(224,100,40,0.16)';
+    const r = Math.round(val);
+    if (r >= zones.thriving)  return 'rgba(30,160,80,0.18)';
+    if (r >= zones.stable)    return 'rgba(77,196,120,0.09)';
+    if (r >= 0)               return 'rgba(210,160,40,0.12)';
+    if (r >= zones.strained)  return 'rgba(224,130,40,0.14)';
+    if (r >= zones.depleted)  return 'rgba(224,100,40,0.16)';
     return 'rgba(224,53,53,0.18)';
   };
 
@@ -808,7 +811,7 @@ function buildScoreBar() {
       },
         h('div',{style:{fontSize:'9px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'2px'}}, s.label),
         h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'15px',color:'var(--text-strong)',lineHeight:'1'}},
-          (s.val >= 0 ? '+' : '') + s.val.toFixed(0))
+          (Math.round(s.val) >= 0 ? '+' : '') + Math.round(s.val))
       );
     }),
     h('div',{style:{

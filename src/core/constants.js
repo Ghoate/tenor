@@ -393,7 +393,7 @@ const PHYSICAL_INTENSITY = [
 ];
 
 const DEFAULT_CHALLENGING_EMOTION_TAGS = [
-  'Angry','Frustrated','Anxious','Apprehensive','Lonely','Disappointed','Ashamed','Embarrassed','Numb','Exhausted','Overwhelmed','Agitated'
+  'Angry','Frustrated','Anxious','Apprehensive','Lonely','Disappointed','Ashamed','Embarrassed','Numb','Exhausted','Overwhelmed','Agitated','Run-down','Sleep-deprived'
 ];
 
 // Whom list — names of people the user has logged moments with. Used by
@@ -460,6 +460,8 @@ const EMOTION_TONES = [
     tags:['Numb','Exhausted','Dissociated','Depleted','Frozen','Disconnected','Empty','Foggy','Detached','Withdrawn','Collapsed','Absent'] },
   { val:'activation', label:'Activation', color:'var(--c-restore)',  desc:'Sympathetic mobilization, scattered energy',
     tags:['Overwhelmed','Agitated','Restless','Scattered','Frantic','Wired','Keyed-up','Racing','Buzzing','Frenzied','Spinning','Ungrounded'] },
+  { val:'body',       label:'Body',       color:'#a88f6b',           desc:'Lingering physical or circumstantial states that drag your mood — illness, poor sleep, pain',
+    tags:['Allergies','Digestive','Headache','Hormonal','Inflamed','Pain','Run-down','Sick','Sleep-deprived'] },
 ];
 // Full preset lists per family — polyvagal state per tag.
 // Used by the "Pre-fill" button in the library to bulk-add a family's tags.
@@ -548,6 +550,17 @@ const EMOTION_TONE_PRESETS = {
     {tag:'Uneasy',       pv:'activated'},
     {tag:'Alarmed',      pv:'activated'},
   ],
+  body: [
+    {tag:'Allergies',     pv:'mixed'},
+    {tag:'Digestive',     pv:'mixed'},
+    {tag:'Headache',      pv:'mixed'},
+    {tag:'Hormonal',      pv:'mixed'},
+    {tag:'Inflamed',      pv:'mixed'},
+    {tag:'Pain',          pv:'mixed'},
+    {tag:'Run-down',      pv:'withdrawal', starred:true},
+    {tag:'Sick',          pv:'withdrawal'},
+    {tag:'Sleep-deprived',pv:'withdrawal', starred:true},
+  ],
 };
 // Maps individual tags to their emotion family val. Covers all canonical tags;
 // user-added tags that don't appear here fall into "Other" in the library view.
@@ -582,6 +595,14 @@ const TAG_TO_EMOTION_TONE = {
   'Agitated':'activation','Restless':'activation','Scattered':'activation','Frantic':'activation',
   'Wired':'activation','Keyed-up':'activation','Racing':'activation','Buzzing':'activation',
   'Frenzied':'activation','Spinning':'activation','Ungrounded':'activation',
+  // Body family — the curated preset is in EMOTION_TONE_PRESETS.body, but
+  // this map also includes earlier/legacy/common tags so they categorise
+  // correctly if a user has them on the list.
+  'Allergies':'body','Digestive':'body','Headache':'body','Hormonal':'body','Inflamed':'body',
+  'Pain':'body','Run-down':'body','Sick':'body','Sleep-deprived':'body',
+  'Achy':'body','In pain':'body','Nauseous':'body','Jet-lagged':'body','Hungover':'body',
+  'Hangry':'body','Sore':'body','Dehydrated':'body','Overheated':'body','Sluggish':'body',
+  'Ill':'body','Drained':'body','Heavy':'body','Bloated':'body',
 };
 // Polyvagal state mapping for challenging emotion tags.
 // Covers all canonical tags; user-added tags default to 'mixed'.
@@ -614,6 +635,14 @@ const TAG_TO_POLYVAGAL = {
   'Agitated':'activated','Restless':'activated','Scattered':'activated','Frantic':'activated',
   'Wired':'activated','Keyed-up':'activated','Racing':'activated','Buzzing':'activated',
   'Frenzied':'activated','Spinning':'activated','Ungrounded':'activated',
+  // Body family (curated + legacy)
+  'Allergies':'mixed','Digestive':'mixed','Headache':'mixed','Hormonal':'mixed',
+  'Inflamed':'mixed','Pain':'mixed','Run-down':'withdrawal','Sick':'withdrawal',
+  'Sleep-deprived':'withdrawal',
+  'Achy':'mixed','In pain':'mixed','Nauseous':'mixed','Jet-lagged':'withdrawal',
+  'Hungover':'withdrawal','Hangry':'activated','Sore':'mixed','Dehydrated':'mixed',
+  'Overheated':'activated','Sluggish':'withdrawal','Ill':'withdrawal',
+  'Drained':'withdrawal','Heavy':'withdrawal','Bloated':'mixed',
 };
 function tagToPolyvagal(tag) {
   if (S.tagPolyvagalOverrides && S.tagPolyvagalOverrides[tag]) return S.tagPolyvagalOverrides[tag];

@@ -447,14 +447,14 @@ function buildWobbleEmotionGuide() {
             }
           }),
           h('button',{
-            style:{background:fam.color,border:'none',borderRadius:'8px',color:'#fff',
-              fontSize:'12px',cursor:'pointer',padding:'9px 14px',
+            style:{background:'transparent',border:'1px solid var(--border)',borderRadius:'8px',
+              color:'var(--muted)',fontSize:'12px',cursor:'pointer',padding:'9px 14px',
               fontFamily:"'DM Sans',sans-serif",fontWeight:'500',flexShrink:'0'},
             onclick: () => {
               const inp = document.getElementById('guide-add-input');
               addCustom(inp ? inp.value : f[addKey]);
             }
-          }, 'Add')
+          }, 'Add custom')
         )
       ),
 
@@ -498,8 +498,7 @@ function buildWobbleEmotionGuide() {
       'Hard to name it? Start with the family that feels closest — the descriptions help. You can keep adding from more than one.'),
     h('div',{}, ...famCards),
     selectedSummary,
-    h('div',{style:{display:'flex',gap:'8px',marginTop:'18px'}},
-      h('button',{class:'submit-btn',style:{flex:'1'},onclick:backToForm}, 'Done')
-    )
+    h('button',{class: sel.length > 0 ? 'submit-btn' : 'sec-btn',
+      style:{width:'100%',marginTop:'18px'}, onclick:backToForm}, 'Done')
   ));
 }

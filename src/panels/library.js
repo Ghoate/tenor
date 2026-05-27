@@ -603,15 +603,21 @@ function buildWobblePresetModal() {
         }
       }),
       h('button',{
-        style:{background:fam.color,border:'none',borderRadius:'8px',color:'#fff',
-          fontSize:'12px',cursor:'pointer',padding:'9px 14px',
+        style:{background:'transparent',border:'1px solid var(--border)',borderRadius:'8px',
+          color:'var(--muted)',fontSize:'12px',cursor:'pointer',padding:'9px 14px',
           fontFamily:"'DM Sans',sans-serif",fontWeight:'500',flexShrink:'0'},
         onclick: () => {
           const inp = document.getElementById('wobble-preset-add-input');
           addCustom(inp ? inp.value : S._wobblePresetNewTag);
         }
-      }, 'Add')
+      }, 'Add custom')
     ),
-    h('button',{class:'sec-btn',style:{width:'100%',marginTop:'18px'},onclick:()=>closeModal()},'Done')
+    (() => {
+      // Highlight Done once this family has any tags configured (preset
+      // toggles or custom adds), to signal it's a good time to close.
+      const has = tags.some(t => ((S.tagToneOverrides && S.tagToneOverrides[t]) || TAG_TO_EMOTION_TONE[t]) === fam.val);
+      return h('button',{class: has ? 'submit-btn' : 'sec-btn',
+        style:{width:'100%',marginTop:'18px'}, onclick:()=>closeModal()}, 'Done');
+    })()
   ));
 }
