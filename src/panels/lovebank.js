@@ -6,19 +6,17 @@
 // gaugeType: 'relational' | 'personal' | 'combined'
 function buildTypedPills(winEntries, gaugeType) {
   const buckets = {};
-  const wDays = S.loveBankWindow != null ? Number(S.loveBankWindow) : 7;
+  const wDays = 7;
   const add = (key, label, color, score) => {
     if (!buckets[key]) buckets[key] = { label, color, total: 0 };
     buckets[key].total += score;
   };
 
-  // Experimental mode draws from every entry and uses power-law remaining;
-  // legacy mode draws from the window and uses exponential decay.
-  const useExp        = S.useExperimentalScoring;
-  const sourceEntries = useExp ? calcEntries() : winEntries;
-  const applyDecay    = (raw, daysAgo) => useExp
-    ? expRemaining(raw, daysAgo)
-    : raw * Math.pow(1 - S.weights.decay, daysAgo);
+  // Per-event power-law decay for the bucket pills.
+  // (Gauge totals use the active model via computeExperimentalScores; this
+  // pill breakdown stays on the power-law primitive regardless.)
+  const sourceEntries = calcEntries();
+  const applyDecay    = (raw, daysAgo) => expRemaining(raw, daysAgo);
 
   for (const e of sourceEntries) {
     const cap = bankDayCap(sourceEntries.find(le => le.date === e.date && le.category === 'libido'));
@@ -91,25 +89,6 @@ function buildTypedPills(winEntries, gaugeType) {
   );
 }
 
-function compute7DayWindowTenor(refDate, byDate) {
-  const decay = S.weights.decay || 0.05;
-  let relational = 0, personal = 0;
-  for (let i = 0; i < 7; i++) {
-    const d  = addDays(refDate, -i);
-    const es = byDate[d] || [];
-    if (!es.length) continue;
-    const w   = Math.pow(1 - decay, i);
-    const cap = bankDayCap(es.find(e => e.category === 'libido'));
-    for (const e of es) relational += bankScoreEntry(e, cap).score * w;
-    for (const e of es) {
-      if (e.category === 'restore') { const t = S.restoreTypes.find(x => (typeof x==='string'?x:x.name) === e.eventType); personal += restoreScore(e, t, cap) * w; }
-      else if (e.category === 'regulation') personal += wobbleRestoreScore(e, cap) * w;
-      else if (e.category === 'burnout')    personal += caretakerPersonalScore(e, cap) * w;
-    }
-  }
-  return (relational + personal) / 2;
-}
-
 function computeBaseTenorData() {
   const SMOOTHING_TARGET = 2 / 29;
   const byDate = {};
@@ -128,11 +107,9 @@ function computeBaseTenorData() {
   while (cur <= S.today) { allDays.push(cur); cur = addDays(cur, 1); }
   let baseTenor = null;
   const fullSeries = [];
-  const useExp = S.useExperimentalScoring;
   for (const d of allDays) {
-    // Experimental mode: lifetime sum as-of d (uses power-law decay with cutoff).
-    // Legacy mode: 7-day windowed tenor anchored to d.
-    const tenor = useExp ? computeExperimentalScores(d).tenor : compute7DayWindowTenor(d, byDate);
+    // Lifetime sum as-of d (via the active scoring model).
+    const tenor = computeExperimentalScores(d).tenor;
     const dayIndex = fullSeries.length + 1; // 1-based
     const alpha = Math.max(SMOOTHING_TARGET, 2 / (dayIndex + 1));
     baseTenor = baseTenor === null ? tenor : baseTenor * (1 - alpha) + tenor * alpha;
@@ -147,109 +124,16 @@ function buildLoveBankPanel() {
   if (!timeline.length) return h('div',{class:'balance-widget'},
     h('div',{class:'ins-empty',style:{marginTop:'60px'}},'No entries yet.\nStart logging to see your relational balance.'));
 
-  const wDays = S.loveBankWindow != null ? Number(S.loveBankWindow) : 7;
+  // Window entries used by the typed-pills breakdown below.
+  const winEntries  = calcEntries().filter(e => e.date >= addDays(S.today, -6) && e.date <= S.today);
 
-  const windowDefs = [
-    {val:7,  label:'7 Days'},
-    {val:30, label:'30 Days'},
-    {val:60, label:'60 Days'},
-  ];
+  // Gauges show lifetime sums via the active scoring model.
+  const exp = computeExperimentalScores();
+  const windowGaugeValue = exp.rel;
+  const perWindowGauge   = exp.per;
+  const comWindowGauge   = exp.tenor;
 
-  // Window entries — today-inclusive so freshly logged entries show up immediately
-  const windowStart = addDays(S.today, -(wDays - 1));
-  const winEntries  = calcEntries().filter(e => e.date >= windowStart && e.date <= S.today);
-
-  const winByDate = {};
-  for (const e of winEntries) {
-    if (!winByDate[e.date]) winByDate[e.date] = [];
-    winByDate[e.date].push(e);
-  }
-
-  let windowBalance = 0;
-  let windowBalanceDecayed = 0;
-  let deposits = 0, withdrawals = 0;
-  const scoredItems = [];
-
-  for (const [date, dayEs] of Object.entries(winByDate)) {
-    const le  = dayEs.find(e => e.category === 'libido');
-    const cap = bankDayCap(le);
-    const daysAgo = daysBetween(date, S.today);
-    const decayWeight = Math.pow(1 - S.weights.decay, daysAgo);
-    let dayDelta = 0;
-    for (const e of dayEs) {
-      const { score, color, label } = bankScoreEntry(e, cap);
-      dayDelta += score;
-      if (score !== 0) {
-        scoredItems.push({ score: Math.round(score * 10) / 10, color, label, date });
-        if (score > 0) deposits    += score;
-        else           withdrawals += score;
-      }
-    }
-    windowBalance += dayDelta;
-    windowBalanceDecayed += dayDelta * decayWeight;
-  }
-  windowBalance = Math.round(windowBalance * 10) / 10;
-  windowBalanceDecayed = Math.round(windowBalanceDecayed * 10) / 10;
-  let windowGaugeValue = windowBalanceDecayed;
-  scoredItems.sort((a, b) => b.score - a.score);
-
-  // ── Personal window gauge ──────────────────────────
-  const perWindowRaw = winEntries
-    .filter(e => e.category === 'restore' || e.category === 'regulation' || e.category === 'burnout')
-    .reduce((s,e) => {
-      const cap = bankDayCap(winEntries.find(le => le.date === e.date && le.category === 'libido'));
-      const daysAgo = daysBetween(e.date, S.today);
-      const decayWeight = Math.pow(1 - S.weights.decay, daysAgo);
-      if (e.category === 'restore') { const t=S.restoreTypes.find(x=>(typeof x==='string'?x:x.name)===e.eventType); return s+restoreScore(e,t,cap)*decayWeight; }
-      if (e.category === 'regulation') return s + wobbleRestoreScore(e, cap)*decayWeight;
-      if (e.category === 'burnout')    return s + caretakerPersonalScore(e, cap)*decayWeight;
-      return s;
-    }, 0);
-  let perWindowGauge = Math.round(perWindowRaw * 10) / 10;
-
-  // Combined: relational balance + all personal costs (wobble + all steadying + restore)
-  const perWindowForCombined = winEntries
-    .filter(e => e.category === 'restore' || e.category === 'regulation' || e.category === 'burnout')
-    .reduce((s,e) => {
-      const cap = bankDayCap(winEntries.find(le => le.date === e.date && le.category === 'libido'));
-      const daysAgo = daysBetween(e.date, S.today);
-      const decayWeight = Math.pow(1 - S.weights.decay, daysAgo);
-      if (e.category === 'restore') { const t=S.restoreTypes.find(x=>(typeof x==='string'?x:x.name)===e.eventType); return s+restoreScore(e,t,cap)*decayWeight; }
-      if (e.category === 'regulation') return s + wobbleRestoreScore(e, cap)*decayWeight;
-      if (e.category === 'burnout')    return s + caretakerPersonalScore(e, cap)*decayWeight;
-      return s;
-    }, 0);
-  let comWindowGauge = Math.round((windowGaugeValue + perWindowForCombined) / 2 * 10) / 10;
-
-  // Experimental override: lifetime-sum gauges with power-law decay
-  if (S.useExperimentalScoring) {
-    const exp = computeExperimentalScores();
-    windowGaugeValue = exp.rel;
-    perWindowGauge   = exp.per;
-    comWindowGauge   = exp.tenor;
-  }
-
-  const modeDecayed = S.gaugeMode === 'personal' ? perWindowGauge : S.gaugeMode === 'combined' ? comWindowGauge : windowGaugeValue;
-
-  // Restore score for window — restore deposits, all wobble drain, all steadying drain
-  const restoreTotal = winEntries
-    .filter(e => e.category === 'restore' || e.category === 'regulation' || e.category === 'burnout')
-    .reduce((sum, e) => {
-      if (e.category === 'restore') {
-        const typeObj = S.restoreTypes.find(t => (typeof t==='string'?t:t.name) === e.eventType);
-        const cap = bankDayCap(winEntries.find(le => le.date === e.date && le.category === 'libido'));
-        return sum + restoreScore(e, typeObj, cap);
-      }
-      const cap = bankDayCap(winEntries.find(le => le.date === e.date && le.category === 'libido'));
-      if (e.category === 'regulation') return sum + wobbleRestoreScore(e, cap);
-      if (e.category === 'burnout')    return sum + caretakerPersonalScore(e, cap);
-      return sum;
-    }, 0);
-
-  const net7        = deposits + withdrawals;
-  const periodLabel = S.useExperimentalScoring ? 'Lifetime (experimental)' : wDays === 7 ? 'Last 7 days' : wDays === 30 ? 'Last 30 days' : 'Last 60 days';
-
-  const zones = getBounds(wDays);
+  const zones = getBounds();
   const zoneBg = b => {
     if (b >= zones.thriving)  return 'rgba(77,196,120,0.18)';
     if (b >= zones.stable)    return 'rgba(77,196,120,0.09)';
@@ -264,155 +148,7 @@ function buildLoveBankPanel() {
                   : b >= zones.strained ? { label: 'Unsettled',  color: 'rgba(210,130,50,1)' }
                   : b >= zones.depleted ? { label: 'Difficult',  color: 'var(--c-warning)' }
                   :                       { label: 'Hurting', color: 'var(--c-conflict)' };
-  const { label: bLabel, color: bColor } = band(windowGaugeValue);
-
-  // Chart uses windowed timeline slice
-  const pts  = timeline.slice(-wDays);
-  const hasL = S.showPhysical && pts.some(p => p.libido !== null);
-
-  // Deposit and withdrawal series
-  const depVals = pts.map(p => p.deposits    ?? 0);
-  const wdrVals = pts.map(p => Math.abs(p.withdrawals ?? 0));
-
-  // Y range covers both series plus zero
-  const allYVals = [...depVals, ...wdrVals, 0];
-  const bMax = Math.max(...allYVals) || 1;
-  const bMin = 0;
-  const bRng = bMax - bMin || 1;
-
-  const W = 320, H = 100, PAD = 8;
-  const xOf = i  => PAD + (i / Math.max(pts.length - 1, 1)) * (W - PAD * 2);
-  const yOf = (v, mn, rng) => v == null ? null : H - PAD - ((v - mn) / rng) * (H - PAD * 2);
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  svg.setAttribute('preserveAspectRatio', 'none');
-  svg.style.cssText = 'display:block;width:100%;height:100px;';
-
-  const makePath = (vals, color, dash) => {
-    let path = '';
-    vals.forEach((v, i) => {
-      if (v === null) return;
-      const y = pts.length === 1 ? H / 2 : yOf(v, bMin, bRng);
-      if (y === null) return;
-      path += (path === '' ? 'M' : 'L') + xOf(i).toFixed(1) + ',' + y.toFixed(1) + ' ';
-    });
-    if (!path || pts.length < 2) return;
-    const el = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    el.setAttribute('d', path.trim());
-    el.setAttribute('fill', 'none');
-    el.setAttribute('stroke', color);
-    el.setAttribute('stroke-width', '2');
-    el.setAttribute('stroke-linecap', 'round');
-    if (dash) el.setAttribute('stroke-dasharray', dash);
-    svg.appendChild(el);
-  };
-
-  makePath(depVals, 'var(--c-partner)', null);
-  makePath(wdrVals, 'var(--c-conflict)', null);
-
-  if (hasL) {
-    let libiPath = '';
-    pts.forEach((p, i) => {
-      if (p.libido === null) return;
-      const libiNorm = (p.libido - 1) / 6;
-      const y = H - PAD - libiNorm * (H - PAD * 2);
-      const x = xOf(i);
-      // Always accumulate the path for the connecting line
-      const isGap = !pts[i - 1] || pts[i - 1].libido === null;
-      libiPath += (isGap ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
-      // On short windows also draw dots + labels
-      if (wDays <= 3) {
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', x.toFixed(1));
-        circle.setAttribute('cy', y.toFixed(1));
-        circle.setAttribute('r', '4');
-        circle.setAttribute('fill', 'var(--c-libido)');
-        circle.setAttribute('opacity', '0.9');
-        svg.appendChild(circle);
-        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        txt.setAttribute('x', x.toFixed(1));
-        txt.setAttribute('y', (y - 8).toFixed(1));
-        txt.setAttribute('text-anchor', 'middle');
-        txt.setAttribute('font-size', '9');
-        txt.setAttribute('fill', 'var(--c-libido)');
-        txt.textContent = p.libido + '/5';
-        svg.appendChild(txt);
-      }
-    });
-    if (libiPath) {
-      const lp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      lp.setAttribute('d', libiPath.trim());
-      lp.setAttribute('fill', 'none');
-      lp.setAttribute('stroke', 'var(--c-libido)');
-      lp.setAttribute('stroke-width', '1.5');
-      lp.setAttribute('stroke-linecap', 'round');
-      lp.setAttribute('stroke-dasharray', '4,3');
-      svg.appendChild(lp);
-    }
-  }
-
-  // Cap line — plotted normalised to its own 80%–120% range
-  const hasC = pts.some(p => p.cap != null);
-  if (hasC && pts.length > 1) {
-    let capPath = '';
-    pts.forEach((p, i) => {
-      if (p.cap == null) return;
-      // cap range 0.76–1.302 → normalise to 0–1 → map to chart height
-      const capNorm = (p.cap - 0.76) / (1.302 - 0.76);
-      const y = H - PAD - capNorm * (H - PAD * 2);
-      const isGap = !pts[i - 1] || pts[i - 1].cap == null;
-      capPath += (isGap ? 'M' : 'L') + xOf(i).toFixed(1) + ',' + y.toFixed(1) + ' ';
-    });
-    if (capPath) {
-      const cp = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      cp.setAttribute('d', capPath.trim());
-      cp.setAttribute('fill', 'none');
-      cp.setAttribute('stroke', 'var(--chart-cap)');
-      cp.setAttribute('stroke-width', '1.5');
-      cp.setAttribute('stroke-linecap', 'round');
-      cp.setAttribute('stroke-dasharray', '2,4');
-      svg.appendChild(cp);
-    }
-  }
-
-  // Single-point fallback: draw a dot instead of a line
-  if (pts.length === 1) {
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', (W / 2).toFixed(1));
-    dot.setAttribute('cy', (H / 2).toFixed(1));
-    dot.setAttribute('r', '5');
-    dot.setAttribute('fill', bColor);
-    svg.appendChild(dot);
-  }
-
-  // Stacked breakdown bar
-  const totalDep = scoredItems.filter(i => i.score > 0).reduce((s, i) => s + i.score, 0) || 0;
-  const totalWdr = Math.abs(scoredItems.filter(i => i.score < 0).reduce((s, i) => s + i.score, 0)) || 0;
-  const totalAbs = totalDep + totalWdr || 1;
-  const BAR_H = 60, BAR_W = 20;
-
-  const barSegs = [];
-  for (const item of scoredItems.filter(i => i.score > 0)) {
-    barSegs.push(h('div', { style: {
-      width: BAR_W + 'px', height: Math.max(2, Math.round(item.score / totalAbs * BAR_H)) + 'px',
-      background: item.color, flexShrink: '0',
-    }}));
-  }
-  if (totalDep > 0 && totalWdr > 0) {
-    barSegs.push(h('div', { style: { width: BAR_W + 'px', height: '1px', background: 'var(--border-mid)', flexShrink: '0' }}));
-  }
-  for (const item of scoredItems.filter(i => i.score < 0)) {
-    barSegs.push(h('div', { style: {
-      width: BAR_W + 'px', height: Math.max(2, Math.round(Math.abs(item.score) / totalAbs * BAR_H)) + 'px',
-      background: item.color, opacity: '0.7', flexShrink: '0',
-    }}));
-  }
-
-  const breakdownBar = barSegs.length > 0 ? h('div', { style: {
-    display: 'flex', flexDirection: 'column', width: BAR_W + 'px', height: BAR_H + 'px',
-    borderRadius: '6px', overflow: 'hidden', flexShrink: '0',
-  }}, ...barSegs) : null;
+  const bColor = band(windowGaugeValue).color;
 
   return h('div',{class:'balance-widget'},
 
@@ -423,22 +159,6 @@ function buildLoveBankPanel() {
       background:`radial-gradient(ellipse at 50% 100%, ${bColor}18 0%, transparent 65%)`,
       borderBottom:'1px solid var(--surface-2)',
     }},
-
-      // Window selector row — only shown in legacy mode (experimental has no window).
-      S.useExperimentalScoring
-        ? null
-        : h('div',{style:{display:'flex',gap:'6px',marginBottom:'16px'}},
-            ...windowDefs.map(w=>h('button',{
-              style:{
-                padding:'4px 12px', borderRadius:'20px', fontSize:'11px', cursor:'pointer',
-                fontFamily:"'DM Sans',sans-serif", letterSpacing:'0.04em',
-                border: wDays===w.val ? `1px solid ${bColor}88` : '1px solid var(--border)',
-                background: wDays===w.val ? bColor+'18' : 'transparent',
-                color: wDays===w.val ? bColor : 'var(--muted)',
-              },
-              onclick:()=>{S.loveBankWindow=w.val;saveSettings();render();}
-            },w.label))
-          ),
 
       // ── Headline: "Emotional Tenor" ─────────────────────
       h('div',{style:{

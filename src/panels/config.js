@@ -292,22 +292,8 @@ function buildConfigPanel() {
       ),
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderTop:'1px solid var(--border)'}},
         h('div',{},
-          h('div',{style:{fontSize:'13px',color:'var(--text)'}},'Experimental scoring model'),
-          h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Lifetime sum with custom decay (no 7/30/60 day window)')
-        ),
-        h('button',{
-          style:{padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
-            fontFamily:"'DM Sans',sans-serif",
-            border: S.useExperimentalScoring ? '1px solid var(--c-partner)' : '1px solid var(--border)',
-            background: S.useExperimentalScoring ? 'var(--c-partner-tint)' : 'var(--bg3)',
-            color: S.useExperimentalScoring ? 'var(--c-partner)' : 'var(--muted)'},
-          onclick:()=>{ S.useExperimentalScoring=!S.useExperimentalScoring; saveSettings(); render(); }
-        }, S.useExperimentalScoring ? 'On' : 'Off')
-      ),
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderTop:'1px solid var(--border)'}},
-        h('div',{},
           h('div',{style:{fontSize:'13px',color:'var(--text)'}},'Exponential decay (alternate model)'),
-          h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Per-event exponential fade with magnitude-scaled lifespan. Below 1 → 0. Requires Experimental scoring on.')
+          h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Per-event exponential fade with magnitude-scaled lifespan. Below 1 → 0.')
         ),
         h('button',{
           style:{padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
@@ -369,51 +355,6 @@ function buildConfigPanel() {
       h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},
         'Adjust the core scoring parameters.'
       ),
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--border)'}},
-        h('div',{style:{flex:'1'}},
-          h('div',{style:{fontSize:'13px',color:'var(--text)'}},'Daily decay rate'),
-          h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Fraction lost per day (e.g. 0.05 = 5%) — higher = shorter memory')
-        ),
-        h('input',{
-          type:'number', step:'0.01', min:'0', max:'0.5',
-          value: String(W.decay),
-          style:{width:'80px',background:'var(--bg3)',border:'1px solid var(--border)',
-            borderRadius:'8px',padding:'6px 10px',fontSize:'14px',
-            color:'var(--c-physical)',fontFamily:"'Libre Baskerville',serif",
-            textAlign:'right',outline:'none',flexShrink:'0'},
-          onchange: e => {
-            const n = parseFloat(e.target.value);
-            if (!isNaN(n) && n >= 0 && n <= 0.5) {
-              S.weights = {...S.weights, decay: n};
-              saveSettings();
-              showToast('✓ Decay rate saved');
-              render();
-            }
-          }
-        })
-      ),
-      // ── Derived decay info (half-life and event-fade horizon) ──
-      // Lives inline under the Daily decay rate row since these values are
-      // computed from it, not separate controls.
-      (() => {
-        const decay      = S.weights.decay || 0.05;
-        const halfLife   = Math.round(Math.log(0.5) / Math.log(1 - decay));
-        const daysTo5pct = Math.ceil(Math.log(0.05) / Math.log(1 - decay));
-        const miniRow = (label, value) => h('div',{style:{
-          display:'flex', justifyContent:'space-between', alignItems:'baseline',
-          padding:'4px 0',
-        }},
-          h('span',{style:{fontSize:'11px',color:'var(--muted)'}}, label),
-          h('span',{style:{fontSize:'12px',fontFamily:"'Libre Baskerville',serif",color:'var(--muted)'}}, value)
-        );
-        return h('div',{style:{
-          padding:'8px 12px 6px',marginTop:'8px',marginBottom:'4px',
-          borderRadius:'8px',background:'var(--bg3)',
-        }},
-          miniRow('Half-life', '~'+halfLife+' days'),
-          miniRow('Events negligible after', '~'+daysTo5pct+' days')
-        );
-      })(),
       ...[
         {key:'stable7',    label:'Healthy anchor (7-day)',        hint:'Score threshold for Healthy zone at 7 days',                min:10, max:500,  step:5,  def:40},
         {key:'thriving7',  label:'Thriving anchor (7-day)',       hint:'Score threshold for Thriving zone at 7 days',              min:20, max:1000, step:10, def:80},
@@ -423,10 +364,10 @@ function buildConfigPanel() {
         {key:'fcTouch',    label:'Forecast — a touch warmer/cooler', hint:'|Δ| at which tomorrow flags as a touch warmer or cooler (mirrored)', min:0.5, max:10,  step:0.5, def:1},
         {key:'fcWarm',     label:'Forecast — warmer/cooler',         hint:'|Δ| at which tomorrow flags as warmer or cooler (mirrored)',         min:1,   max:30,  step:0.5, def:4},
         {key:'fcMuch',     label:'Forecast — much warmer/cooler',    hint:'|Δ| at which tomorrow flags as much warmer or cooler (mirrored)',    min:2,   max:100, step:1,   def:8},
-        {key:'lifespanSlope',    label:'Experimental — lifespan slope',  hint:'Days of lifespan per point of score (bigger events linger longer)',    min:0,   max:10,  step:0.1, def:0.5},
-        {key:'lifespanFloor',    label:'Experimental — lifespan floor',  hint:'Minimum lifespan in days, even for tiny events',                       min:0,   max:30,  step:0.5, def:1.5},
-        {key:'decayPower',       label:'Experimental — decay power',     hint:'Shape of the fade curve — higher values create a sharper cliff at lifespan', min:0.5, max:10,  step:0.5, def:2},
-        {key:'cutoffMultiplier', label:'Experimental — cutoff multiplier', hint:'Hard zero past this many lifespans — kills the long power-law tail',  min:1,   max:10,  step:0.5, def:2.5},
+        {key:'lifespanSlope',    label:'Power-law — lifespan slope',     hint:'Days of lifespan per point of score (bigger events linger longer)',    min:0,   max:10,  step:0.1, def:0.5},
+        {key:'lifespanFloor',    label:'Power-law — lifespan floor',     hint:'Minimum lifespan in days, even for tiny events',                       min:0,   max:30,  step:0.5, def:1.5},
+        {key:'decayPower',       label:'Power-law — decay power',        hint:'Shape of the fade curve — higher values create a sharper cliff at lifespan', min:0.5, max:10,  step:0.5, def:2},
+        {key:'cutoffMultiplier', label:'Power-law — cutoff multiplier',  hint:'Hard zero past this many lifespans — kills the long power-law tail',  min:1,   max:10,  step:0.5, def:2.5},
         {key:'expT_Slope',       label:'Exponential — lifespan slope',     hint:'Days of lifespan per point of score (per-event exponential model)',    min:0,   max:5,   step:0.01, def:0.58},
         {key:'expT_Floor',       label:'Exponential — lifespan floor',     hint:'Minimum lifespan in days, even for tiny events (per-event exponential)', min:0,   max:30,  step:0.1, def:1.8},
       ].map(({key,label,hint,min,max,step,def}) =>

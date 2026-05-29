@@ -27,10 +27,9 @@ function expRemaining(score, daysAgo) {
   return score / (1 + Math.pow(daysAgo / ls, power));
 }
 
-// Raw per-entry scores grouped into relational and personal buckets.
-// Mirrors the same scoring functions used by the legacy windowed model
-// (bankScoreEntry / restoreScore / wobbleRestoreScore / caretakerPersonalScore)
-// so the two models share their per-entry math — only the decay differs.
+// Raw per-entry scores grouped into relational and personal buckets,
+// using the shared scoring primitives (bankScoreEntry / restoreScore /
+// wobbleRestoreScore / caretakerPersonalScore).
 function expEntryScores(e, cap) {
   let rel = 0, per = 0;
   if (e.category === 'affection' || e.category === 'physical' || e.category === 'conflict' || e.category === 'turndown') {

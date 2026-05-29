@@ -4,15 +4,11 @@
 function resolveSub(val) { return typeof val === 'function' ? val() : (val || ''); }
 
 // ── Tenor zone bounds ────────────────────────────────────
-// Derives zone thresholds for any window from the three 7-day anchors in S.weights.
-// Negative boundaries mirror positive ones exactly.
-function getBounds(days) {
-  const decay = S.weights.decay || 0.05;
-  const wSum  = (n) => { let s=0; for(let d=0;d<n;d++) s+=Math.pow(1-decay,d); return s; };
-  const ratio = wSum(days) / wSum(7);
-  const stable   = Math.round((S.weights.stable7   || 40)  * ratio);
-  const thriving = Math.round((S.weights.thriving7  || 80)  * ratio);
-  const cap      = Math.round((S.weights.cap7       || 240) * ratio);
+// Zone thresholds for the relational gauge. Negative boundaries mirror positives.
+function getBounds() {
+  const stable   = S.weights.stable7   || 40;
+  const thriving = S.weights.thriving7 || 80;
+  const cap      = S.weights.cap7      || 240;
   return { cap, thriving, stable, neutral:0, strained:-stable, depleted:-thriving, critical:-cap };
 }
 

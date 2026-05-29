@@ -18,8 +18,6 @@ function render() {
   // Refresh today in case the app has been open past midnight
   S.today = dateStr(new Date());
   S._loveBankCache = null; // invalidate per-render cache
-  // Reset window to 7d when not on a tab that uses it — keeps score bar in sync on re-entry
-  if (S.activeTab !== 'insights' && S.activeTab !== 'needs' && S.activeTab !== 'attachment') S.loveBankWindow = 7;
 
   // Detect tab change since the last render. When the tab changes,
   // scroll positions from the previous tab are not meaningful — we

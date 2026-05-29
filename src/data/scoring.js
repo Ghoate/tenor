@@ -289,7 +289,6 @@ function computeLoveBankScore(entries) {
   const timeline = [];
 
   for (const d of allDays) {
-    balance *= (1 - S.weights.decay);
     const es  = byDate[d] || [];
     const le  = es.find(e => e.category === 'libido');
     const cap = bankDayCap(le);

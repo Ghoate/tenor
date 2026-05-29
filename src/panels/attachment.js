@@ -1377,22 +1377,18 @@ function buildLensCollapsible(opts) {
 function buildAttachmentPanel() {
   const section = (title) => h('div',{class:'ins-section'},h('div',{class:'ins-section-title',style:{fontWeight:'600'}},title));
 
-  // Window selection — same options as Insights, shared loveBankWindow state
-  const wDays = S.loveBankWindow != null ? Number(S.loveBankWindow) : 7;
-  const windowDefs = [
-    {val:7,  label:'7 Days'},
-    {val:30, label:'30 Days'},
-    {val:60, label:'60 Days'},
-  ];
-  const windowStart = addDays(S.today, -(wDays - 1));
-  const winLabel = windowDefs.find(w => w.val === wDays)?.label || '7 Days';
+  // Lens uses all entries. windowStart is the earliest entry date so chart
+  // axes still scale correctly; wDays is the span in days for any callee
+  // that needs a numeric range.
+  const earliestDate = S.allEntries.length > 0
+    ? S.allEntries.reduce((min, e) => e.date < min ? e.date : min, S.today)
+    : S.today;
+  const windowStart = earliestDate;
+  const wDays = Math.max(1, daysBetween(earliestDate, S.today) + 1);
+  const winLabel = 'All Time';
 
   // Period reference phrase used by observations and section labels
-  const periodRef = (() => {
-    if (wDays === 7)  return 'this week';
-    if (wDays === 30) return 'this month';
-    return `in the last ${wDays} days`;
-  })();
+  const periodRef = 'overall';
 
   // ── Collect tagged entries in window ────────────────────────────────
   // Returns the dictionary used for tag lookup based on entry type
@@ -1442,16 +1438,6 @@ function buildAttachmentPanel() {
   const totalTagOccurrences = Object.values(tagCounts).reduce((s, t) => s + t.count, 0);
   const maxTagCount = Object.values(tagCounts).reduce((m, t) => Math.max(m, t.count), 0);
 
-  // ── Window selector ─────────────────────────────────────────────────
-  const windowSelector = h('div',{style:{
-    display:'flex',gap:'6px',flexWrap:'wrap',marginBottom:'14px',
-  }},
-    ...windowDefs.map(w => h('button',{
-      class: 'win-btn' + (wDays === w.val ? ' active' : ''),
-      onclick: () => { S.loveBankWindow = w.val; saveSettings(); render(); }
-    }, w.label))
-  );
-
   // ── Framing card ────────────────────────────────────────────────────
   const framing = h('div',{style:{
     padding:'16px 18px',marginBottom:'14px',
@@ -1483,7 +1469,6 @@ function buildAttachmentPanel() {
     // panel, then show the empty-tag message before the reference layer.
     return h('div',{class:'insights-panel'},
       framing,
-      windowSelector,
       h('div',{style:{
         padding:'30px 20px',marginTop:'8px',marginBottom:'14px',textAlign:'center',
         fontSize:'13px',color:'var(--muted)',fontStyle:'italic',lineHeight:'1.7',
@@ -1652,7 +1637,6 @@ function buildAttachmentPanel() {
 
   return h('div',{class:'insights-panel'},
     framing,
-    windowSelector,
 
     section('Where your moments land'),
     buildAttachmentGrid({ taggedEntries, periodRef }),

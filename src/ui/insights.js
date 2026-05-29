@@ -2,21 +2,16 @@
 
 
 /* ── INSIGHTS ENGINE ────────────────────────────────── */
+// Last 7 days, today-inclusive — used by observation cards.
 function getWindowEntries() {
-  // In experimental mode the window selector is hidden, so observations use a
-  // fixed 7-day frame regardless of whatever S.loveBankWindow happens to hold.
-  const w = S.useExperimentalScoring ? 7 : Number(S.loveBankWindow);
-  const src = calcEntries();
-  if (w === 0) return src;
-  const cutoff = addDays(S.today, -(w - 1));
-  return src.filter(e => e.date >= cutoff && e.date <= S.today);
+  const cutoff = addDays(S.today, -6);
+  return calcEntries().filter(e => e.date >= cutoff && e.date <= S.today);
 }
 
+// The 7 days before that, for "vs prev period" deltas.
 function getPrevWindowEntries() {
-  const w = S.useExperimentalScoring ? 7 : Number(S.loveBankWindow);
-  if (w === 0) return [];
-  const end   = addDays(S.today, -w);
-  const start = addDays(S.today, -w*2);
+  const end   = addDays(S.today, -7);
+  const start = addDays(S.today, -14);
   return calcEntries().filter(e => e.date >= start && e.date < end);
 }
 
@@ -805,8 +800,7 @@ function computeCorrelations(winEntries) {
   }
 
   // 22. Tone shift across periods — compares current 7 days vs prior 7.
-  //     Fixed 7-day frame for both legacy and experimental modes since this
-  //     is a recency-comparison signal, not a scoring window.
+  //     Fixed 7-day frame: this is a recency-comparison signal, not a scoring window.
   if (S.showRegulation) {
     const _tsDays   = 7;
     const _currFrom = addDays(S.today, -(_tsDays - 1));
@@ -1224,38 +1218,16 @@ function buildHomePage() {
   const repairToday          = todayEs.some(e => e.category === 'repair');
   const recentTurndowns      = allEntries.filter(e => e.category === 'turndown' && e.date >= addDays(S.today, -9) && e.date <= S.today).length;
 
-  // Relational balance trend (7-day) — today-inclusive, matching score bar / gauge logic
-  const decay = S.weights.decay || 0.05;
-  let relBal7 = Math.round(last7.reduce((s, e) => {
-    const dayEs = last7.filter(x => x.date === e.date);
-    const cap = bankDayCap(dayEs.find(le => le.category === 'libido'));
-    const dw = Math.pow(1 - decay, daysBetween(e.date, S.today));
-    return s + bankScoreEntry(e, cap).score * dw;
-  }, 0));
-
-  // Personal balance 7-day
-  let perBal7 = Math.round(last7.reduce((s, e) => {
-    const dayEs = last7.filter(x => x.date === e.date);
-    const cap = bankDayCap(dayEs.find(le => le.category === 'libido'));
-    const dw = Math.pow(1 - decay, daysBetween(e.date, S.today));
-    if (e.category === 'restore') { const t=S.restoreTypes.find(x=>(typeof x==='string'?x:x.name)===e.eventType); return s+restoreScore(e,t,cap)*dw; }
-    if (e.category === 'regulation') return s + wobbleRestoreScore(e, cap)*dw;
-    if (e.category === 'burnout')    return s + caretakerPersonalScore(e, cap)*dw;
-    return s;
-  }, 0));
-
-  // Experimental override — replace 7-day windowed values with lifetime sums.
-  if (S.useExperimentalScoring) {
-    const expNow = computeExperimentalScores(S.today);
-    relBal7 = Math.round(expNow.rel);
-    perBal7 = Math.round(expNow.per);
-  }
+  // Relational & personal balance — lifetime sum via the active scoring model.
+  const expNow = computeExperimentalScores(S.today);
+  const relBal7 = Math.round(expNow.rel);
+  const perBal7 = Math.round(expNow.per);
 
   const hasEnoughData = allEntries.length >= 3;
   const loggedMoodToday = todayEs.some(e => e.category === 'libido');
 
-  // 7-day Tenor zone for greeting card
-  const zones7 = getBounds(7);
+  // Tenor zone for greeting card
+  const zones7 = getBounds();
   const tenorScore7 = hasEnoughData ? Math.round((relBal7 + perBal7) / 2) : null;
   const zoneBand7 = tenorScore7 === null ? null
     : tenorScore7 >= zones7.thriving ? { label:'Thriving',  color:'var(--c-partner)' }
@@ -1313,36 +1285,12 @@ function buildHomePage() {
   };
   const zoneNote = !zoneBand7 ? pick(zoneLines.none) : pick(zoneLines[zoneBand7.label] ?? zoneLines.none);
 
-  // ── Tomorrow forecast (assumes nothing more logged today) ──
-  // Tomorrow's window = [today-5, tomorrow], anchor = tomorrow, tomorrow has no entries.
-  // So we re-score the same last7 entries minus the oldest day with tomorrow as anchor.
-  const _fcAnchor  = addDays(S.today, 1);
-  const _fcStart   = addDays(S.today, -5);
-  const _fcEntries = allEntries.filter(e => e.date >= _fcStart && e.date <= S.today);
-  let fcRel = Math.round(_fcEntries.reduce((s, e) => {
-    const dayEs = _fcEntries.filter(x => x.date === e.date);
-    const cap   = bankDayCap(dayEs.find(le => le.category === 'libido'));
-    const dw    = Math.pow(1 - decay, daysBetween(e.date, _fcAnchor));
-    return s + bankScoreEntry(e, cap).score * dw;
-  }, 0));
-  let fcPer = Math.round(_fcEntries.reduce((s, e) => {
-    const dayEs = _fcEntries.filter(x => x.date === e.date);
-    const cap   = bankDayCap(dayEs.find(le => le.category === 'libido'));
-    const dw    = Math.pow(1 - decay, daysBetween(e.date, _fcAnchor));
-    if (e.category === 'restore') { const t=S.restoreTypes.find(x=>(typeof x==='string'?x:x.name)===e.eventType); return s+restoreScore(e,t,cap)*dw; }
-    if (e.category === 'regulation') return s + wobbleRestoreScore(e, cap) * dw;
-    if (e.category === 'burnout')    return s + caretakerPersonalScore(e, cap) * dw;
-    return s;
-  }, 0));
-  let fcTenor = Math.round((fcRel + fcPer) / 2);
-
-  // Experimental override — forecast is the lifetime sum as of tomorrow (one more day of decay).
-  if (S.useExperimentalScoring) {
-    const expFc = computeExperimentalScores(_fcAnchor);
-    fcRel   = Math.round(expFc.rel);
-    fcPer   = Math.round(expFc.per);
-    fcTenor = Math.round(expFc.tenor);
-  }
+  // ── Tomorrow forecast — lifetime sum as of tomorrow (one more day of decay).
+  const _fcAnchor = addDays(S.today, 1);
+  const expFc     = computeExperimentalScores(_fcAnchor);
+  const fcRel     = Math.round(expFc.rel);
+  const fcPer     = Math.round(expFc.per);
+  const fcTenor   = Math.round(expFc.tenor);
   // Map each projected score to a weather icon based on its zone band
   const _zoneIcon = v =>
       v >= zones7.thriving  ? { icon:'☀️',  label:'Thriving',    color:'var(--c-partner)' }
@@ -1660,8 +1608,8 @@ function buildHomePage() {
 function buildInsightsPanel() {
   const winEntries = getWindowEntries();
   const prevEntries = getPrevWindowEntries();
-  // In experimental mode the window selector is hidden — pin observation labels to 7 days.
-  const w = S.useExperimentalScoring ? 7 : Number(S.loveBankWindow);
+  // 7-day frame used by observation labels.
+  const w = 7;
 
   // ── Correlations — use full history so sample sizes are meaningful ──
   const correlations = computeCorrelations(calcEntries());
@@ -1675,26 +1623,14 @@ function buildInsightsPanel() {
     // Threshold alerts surfaced as cards, mirroring the visual style of
     // Correlations below but without strength badges (these aren't statistical).
     (() => {
-      // In experimental mode, threshold observations look at what's still
-      // alive (events whose decayed score is non-zero) rather than a fixed
-      // 7-day calendar window — that matches the lifetime-sum model the
-      // Tenor gauge uses. Legacy windowed mode keeps the calendar frame.
-      let obsWin, obsPrev, wLabel, pRef, pRefCap, hint;
-      if (S.useExperimentalScoring) {
-        obsWin  = aliveEntries(S.today);
-        obsPrev = aliveEntries(addDays(S.today, -7));
-        wLabel  = 'Active right now';
-        pRef    = 'in your active stretch';
-        pRefCap = 'Active stretch';
-        hint    = 'Notable signals from events still contributing to your tenor — thresholds crossed, conditions aligned.';
-      } else {
-        obsWin  = winEntries;
-        obsPrev = prevEntries;
-        wLabel  = w===7?'Last 7 days':w===30?'Last 30 days':'Last 60 days';
-        pRef    = w===7?'this week':w===30?'this month':'in this window';
-        pRefCap = w===7?'This week':w===30?'This month':'This window';
-        hint    = 'Notable signals from this window — thresholds crossed, conditions aligned.';
-      }
+      // Threshold observations look at what's still alive — events whose
+      // decayed score is non-zero — matching the lifetime-sum Tenor gauge.
+      const obsWin  = aliveEntries(S.today);
+      const obsPrev = aliveEntries(addDays(S.today, -7));
+      const wLabel  = 'Active right now';
+      const pRef    = 'in your active stretch';
+      const pRefCap = 'Active stretch';
+      const hint    = 'Notable signals from events still contributing to your tenor — thresholds crossed, conditions aligned.';
       return h('div',{style:{marginBottom:'14px'}},
         h('div',{class:'ins-section'},h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'Observations')),
         h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'10px',lineHeight:'1.6'}}, hint),
@@ -1767,12 +1703,9 @@ function buildInsightsPanel() {
 
 
 function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRefCap, end=S.today, mode='full') {
-  // mode: 'full' renders observation + all three cards (legacy/default)
-  //       'observationOnly' renders just the observation block (used in the
-  //         Last 30 days collapsible)
-  //       'cardsOnly' renders just the Connection / Load / Positive
-  //         Development cards (used at the top of the All metrics
-  //         collapsible — repositioned per design)
+  // mode: 'full' renders observation + all three cards (default)
+  //       'observationOnly' renders just the observation block
+  //       'cardsOnly' renders just the Connection / Load / Positive Development cards
 
   // Entry filters
   const physical  = weekEntries.filter(e=>e.category==='physical'&&!e.solo);
@@ -1829,32 +1762,9 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
   };
 
   // ── Weekly observation — single most important signal ──────────────────
-  // Windowed relational balance — same decay method as buildScoreBar so the
-  // number matches what the user sees in the score panel.
-  const wDays  = Number(S.loveBankWindow) || 7;
-  const zones  = getBounds(wDays);
-  let weekBal;
-  if (S.useExperimentalScoring) {
-    // Use the experimental lifetime relational sum so observations reference
-    // the same number the gauges show.
-    weekBal = weekEntries.length > 0 ? Math.round(computeExperimentalScores().rel) : null;
-  } else {
-    const wkByDate = {};
-    for (const e of weekEntries) {
-      if (!wkByDate[e.date]) wkByDate[e.date] = [];
-      wkByDate[e.date].push(e);
-    }
-    let wkRelDecayed = 0;
-    for (const [date, dayEs] of Object.entries(wkByDate)) {
-      const cap = bankDayCap(dayEs.find(e => e.category === 'libido'));
-      const daysAgo = daysBetween(date, end);
-      const dw = Math.pow(1 - S.weights.decay, daysAgo);
-      let dayDelta = 0;
-      for (const e of dayEs) dayDelta += bankScoreEntry(e, cap).score;
-      wkRelDecayed += dayDelta * dw;
-    }
-    weekBal = weekEntries.length > 0 ? Math.round(wkRelDecayed * 10) / 10 : null;
-  }
+  // Lifetime relational sum so observations reference the same number the gauges show.
+  const zones   = getBounds();
+  const weekBal = weekEntries.length > 0 ? Math.round(computeExperimentalScores().rel) : null;
 
   // Only count her turn downs for load signal
   const herTurndownLoad = Math.round(

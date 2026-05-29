@@ -51,13 +51,11 @@ function saveSettings(){
   dbPut('settings',{key:'needsHits',         value:S.needsHits});
   dbPut('settings',{key:'needsPnHits',       value:S.needsPnHits});
   dbPut('settings',{key:'needs2Sort',        value:S.needs2Sort});
-  dbPut('settings',{key:'useExperimentalScoring', value:S.useExperimentalScoring});
   dbPut('settings',{key:'useExponentialDecay',    value:S.useExponentialDecay});
   dbPut('settings',{key:'calcStartDate',         value:S.calcStartDate});
   dbPut('settings',{key:'showQuickDelete',   value:S.showQuickDelete});
   dbPut('settings',{key:'relationshipMode',  value:S.relationshipMode});
   dbPut('settings',{key:'calFilters',        value:[...S.calFilters]});
-  dbPut('settings',{key:'loveBankWindow',    value:S.loveBankWindow});
   dbPut('settings',{key:'gaugeMode',         value:S.gaugeMode});
   dbPut('settings',{key:'needsTab',          value:S.needsTab});
   dbPut('settings',{key:'needsSort',         value:S.needsSort});
@@ -192,9 +190,6 @@ function loadSettings(){
     dbGet('settings','needs2Sort').then(s=>{
       if(s&&s.value!=null) S.needs2Sort = s.value;
     }),
-    dbGet('settings','useExperimentalScoring').then(s=>{
-      if(s&&s.value!=null) S.useExperimentalScoring = s.value;
-    }),
     dbGet('settings','useExponentialDecay').then(s=>{
       if(s&&s.value!=null) S.useExponentialDecay = s.value;
     }),
@@ -214,9 +209,6 @@ function loadSettings(){
         // Migrate legacy 'partner' category name to 'notes'
         S.calFilters = new Set(s.value.map(v => v === 'partner' ? 'notes' : v));
       }
-    }),
-    dbGet('settings','loveBankWindow').then(s=>{
-      if(s && s.value != null) S.loveBankWindow = Number(s.value);
     }),
     dbGet('settings','gaugeMode').then(s=>{
       if(s && s.value) S.gaugeMode = s.value;

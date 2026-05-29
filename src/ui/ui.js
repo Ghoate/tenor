@@ -277,47 +277,13 @@ function buildDayPanel() {
   });
   const isToday = S.selectedDate === S.today;
 
-  // Mini score panel — windowed compute anchored on the selected date.
-  const _miniDays   = Number(S.loveBankWindow) || 7;
+  // Mini score panel — lifetime sums as of the selected date.
   const _miniAnchor = S.selectedDate;
-  const _miniStart  = addDays(_miniAnchor, -(_miniDays - 1));
-  const _miniEntries = S.allEntries.filter(e => e.date >= _miniStart && e.date <= _miniAnchor);
-  let _miniRel, _miniPer, _miniCom;
-  if (S.useExperimentalScoring) {
-    const _expMini = computeExperimentalScores(_miniAnchor);
-    _miniRel = _expMini.rel;
-    _miniPer = _expMini.per;
-    _miniCom = _expMini.tenor;
-  } else {
-    const _miniByDate = {};
-    for (const e of _miniEntries) { (_miniByDate[e.date] ||= []).push(e); }
-    let relAcc = 0, perAcc = 0;
-    for (const [date, dayEs] of Object.entries(_miniByDate)) {
-      const cap = bankDayCap(dayEs.find(e => e.category === 'libido'));
-      const daysAgo = daysBetween(date, _miniAnchor);
-      const dw = Math.pow(1 - S.weights.decay, daysAgo);
-      let relDelta = 0, perDelta = 0;
-      for (const e of dayEs) {
-        relDelta += bankScoreEntry(e, cap).score;
-        if (e.category === 'restore') {
-          const t = S.restoreTypes.find(x => (typeof x==='string'?x:x.name) === e.eventType);
-          perDelta += restoreScore(e, t, cap);
-        } else if (e.category === 'regulation') {
-          perDelta += wobbleRestoreScore(e, cap);
-        } else if (e.category === 'burnout') {
-          perDelta += caretakerPersonalScore(e, cap);
-        }
-      }
-      relAcc += relDelta * dw;
-      perAcc += perDelta * dw;
-    }
-    _miniRel = relAcc;
-    _miniPer = perAcc;
-    _miniCom = (relAcc + perAcc) / 2;
-  }
-  const _miniZones = getBounds(_miniDays);
-  // Round once so a displayed "50" lands in the same band the home page would
-  // (matches the main score-bar fix — keeps display and band in sync).
+  const _expMini = computeExperimentalScores(_miniAnchor);
+  const _miniRel = _expMini.rel;
+  const _miniPer = _expMini.per;
+  const _miniCom = _expMini.tenor;
+  const _miniZones = getBounds();
   const _miniBg = v => {
     const r = Math.round(v);
     if (r >= _miniZones.thriving)  return 'rgba(30,160,80,0.18)';
@@ -327,11 +293,9 @@ function buildDayPanel() {
     if (r >= _miniZones.depleted)  return 'rgba(224,100,40,0.16)';
     return 'rgba(224,53,53,0.18)';
   };
-  const _miniSuffix = S.useExperimentalScoring ? '' : ' · ' + _miniDays + 'd';
-  const _miniLabel = (S.selectedDate === S.today
+  const _miniLabel = S.selectedDate === S.today
     ? 'Today'
-    : new Date(S.selectedDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}))
-    + _miniSuffix;
+    : new Date(S.selectedDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
   const _miniScores = [
     {label:'Relational', val:_miniRel},
     {label:'Personal',   val:_miniPer},
@@ -393,7 +357,7 @@ function buildDayPanel() {
       );
       const sectionHeader = (text) => h('div',{style:{marginTop:'10px',marginBottom:'6px',fontWeight:'600',color:'var(--text-strong)',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}}, text);
 
-      // Power-law (current experimental) — always computed
+      // Power-law (default model) — always computed
       const expPL  = computeExperimentalScores(S.today, 'powerlaw');
       const plRel  = expRemaining(relRaw,  daysAgo);
       const plPer  = expRemaining(persRaw, daysAgo);
@@ -713,54 +677,15 @@ function buildPicker() {
 }
 
 function buildScoreBar() {
-  // Score bar uses a fixed 7-day window so the at-a-glance number is stable
-  // and not affected by whatever window the user has selected on insights.
-  const wDays = 7;
-  const end   = S.today;
-  const start = addDays(end, -(wDays - 1));
-  const winEntries = S.allEntries.filter(e => e.date >= start && e.date <= end);
-
-  let relVal, perVal, comVal;
-  if (S.useExperimentalScoring) {
-    const exp = computeExperimentalScores();
-    relVal = exp.rel;
-    perVal = exp.per;
-    comVal = exp.tenor;
-  } else {
-    const byDate = {};
-    for (const e of winEntries) { (byDate[e.date] ||= []).push(e); }
-    let relAcc = 0, perAcc = 0;
-    for (const [date, dayEs] of Object.entries(byDate)) {
-      const cap = bankDayCap(dayEs.find(e => e.category === 'libido'));
-      const daysAgo = daysBetween(date, end);
-      const dw = Math.pow(1 - S.weights.decay, daysAgo);
-      let relDelta = 0, perDelta = 0;
-      for (const e of dayEs) {
-        relDelta += bankScoreEntry(e, cap).score;
-        if (e.category === 'restore') {
-          const t = S.restoreTypes.find(x => (typeof x==='string'?x:x.name) === e.eventType);
-          perDelta += restoreScore(e, t, cap);
-        } else if (e.category === 'regulation') {
-          perDelta += wobbleRestoreScore(e, cap);
-        } else if (e.category === 'burnout') {
-          perDelta += caretakerPersonalScore(e, cap);
-        }
-      }
-      relAcc += relDelta * dw;
-      perAcc += perDelta * dw;
-    }
-    relVal = relAcc;
-    perVal = perAcc;
-    comVal = (relAcc + perAcc) / 2;
-  }
-
+  // Lifetime sums via the active scoring model.
+  const exp = computeExperimentalScores();
   const scores = [
-    { label:'Relational', val:relVal, key:'relational' },
-    { label:'Personal',   val:perVal, key:'personal'   },
-    { label:'Tenor',      val:comVal, key:'combined'   },
+    { label:'Relational', val:exp.rel,   key:'relational' },
+    { label:'Personal',   val:exp.per,   key:'personal'   },
+    { label:'Tenor',      val:exp.tenor, key:'combined'   },
   ];
 
-  const zones = getBounds(wDays);
+  const zones = getBounds();
   // Background color using the same red→gold→green palette as the relational arc.
   // Use the same rounded value the user sees, so a displayed "50" lands in the
   // same band the home page would put it in (which also rounds before testing).
@@ -798,7 +723,7 @@ function buildScoreBar() {
         }
       },
         h('div',{style:{fontSize:'9px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'2px'}},
-          s.label + (S.useExperimentalScoring ? '' : ' · ' + wDays + 'd')),
+          s.label),
         h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'15px',color:'var(--text-strong)',lineHeight:'1'}},
           (Math.round(s.val) >= 0 ? '+' : '') + Math.round(s.val))
       );

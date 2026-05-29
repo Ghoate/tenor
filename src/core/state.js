@@ -55,7 +55,6 @@ const S = {
   modal:         null,
   activeTab:     'home',   // 'home' | 'log' | 'insights' | 'needs' | 'library' | 'config'
   calFilters:    new Set(), // categories hidden on calendar — empty = show all
-  loveBankWindow: 7,       // days shown in love bank chart: 1, 3, 7, 30, 60
   gaugeMode:      'relational', // which gauge to show: relational | personal | combined
   needsSort:      'fill',  // 'fill' | 'rank'
   needsTab:       'en',    // 'en' | 'pn'
@@ -89,7 +88,6 @@ const S = {
   tagToneOverrides:   {}, // per-tag tone overrides for custom/renamed tags
   showDebug:         false, // show scoring debug panels in forms
   showCardPoints:    false, // show point values inline on entry cards
-  useExperimentalScoring: true, // Lifetime-sum scoring with per-event lifespan decay
   useExponentialDecay: false, // DEBUG: switches the lifetime sum from power-law decay to per-event exponential decay (for side-by-side comparison)
   calcStartDate:     '',    // DEBUG: YYYY-MM-DD — ignore entries before this date for all calculations (empty = no filter)
   needs2Ratings:     {},    // EN calibration playground: { needVal: rating (9/7/5/3/1) } — not yet wired to scoring
@@ -103,7 +101,6 @@ const S = {
   showQuickDelete:   false, // show × button on entry cards
   relationshipMode:  'partner', // 'partner' | 'dating' — controls Bonding form shape and labels
   weights: {
-    decay:       0.05,
     stable7:     40,
     thriving7:   80,
     cap7:        240,
@@ -116,7 +113,7 @@ const S = {
     fcWarm:      4,
     fcMuch:      8,
 
-    // Experimental scoring model (lifetime sum with per-event lifespan decay)
+    // Power-law scoring model (lifetime sum with per-event lifespan decay)
     lifespanSlope:    0.5,   // days of lifespan per point of score
     lifespanFloor:    1.5,   // minimum lifespan even for tiny events
     decayPower:       2,     // shape of the fade — higher = sharper cliff at lifespan
