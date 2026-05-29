@@ -86,7 +86,7 @@ function buildCalendar() {
   for (const e of S.allEntries) {
     if (!S.showCaretaker  && e.category === 'burnout') continue;
     if (!S.showRegulation && e.category === 'regulation') continue;
-    if (!S.showPhysical   && (e.category === 'physical' || e.category === 'turndown' || e.category === 'libido')) continue;
+    if (!S.showPhysical   && (e.category === 'physical' || e.category === 'turndown')) continue;
     if (!S.showRepair     && e.category === 'repair') continue;
     if (!dotMap[e.date]) dotMap[e.date] = new Set();
     dotMap[e.date].add(e.category);
@@ -103,7 +103,7 @@ function buildCalendar() {
   const visibleEntries = S.allEntries.filter(e => {
     if (!S.showCaretaker  && e.category === 'burnout')     return false;
     if (!S.showRegulation && e.category === 'regulation')  return false;
-    if (!S.showPhysical   && (e.category === 'physical' || e.category === 'turndown' || e.category === 'libido')) return false;
+    if (!S.showPhysical   && (e.category === 'physical' || e.category === 'turndown')) return false;
     if (!S.showRepair     && e.category === 'repair')      return false;
     return true;
   });
@@ -277,60 +277,61 @@ function buildDayPanel() {
   });
   const isToday = S.selectedDate === S.today;
 
-  // Mini score panel — 7-day window anchored to selected date
-  // today = forecast window; yesterday = matches main score bar; any other = historical
+  // Mini score panel — windowed compute anchored on the selected date.
+  const _miniDays   = Number(S.loveBankWindow) || 7;
   const _miniAnchor = S.selectedDate;
-  const _miniStart  = addDays(_miniAnchor, -6);
-  const _miniEntries = calcEntries().filter(e => e.date >= _miniStart && e.date <= _miniAnchor);
-  const _miniByDate = {};
-  for (const e of _miniEntries) {
-    if (!_miniByDate[e.date]) _miniByDate[e.date] = [];
-    _miniByDate[e.date].push(e);
-  }
-  let _miniRel = 0;
-  for (const [date, dayEs] of Object.entries(_miniByDate)) {
-    const cap = bankDayCap(dayEs.find(e => e.category === 'libido'));
-    const dw  = Math.pow(1 - (S.weights.decay || 0.05), daysBetween(date, _miniAnchor));
-    let delta = 0;
-    for (const e of dayEs) delta += bankScoreEntry(e, cap).score;
-    _miniRel += delta * dw;
-  }
-  _miniRel = Math.round(_miniRel * 10) / 10;
-  let _miniPer = Math.round(_miniEntries
-    .filter(e => e.category === 'restore' || e.category === 'regulation' || e.category === 'burnout')
-    .reduce((sum, e) => {
-      const cap = bankDayCap(_miniEntries.find(le => le.date === e.date && le.category === 'libido'));
-      const dw  = Math.pow(1 - (S.weights.decay || 0.05), daysBetween(e.date, _miniAnchor));
-      if (e.category === 'restore') { const t=S.restoreTypes.find(x=>(typeof x==='string'?x:x.name)===e.eventType); return sum+restoreScore(e,t,cap)*dw; }
-      if (e.category === 'regulation') return sum + wobbleRestoreScore(e, cap) * dw;
-      if (e.category === 'burnout')    return sum + caretakerPersonalScore(e, cap) * dw;
-      return sum;
-    }, 0) * 10) / 10;
-  let _miniCom  = Math.round((_miniRel + _miniPer) / 2 * 10) / 10;
-
-  // Experimental override — lifetime sum as-of the selected date
+  const _miniStart  = addDays(_miniAnchor, -(_miniDays - 1));
+  const _miniEntries = S.allEntries.filter(e => e.date >= _miniStart && e.date <= _miniAnchor);
+  let _miniRel, _miniPer, _miniCom;
   if (S.useExperimentalScoring) {
-    const expMini = computeExperimentalScores(_miniAnchor);
-    _miniRel = expMini.rel;
-    _miniPer = expMini.per;
-    _miniCom = expMini.tenor;
+    const _expMini = computeExperimentalScores(_miniAnchor);
+    _miniRel = _expMini.rel;
+    _miniPer = _expMini.per;
+    _miniCom = _expMini.tenor;
+  } else {
+    const _miniByDate = {};
+    for (const e of _miniEntries) { (_miniByDate[e.date] ||= []).push(e); }
+    let relAcc = 0, perAcc = 0;
+    for (const [date, dayEs] of Object.entries(_miniByDate)) {
+      const cap = bankDayCap(dayEs.find(e => e.category === 'libido'));
+      const daysAgo = daysBetween(date, _miniAnchor);
+      const dw = Math.pow(1 - S.weights.decay, daysAgo);
+      let relDelta = 0, perDelta = 0;
+      for (const e of dayEs) {
+        relDelta += bankScoreEntry(e, cap).score;
+        if (e.category === 'restore') {
+          const t = S.restoreTypes.find(x => (typeof x==='string'?x:x.name) === e.eventType);
+          perDelta += restoreScore(e, t, cap);
+        } else if (e.category === 'regulation') {
+          perDelta += wobbleRestoreScore(e, cap);
+        } else if (e.category === 'burnout') {
+          perDelta += caretakerPersonalScore(e, cap);
+        }
+      }
+      relAcc += relDelta * dw;
+      perAcc += perDelta * dw;
+    }
+    _miniRel = relAcc;
+    _miniPer = perAcc;
+    _miniCom = (relAcc + perAcc) / 2;
   }
-  const _miniZones = getBounds(7);
+  const _miniZones = getBounds(_miniDays);
+  // Round once so a displayed "50" lands in the same band the home page would
+  // (matches the main score-bar fix — keeps display and band in sync).
   const _miniBg = v => {
-    if (v >= _miniZones.thriving)  return 'rgba(30,160,80,0.18)';
-    if (v >= _miniZones.stable)    return 'rgba(77,196,120,0.09)';
-    if (v >= 0)                    return 'rgba(210,160,40,0.12)';
-    if (v >= _miniZones.strained)  return 'rgba(224,130,40,0.14)';
-    if (v >= _miniZones.depleted)  return 'rgba(224,100,40,0.16)';
+    const r = Math.round(v);
+    if (r >= _miniZones.thriving)  return 'rgba(30,160,80,0.18)';
+    if (r >= _miniZones.stable)    return 'rgba(77,196,120,0.09)';
+    if (r >= 0)                    return 'rgba(210,160,40,0.12)';
+    if (r >= _miniZones.strained)  return 'rgba(224,130,40,0.14)';
+    if (r >= _miniZones.depleted)  return 'rgba(224,100,40,0.16)';
     return 'rgba(224,53,53,0.18)';
   };
-  const _miniSuffix = S.useExperimentalScoring ? '' : '7d';
-  const _miniDateLabel = S.selectedDate === S.today
+  const _miniSuffix = S.useExperimentalScoring ? '' : ' · ' + _miniDays + 'd';
+  const _miniLabel = (S.selectedDate === S.today
     ? 'Today'
-    : new Date(S.selectedDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const _miniLabel = _miniDateLabel
-    + (_miniSuffix ? ' · '+_miniSuffix : '')
-    + (S.selectedDate > S.today && !S.useExperimentalScoring ? ' forecast' : '');
+    : new Date(S.selectedDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}))
+    + _miniSuffix;
   const _miniScores = [
     {label:'Relational', val:_miniRel},
     {label:'Personal',   val:_miniPer},
@@ -350,7 +351,7 @@ function buildDayPanel() {
         }},
           h('div',{style:{fontSize:'9px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'2px'}}, s.label),
           h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'15px',color:'var(--text-strong)',lineHeight:'1'}},
-            (s.val >= 0 ? '+' : '') + s.val.toFixed(0))
+            (Math.round(s.val) >= 0 ? '+' : '') + Math.round(s.val))
         ))
       ),
       h('div',{style:{
@@ -372,11 +373,8 @@ function buildDayPanel() {
       : h('div',{},...sortedEntries.map(buildCard)),
 
     S.showDebug && allEntries.length > 0 ? (() => {
-      const decay      = S.weights.decay || 0.05;
-      const _yest      = addDays(S.today, -1);
       const _isToday   = S.selectedDate === S.today;
-      const daysAgo    = _isToday ? 0 : daysBetween(S.selectedDate, _yest);
-      const decayW     = Math.pow(1 - decay, daysAgo);
+      const daysAgo    = daysBetween(S.selectedDate, S.today);
       const cap        = bankDayCap(allEntries.find(e => e.category === 'libido'));
       const relRaw     = allEntries.reduce((s, e) => s + bankScoreEntry(e, cap).score, 0);
       const persRaw    = allEntries.reduce((s, e) => {
@@ -385,49 +383,47 @@ function buildDayPanel() {
         if (e.category === 'burnout')    return s + caretakerPersonalScore(e, cap);
         return s;
       }, 0);
-      const tenorRaw    = (relRaw + persRaw) / 2;
-      const relDec      = relRaw   * decayW;
-      const persDec     = persRaw  * decayW;
-      const tenorDec    = tenorRaw * decayW;
       const fmt = n => (n >= 0 ? '+' : '') + n.toFixed(1);
-      const row = (label, raw, dec) => h('div',{style:{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid var(--surface-2)',fontSize:'11px'}},
-        h('span',{style:{color:'var(--muted)'}}, label),
-        h('span',{style:{display:'flex',gap:'16px'}},
-          h('span',{style:{color:'var(--text-strong)',fontFamily:"'Libre Baskerville',serif"}}, fmt(raw)),
-          h('span',{style:{color:'var(--muted)'}}, fmt(dec)+' decayed'),
-        )
-      );
-      // Experimental scoring totals (lifetime sums, independent of selected date)
-      const exp = computeExperimentalScores();
-      // What this specific day's entries contribute to the experimental totals right now
-      const _dayDaysAgo = daysBetween(S.selectedDate, S.today);
-      const relRem  = expRemaining(relRaw,  _dayDaysAgo);
-      const persRem = expRemaining(persRaw, _dayDaysAgo);
-      const tenorRem= (relRem + persRem) / 2;
-      const expRow = (label, total, contrib) => h('div',{style:{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid var(--surface-2)',fontSize:'11px'}},
+      const row = (label, total, contrib) => h('div',{style:{display:'flex',justifyContent:'space-between',padding:'4px 0',borderBottom:'1px solid var(--surface-2)',fontSize:'11px'}},
         h('span',{style:{color:'var(--muted)'}}, label),
         h('span',{style:{display:'flex',gap:'16px'}},
           h('span',{style:{color:'var(--text-strong)',fontFamily:"'Libre Baskerville',serif"}}, fmt(total)),
           h('span',{style:{color:'var(--muted)'}}, fmt(contrib)+' from this day'),
         )
       );
+      const sectionHeader = (text) => h('div',{style:{marginTop:'10px',marginBottom:'6px',fontWeight:'600',color:'var(--text-strong)',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}}, text);
+
+      // Power-law (current experimental) — always computed
+      const expPL  = computeExperimentalScores(S.today, 'powerlaw');
+      const plRel  = expRemaining(relRaw,  daysAgo);
+      const plPer  = expRemaining(persRaw, daysAgo);
+
+      // Exponential (alternate) — only computed/shown when the toggle is on
+      const showExp = !!S.useExponentialDecay;
+      const expEXP   = showExp ? computeExponentialScores(S.today) : null;
+      const expRelEXP = showExp ? expDecayRemaining(relRaw,  daysAgo) : 0;
+      const expPerEXP = showExp ? expDecayRemaining(persRaw, daysAgo) : 0;
+
+      // Heading label notes which model the rest of the app is actually using.
+      const activeLabel = showExp ? ' · active: exponential' : '';
+
       return h('div',{style:{
         marginTop:'16px', padding:'10px 12px', borderRadius:'10px',
         background:'var(--surface-1)', border:'1px solid var(--surface-2)',
         fontSize:'11px', fontFamily:"'DM Sans',sans-serif",
       }},
         h('div',{style:{fontWeight:'600',color:'var(--text-strong)',marginBottom:'8px',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}},
-          S.useExperimentalScoring
-            ? 'Day debug · ' + (_isToday ? 'today' : daysAgo === 0 ? 'yesterday · 0d' : daysAgo+'d ago')
-            : 'Day debug · ' + (_isToday ? 'today · in progress' : daysAgo === 0 ? 'yesterday · 0d' : daysAgo+'d ago') + ' · decay ×'+decayW.toFixed(3)),
-        S.useExperimentalScoring ? null : row('Relational', relRaw,   relDec),
-        S.useExperimentalScoring ? null : row('Personal',   persRaw,  persDec),
-        S.useExperimentalScoring ? null : row('Tenor',      tenorRaw, tenorDec),
-        S.useExperimentalScoring ? null : h('div',{style:{marginTop:'10px',paddingTop:'8px',borderTop:'1px solid var(--surface-2)',fontWeight:'600',color:'var(--text-strong)',marginBottom:'6px',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}},
-          'Experimental · lifetime totals'),
-        expRow('Relational', exp.rel,   relRem),
-        expRow('Personal',   exp.per,   persRem),
-        expRow('Tenor',      exp.tenor, tenorRem),
+          'Day debug · ' + (_isToday ? 'today' : daysAgo+'d ago') + activeLabel),
+
+        showExp ? sectionHeader('Power-law (alternate)') : null,
+        row('Relational', expPL.rel,   plRel),
+        row('Personal',   expPL.per,   plPer),
+        row('Tenor',      expPL.tenor, (plRel + plPer) / 2),
+
+        showExp ? sectionHeader('Exponential (active)') : null,
+        showExp ? row('Relational', expEXP.rel,   expRelEXP) : null,
+        showExp ? row('Personal',   expEXP.per,   expPerEXP) : null,
+        showExp ? row('Tenor',      expEXP.tenor, (expRelEXP + expPerEXP) / 2) : null,
       );
     })() : null,
   );
@@ -717,59 +713,51 @@ function buildPicker() {
 }
 
 function buildScoreBar() {
+  // Score bar uses a fixed 7-day window so the at-a-glance number is stable
+  // and not affected by whatever window the user has selected on insights.
   const wDays = 7;
-  const anchor = S.today;
-  const windowStart = addDays(anchor, -(wDays - 1));
-  const winEntries  = calcEntries().filter(e => e.date >= windowStart && e.date <= anchor);
+  const end   = S.today;
+  const start = addDays(end, -(wDays - 1));
+  const winEntries = S.allEntries.filter(e => e.date >= start && e.date <= end);
 
-  let relNet, perNet, comNet;
-
+  let relVal, perVal, comVal;
   if (S.useExperimentalScoring) {
-    // Experimental: lifetime sum with per-event power-law decay
     const exp = computeExperimentalScores();
-    relNet = exp.rel;
-    perNet = exp.per;
-    comNet = exp.tenor;
+    relVal = exp.rel;
+    perVal = exp.per;
+    comVal = exp.tenor;
   } else {
-    // Legacy: 7-day windowed sum with exponential decay
-    const winByDate = {};
-    for (const e of winEntries) {
-      if (!winByDate[e.date]) winByDate[e.date] = [];
-      winByDate[e.date].push(e);
-    }
-    let relDecayed = 0;
-    for (const [date, dayEs] of Object.entries(winByDate)) {
+    const byDate = {};
+    for (const e of winEntries) { (byDate[e.date] ||= []).push(e); }
+    let relAcc = 0, perAcc = 0;
+    for (const [date, dayEs] of Object.entries(byDate)) {
       const cap = bankDayCap(dayEs.find(e => e.category === 'libido'));
-      const daysAgo = daysBetween(date, anchor);
-      const decayWeight = Math.pow(1 - S.weights.decay, daysAgo);
-      let dayDelta = 0;
-      for (const e of dayEs) dayDelta += bankScoreEntry(e, cap).score;
-      relDecayed += dayDelta * decayWeight;
-    }
-    relNet = Math.round(relDecayed * 10) / 10;
-
-    perNet = Math.round(winEntries
-      .filter(e => e.category === 'restore' || e.category === 'regulation' || e.category === 'burnout')
-      .reduce((sum, e) => {
-        const cap = bankDayCap(winEntries.find(le => le.date === e.date && le.category === 'libido'));
-        const daysAgo = daysBetween(e.date, anchor);
-        const decayWeight = Math.pow(1 - S.weights.decay, daysAgo);
+      const daysAgo = daysBetween(date, end);
+      const dw = Math.pow(1 - S.weights.decay, daysAgo);
+      let relDelta = 0, perDelta = 0;
+      for (const e of dayEs) {
+        relDelta += bankScoreEntry(e, cap).score;
         if (e.category === 'restore') {
-          const typeObj = S.restoreTypes.find(t => (typeof t==='string'?t:t.name) === e.eventType);
-          return sum + restoreScore(e, typeObj, cap) * decayWeight;
+          const t = S.restoreTypes.find(x => (typeof x==='string'?x:x.name) === e.eventType);
+          perDelta += restoreScore(e, t, cap);
+        } else if (e.category === 'regulation') {
+          perDelta += wobbleRestoreScore(e, cap);
+        } else if (e.category === 'burnout') {
+          perDelta += caretakerPersonalScore(e, cap);
         }
-        if (e.category === 'regulation') return sum + wobbleRestoreScore(e, cap) * decayWeight;
-        if (e.category === 'burnout')    return sum + caretakerPersonalScore(e, cap) * decayWeight;
-        return sum;
-      }, 0) * 10) / 10;
-
-    comNet = Math.round((relNet + perNet) / 2 * 10) / 10;
+      }
+      relAcc += relDelta * dw;
+      perAcc += perDelta * dw;
+    }
+    relVal = relAcc;
+    perVal = perAcc;
+    comVal = (relAcc + perAcc) / 2;
   }
 
   const scores = [
-    { label:'Relational', val:relNet, key:'relational' },
-    { label:'Personal',   val:perNet, key:'personal'   },
-    { label:'Tenor',      val:comNet, key:'combined'   },
+    { label:'Relational', val:relVal, key:'relational' },
+    { label:'Personal',   val:perVal, key:'personal'   },
+    { label:'Tenor',      val:comVal, key:'combined'   },
   ];
 
   const zones = getBounds(wDays);
@@ -809,15 +797,11 @@ function buildScoreBar() {
           render();
         }
       },
-        h('div',{style:{fontSize:'9px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'2px'}}, s.label),
+        h('div',{style:{fontSize:'9px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'2px'}},
+          s.label + (S.useExperimentalScoring ? '' : ' · ' + wDays + 'd')),
         h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'15px',color:'var(--text-strong)',lineHeight:'1'}},
           (Math.round(s.val) >= 0 ? '+' : '') + Math.round(s.val))
       );
     }),
-    h('div',{style:{
-      position:'absolute', bottom:'5px', right:'6px',
-      fontSize:'9px', color:'var(--muted-2)', letterSpacing:'0.04em',
-      pointerEvents:'none',
-    }}, S.useExperimentalScoring ? '' : wDays+'d')
   );
 }

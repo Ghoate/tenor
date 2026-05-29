@@ -306,6 +306,20 @@ function buildConfigPanel() {
       ),
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderTop:'1px solid var(--border)'}},
         h('div',{},
+          h('div',{style:{fontSize:'13px',color:'var(--text)'}},'Exponential decay (alternate model)'),
+          h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Per-event exponential fade with magnitude-scaled lifespan. Below 1 → 0. Requires Experimental scoring on.')
+        ),
+        h('button',{
+          style:{padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
+            fontFamily:"'DM Sans',sans-serif",
+            border: S.useExponentialDecay ? '1px solid var(--c-partner)' : '1px solid var(--border)',
+            background: S.useExponentialDecay ? 'var(--c-partner-tint)' : 'var(--bg3)',
+            color: S.useExponentialDecay ? 'var(--c-partner)' : 'var(--muted)'},
+          onclick:()=>{ S.useExponentialDecay=!S.useExponentialDecay; saveSettings(); render(); }
+        }, S.useExponentialDecay ? 'On' : 'Off')
+      ),
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderTop:'1px solid var(--border)'}},
+        h('div',{},
           h('div',{style:{fontSize:'13px',color:'var(--text)'}},'Quick delete on entry cards'),
           h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Show × button directly on each log entry card')
         ),
@@ -413,6 +427,8 @@ function buildConfigPanel() {
         {key:'lifespanFloor',    label:'Experimental — lifespan floor',  hint:'Minimum lifespan in days, even for tiny events',                       min:0,   max:30,  step:0.5, def:1.5},
         {key:'decayPower',       label:'Experimental — decay power',     hint:'Shape of the fade curve — higher values create a sharper cliff at lifespan', min:0.5, max:10,  step:0.5, def:2},
         {key:'cutoffMultiplier', label:'Experimental — cutoff multiplier', hint:'Hard zero past this many lifespans — kills the long power-law tail',  min:1,   max:10,  step:0.5, def:2.5},
+        {key:'expT_Slope',       label:'Exponential — lifespan slope',     hint:'Days of lifespan per point of score (per-event exponential model)',    min:0,   max:5,   step:0.01, def:0.58},
+        {key:'expT_Floor',       label:'Exponential — lifespan floor',     hint:'Minimum lifespan in days, even for tiny events (per-event exponential)', min:0,   max:30,  step:0.1, def:1.8},
       ].map(({key,label,hint,min,max,step,def}) =>
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--border)'}},
           h('div',{style:{flex:'1'}},

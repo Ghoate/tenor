@@ -50,7 +50,11 @@ function expEntryScores(e, cap) {
 // Sum every event's surviving contribution as of the reference date (defaults to today).
 // Entries dated after refDate are excluded — they're "future" relative to that snapshot.
 // Returns { rel, per, tenor }.
-function computeExperimentalScores(refDate) {
+function computeExperimentalScores(refDate, forceModel) {
+  // Debug toggle: route through the alternate exponential-decay model for comparison.
+  // Pass forceModel='powerlaw' to bypass the toggle and compute the power-law values
+  // (used by the debug panel when it wants to show both side-by-side).
+  if (S.useExponentialDecay && forceModel !== 'powerlaw') return computeExponentialScores(refDate);
   const ref = refDate || S.today;
   const src = calcEntries();
   // Group entries by date once so we can resolve each day's capacity multiplier.

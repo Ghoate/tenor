@@ -90,6 +90,7 @@ const S = {
   showDebug:         false, // show scoring debug panels in forms
   showCardPoints:    false, // show point values inline on entry cards
   useExperimentalScoring: true, // Lifetime-sum scoring with per-event lifespan decay
+  useExponentialDecay: false, // DEBUG: switches the lifetime sum from power-law decay to per-event exponential decay (for side-by-side comparison)
   calcStartDate:     '',    // DEBUG: YYYY-MM-DD — ignore entries before this date for all calculations (empty = no filter)
   needs2Ratings:     {},    // EN calibration playground: { needVal: rating (9/7/5/3/1) } — not yet wired to scoring
   needs2Order:       null,  // Array of need.val in user-visible order (post-quiz, manually reorderable)
@@ -120,6 +121,10 @@ const S = {
     lifespanFloor:    1.5,   // minimum lifespan even for tiny events
     decayPower:       2,     // shape of the fade — higher = sharper cliff at lifespan
     cutoffMultiplier: 2.5,   // hard zero past this many lifespans (kills the long tail)
+
+    // Exponential decay model (alternate lifetime-sum model, toggle: useExponentialDecay)
+    expT_Slope:       0.58,  // days of lifespan per point of score
+    expT_Floor:       1.8,   // minimum lifespan even for tiny events
 
     confR:       {resolved:0.40, partial:0.60, unresolved:0.80, worsened:1.00, breakthrough:0.20},
 

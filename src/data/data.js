@@ -52,6 +52,7 @@ function saveSettings(){
   dbPut('settings',{key:'needsPnHits',       value:S.needsPnHits});
   dbPut('settings',{key:'needs2Sort',        value:S.needs2Sort});
   dbPut('settings',{key:'useExperimentalScoring', value:S.useExperimentalScoring});
+  dbPut('settings',{key:'useExponentialDecay',    value:S.useExponentialDecay});
   dbPut('settings',{key:'calcStartDate',         value:S.calcStartDate});
   dbPut('settings',{key:'showQuickDelete',   value:S.showQuickDelete});
   dbPut('settings',{key:'relationshipMode',  value:S.relationshipMode});
@@ -193,6 +194,9 @@ function loadSettings(){
     }),
     dbGet('settings','useExperimentalScoring').then(s=>{
       if(s&&s.value!=null) S.useExperimentalScoring = s.value;
+    }),
+    dbGet('settings','useExponentialDecay').then(s=>{
+      if(s&&s.value!=null) S.useExponentialDecay = s.value;
     }),
     dbGet('settings','calcStartDate').then(s=>{
       if(s&&s.value!=null) S.calcStartDate = s.value;

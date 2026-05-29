@@ -203,6 +203,7 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
               newType.weight = deriveCaretakerWeight(newType);
               S.caretakerTypes.push(newType);
             } else if (editTarget) {
+              const oldName = editTarget.name;
               if(v) editTarget.name=v;
               editTarget.description = f.ctDescription||'';
               editTarget.ctPhysical=f.ctPhysical; editTarget.ctEmotional=f.ctEmotional;
@@ -210,6 +211,26 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
               editTarget.ctPredictability=f.ctPredictability;
               editTarget.needsMap={...(f.ctNeedsMap||{})};
               editTarget.weight = deriveCaretakerWeight(editTarget);
+              // Migrate burnout entries that reference the old name —
+              // either in caretakerTypes array (current) or caretakerType
+              // (legacy single-value) — so the rename carries history forward.
+              if (v && v !== oldName) {
+                const swap = (e) => {
+                  let dirty = false;
+                  if (Array.isArray(e.caretakerTypes)) {
+                    const idx = e.caretakerTypes.indexOf(oldName);
+                    if (idx >= 0) { e.caretakerTypes[idx] = v; dirty = true; }
+                  }
+                  if (e.caretakerType === oldName) { e.caretakerType = v; dirty = true; }
+                  return dirty;
+                };
+                for (const e of (S.allEntries || [])) {
+                  if (e.category === 'burnout' && swap(e)) dbPut('entries', e);
+                }
+                for (const e of (S.dayEntries || [])) {
+                  if (e.category === 'burnout') swap(e);
+                }
+              }
             }
             saveSettings();
             f.ctEditName=null;f.ctEditInit=null;f.ctAddingNew=false;f.ctNewType='';f.ctDescription='';f.ctDirty=false;
@@ -1003,7 +1024,25 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
             } else if (editTarget) {
               const nameInput = document.getElementById('activity-name-input');
               const newName = (nameInput ? nameInput.value : f.newType||'').trim();
+              const oldName = editTarget.name;
               if (newName) editTarget.name = newName;
+              // Migrate existing entries that reference the old name so they
+              // don't get flagged as "type deleted" — a rename should carry
+              // history forward, not orphan it.
+              if (newName && newName !== oldName) {
+                const cat = isPhysical ? 'physical' : isAffection ? 'affection' : isRestore ? 'restore' : null;
+                if (cat) {
+                  for (const e of (S.allEntries || [])) {
+                    if (e.category === cat && e.eventType === oldName) {
+                      e.eventType = newName;
+                      dbPut('entries', e);
+                    }
+                  }
+                  for (const e of (S.dayEntries || [])) {
+                    if (e.category === cat && e.eventType === oldName) e.eventType = newName;
+                  }
+                }
+              }
               editTarget.description = (f.newTypeDesc||'').trim()||undefined;
               if (isPhysical) {
                 editTarget.defaultSolo = !!f.newDefaultSolo;
@@ -1232,6 +1271,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
                 });
               }
             } else if (editTarget) {
+              const oldName = typeof editTarget === 'string' ? editTarget : editTarget.name;
               if (typeof editTarget === 'string') {
                 const idx = S[listKey].indexOf(editTarget);
                 if (idx >= 0) S[listKey][idx] = {
@@ -1249,6 +1289,19 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
                 editTarget.descFinancial= f.descFinancial||1;
                 editTarget.descRarity   = f.descRarity||1;
                 editTarget.needsMap = {...(f.needsMap||{})};
+              }
+              // Migrate existing restore entries referencing the old name so a
+              // rename carries history forward instead of orphaning entries.
+              if (v && v !== oldName) {
+                for (const e of (S.allEntries || [])) {
+                  if (e.category === 'restore' && e.eventType === oldName) {
+                    e.eventType = v;
+                    dbPut('entries', e);
+                  }
+                }
+                for (const e of (S.dayEntries || [])) {
+                  if (e.category === 'restore' && e.eventType === oldName) e.eventType = v;
+                }
               }
             }
             saveSettings();

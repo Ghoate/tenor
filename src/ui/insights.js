@@ -1244,38 +1244,11 @@ function buildHomePage() {
     return s;
   }, 0));
 
-  // Previous week scores (days -13 to -7) — aligned with today-inclusive window
-  const prev7End   = addDays(S.today, -7);
-  const prev7Start = addDays(S.today, -13);
-  const prev7 = allEntries.filter(e => e.date >= prev7Start && e.date <= prev7End);
-  let relBalPrev7 = prev7.length >= 2 ? Math.round(prev7.reduce((s, e) => {
-    const dayEs = prev7.filter(x => x.date === e.date);
-    const cap = bankDayCap(dayEs.find(le => le.category === 'libido'));
-    const dw = Math.pow(1 - decay, daysBetween(e.date, prev7End));
-    return s + bankScoreEntry(e, cap).score * dw;
-  }, 0)) : null;
-  let perBalPrev7 = prev7.length >= 2 ? Math.round(prev7.reduce((s, e) => {
-    const dayEs = prev7.filter(x => x.date === e.date);
-    const cap = bankDayCap(dayEs.find(le => le.category === 'libido'));
-    const dw = Math.pow(1 - decay, daysBetween(e.date, prev7End));
-    if (e.category === 'restore') { const t=S.restoreTypes.find(x=>(typeof x==='string'?x:x.name)===e.eventType); return s+restoreScore(e,t,cap)*dw; }
-    if (e.category === 'regulation') return s + wobbleRestoreScore(e, cap)*dw;
-    if (e.category === 'burnout')    return s + caretakerPersonalScore(e, cap)*dw;
-    return s;
-  }, 0)) : null;
-  let tenorScorePrev7 = relBalPrev7 !== null && perBalPrev7 !== null
-    ? Math.round((relBalPrev7 + perBalPrev7) / 2) : null;
-
-  // Experimental override — replace today's and prev-period values with lifetime sums
-  // (today's snapshot vs the snapshot from 7 days ago).
+  // Experimental override — replace 7-day windowed values with lifetime sums.
   if (S.useExperimentalScoring) {
-    const expNow  = computeExperimentalScores(S.today);
-    const expPrev = computeExperimentalScores(addDays(S.today, -7));
+    const expNow = computeExperimentalScores(S.today);
     relBal7 = Math.round(expNow.rel);
     perBal7 = Math.round(expNow.per);
-    relBalPrev7    = Math.round(expPrev.rel);
-    perBalPrev7    = Math.round(expPrev.per);
-    tenorScorePrev7 = Math.round((expPrev.rel + expPrev.per) / 2);
   }
 
   const hasEnoughData = allEntries.length >= 3;
@@ -1340,14 +1313,6 @@ function buildHomePage() {
   };
   const zoneNote = !zoneBand7 ? pick(zoneLines.none) : pick(zoneLines[zoneBand7.label] ?? zoneLines.none);
 
-  const tenorDelta = tenorScore7 !== null && tenorScorePrev7 !== null ? tenorScore7 - tenorScorePrev7 : null;
-  const trendNote = tenorDelta === null ? null
-    : tenorDelta >= 15 ? '↑ Noticeably up from a week ago'
-    : tenorDelta >= 5  ? '↑ Up from a week ago'
-    : tenorDelta > -5  ? '→ Holding steady'
-    : tenorDelta > -15 ? '↓ Down from a week ago'
-    : '↓ Noticeably down from a week ago';
-
   // ── Tomorrow forecast (assumes nothing more logged today) ──
   // Tomorrow's window = [today-5, tomorrow], anchor = tomorrow, tomorrow has no entries.
   // So we re-score the same last7 entries minus the oldest day with tomorrow as anchor.
@@ -1409,54 +1374,6 @@ function buildHomePage() {
     { name:'Tenor',      ..._zoneIcon(fcTenor), trend:_tempDelta(tenorScore7, fcTenor) },
   ] : null;
 
-  // ── Maintenance suggestion ─────────────────────────────
-  // Only when: today is in a positive zone (Progressing/Healthy/Thriving)
-  // AND tomorrow's tenor is cooler. We name what's about to roll off
-  // and translate it back into entry-type language the user uses.
-  let maintenanceSuggestion = null;
-  if (forecast && tenorScore7 !== null && tenorScore7 >= 0) {
-    const tenorTrend = forecast[2].trend?.label || '';
-    const tenorCooling = tenorTrend === 'a touch cooler' || tenorTrend === 'cooler' || tenorTrend === 'much cooler';
-    if (tenorCooling) {
-      // What's about to roll off (oldest day in the current 7-day window)
-      const rollDate    = addDays(S.today, -6);
-      const rollEntries = allEntries.filter(e => e.date === rollDate);
-      const rollCap     = bankDayCap(rollEntries.find(e => e.category === 'libido'));
-      // Find the biggest positive deposit-type contributor rolling off
-      let topCat = null, topScore = 0;
-      for (const e of rollEntries) {
-        let s = 0;
-        if (e.category === 'affection') s = bankScoreEntry(e, rollCap).score;
-        else if (e.category === 'physical' && !e.solo) s = bankScoreEntry(e, rollCap).score;
-        else if (e.category === 'restore') {
-          const t = S.restoreTypes.find(x => (typeof x==='string'?x:x.name) === e.eventType);
-          s = restoreScore(e, t, rollCap);
-        }
-        if (s > topScore) { topScore = s; topCat = e.category; }
-      }
-
-      const relCooling = fcRel < relBal7;
-      const perCooling = fcPer < perBal7;
-
-      // Phrase by what's rolling off if we have a clear candidate;
-      // otherwise lean on which dimension is cooling.
-      const bondL = bondingLabel().toLowerCase();
-      if (topCat === 'affection') {
-        maintenanceSuggestion = `A ${bondL} moment today would help carry that warmth forward.`;
-      } else if (topCat === 'physical') {
-        maintenanceSuggestion = `An intimate moment today would help carry that warmth forward.`;
-      } else if (topCat === 'restore') {
-        maintenanceSuggestion = `Some restorative time today would help carry that warmth forward.`;
-      } else if (relCooling && perCooling) {
-        maintenanceSuggestion = `A ${bondL} moment or restorative break today would help hold this.`;
-      } else if (relCooling) {
-        maintenanceSuggestion = `A ${bondL} or intimate moment today would help hold the relational side.`;
-      } else if (perCooling) {
-        maintenanceSuggestion = `Some restorative time today would help hold the personal side.`;
-      }
-    }
-  }
-
   // ── Build cards ──────────────────────────────────────
 
   const goInsights = () => { S.activeTab='insights'; render(); };
@@ -1486,26 +1403,7 @@ function buildHomePage() {
 
   // ── Daily check-in reminder ──
   if (!loggedMoodToday)
-    nudges.push(h('div',{style:{
-      background:'var(--bg2)', border:'1px solid var(--border)',
-      borderRadius:'16px', padding:'14px 16px', marginBottom:'10px',
-      display:'flex', gap:'12px', alignItems:'center',
-    }},
-      h('span',{style:{fontSize:'22px',lineHeight:'1.3',flexShrink:'0'}}, '🌡️'),
-      h('div',{style:{flex:'1',minWidth:'0'}},
-        h('div',{style:{fontSize:'13px',fontWeight:'600',color:'var(--text)',marginBottom:'2px'}}, 'Daily check-in'),
-        h('div',{style:{fontSize:'12px',color:'var(--muted)'}}, 'Keeps your capacity score accurate')
-      ),
-      h('button',{
-        style:{
-          flexShrink:'0', padding:'7px 14px', borderRadius:'20px',
-          border:'1px solid var(--border-mid)', background:'var(--bg3)',
-          fontSize:'12px', fontWeight:'500', color:'var(--text)',
-          cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
-        },
-        onclick:()=>openModal('libido')
-      }, 'Log now')
-    ));
+    nudges.push(card('🌡️', 'Daily check-in', 'Keeps your capacity score accurate.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>openModal('libido')));
 
   const relThresh = zones7.stable;
   const perThresh = Math.round(zones7.stable / 2);
@@ -1513,11 +1411,11 @@ function buildHomePage() {
   // ── Bonding nudges / kudos ──
   if (hasEnoughData) {
     if (week7Bonding >= 4)
-      kudos.push(card('🩷', 'Strong '+bondingLabel().toLowerCase()+' week', week7Bonding+' '+bondingLabel().toLowerCase()+' entries this week — connection is getting real attention.', 'var(--c-affection)', 'rgba(224,133,184,0.25)', 'rgba(224,133,184,0.06)', goInsights));
+      kudos.push(card('🩷', 'Strong '+bondingLabel().toLowerCase()+' week', week7Bonding+' '+bondingLabel().toLowerCase()+' entries this week.', 'var(--c-affection)', 'rgba(224,133,184,0.25)', 'rgba(224,133,184,0.06)', goInsights));
     else if (week7Bonding >= 1)
-      kudos.push(card('🩷', bondingLabel()+' showing up', week7Bonding+' '+bondingLabel().toLowerCase()+' entr'+(week7Bonding===1?'y':'ies')+' this week. The effort is visible in the data.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      kudos.push(card('🩷', bondingLabel()+' showing up', week7Bonding+' '+bondingLabel().toLowerCase()+' entr'+(week7Bonding===1?'y':'ies')+' this week.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (daysSinceBonding !== null && daysSinceBonding >= 7)
-      nudges.push(card('🩷', bondingLabel()+' gap — '+daysSinceBonding+' days', 'It\'s been a while since a '+bondingLabel().toLowerCase()+' entry. Even something small counts.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      nudges.push(card('🩷', bondingLabel()+' gap — '+daysSinceBonding+' days', 'It\'s been a while since a '+bondingLabel().toLowerCase()+' entry.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
   }
 
   // ── Intimacy nudges / kudos ──
@@ -1526,8 +1424,8 @@ function buildHomePage() {
       kudos.push(card('🌹', 'Intimate week', week7Physical+' shared intimacy events this week.', 'var(--c-physical)', 'rgba(224,122,74,0.25)', 'rgba(224,122,74,0.06)', goInsights));
     else if (daysSincePhysical !== null && daysSincePhysical >= 10 && recentTurndowns === 0) {
       const msg = week7Conflict >= 1
-        ? daysSincePhysical+' days since last intimacy, and conflict logged this week — the two can compound each other.'
-        : daysSincePhysical+' days since last intimacy. Worth being aware of.';
+        ? daysSincePhysical+' days since last intimacy, and conflict logged this week.'
+        : daysSincePhysical+' days since last intimacy.';
       nudges.push(card('🌹', daysSincePhysical+'d since last intimacy', msg, 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     }
   }
@@ -1535,60 +1433,59 @@ function buildHomePage() {
   // ── Restorative ──
   if (hasEnoughData) {
     if (week7Restore >= 2)
-      kudos.push(card('🌊', 'Restoring well', week7Restore+' restorative activities this week. Your personal tank is getting attention.', 'var(--c-restore)', 'rgba(90,184,212,0.25)', 'rgba(90,184,212,0.06)', goInsights));
+      kudos.push(card('🌊', 'Restoring well', week7Restore+' restorative activities this week.', 'var(--c-restore)', 'rgba(90,184,212,0.25)', 'rgba(90,184,212,0.06)', goInsights));
     else if (week7Restore === 1)
-      kudos.push(card('🌊', 'Restorative activity logged', 'One this week — a step in the right direction.', 'var(--c-restore)', 'rgba(90,184,212,0.20)', 'rgba(90,184,212,0.04)', goInsights));
+      kudos.push(card('🌊', 'Restorative activity logged', 'One restorative activity this week.', 'var(--c-restore)', 'rgba(90,184,212,0.20)', 'rgba(90,184,212,0.04)', goInsights));
     else if (daysSinceRestore !== null && daysSinceRestore >= 5 && (week7Wobble > 0 || week7Burnout > 0))
-      nudges.push(card('🌊', 'Restore overdue', 'Wobble or steadying logged recently, but no restorative activity in '+daysSinceRestore+' days. Your tank may need attention.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      nudges.push(card('🌊', 'Restore overdue', 'Wobble or steadying logged recently, with no restorative activity in '+daysSinceRestore+' days.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (daysSinceRestore !== null && daysSinceRestore >= 7)
-      nudges.push(card('🌊', daysSinceRestore+' days since last restorative', 'A good week for something that refills you.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      nudges.push(card('🌊', daysSinceRestore+' days since last restorative', 'No restorative activity logged this week.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
   }
 
   // ── Conflict ──
   if (hasEnoughData) {
     if (conflictToday && week7Bonding === 0)
-      nudges.push(card('⚡', 'Conflict logged today', 'No '+bondingLabel().toLowerCase()+' this week to balance it. Even a small connection moment can help.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      nudges.push(card('⚡', 'Conflict logged today', 'No '+bondingLabel().toLowerCase()+' entries this week to balance it.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (conflictYest && !conflictToday && !conflictYestResolved)
-      nudges.push(card('💬', 'Yesterday had conflict', 'Still landing? Logging a '+bondingLabel().toLowerCase()+' or restore entry today can be a useful signal.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      nudges.push(card('💬', 'Yesterday had conflict', 'Yesterday\'s conflict isn\'t marked resolved — the loop is still open.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (week7Conflict >= 3)
-      nudges.push(card('⚡', week7Conflict+' conflicts this week', 'A heavy week. If things feel stuck, that\'s worth naming — to yourself or your partner.', 'var(--c-conflict)', 'rgba(224,53,53,0.18)', 'rgba(224,53,53,0.05)', goInsights));
+      nudges.push(card('⚡', week7Conflict+' conflicts this week', 'A heavy week for conflict.', 'var(--c-conflict)', 'rgba(224,53,53,0.18)', 'rgba(224,53,53,0.05)', goInsights));
     else if (week7Conflict === 0 && last14.filter(e=>e.category==='conflict').length === 0 && allEntries.filter(e=>e.category==='conflict').length > 0)
-      kudos.push(card('✨', 'Two weeks conflict-free', 'No conflict logged in 14 days. Worth noticing.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', goInsights));
+      kudos.push(card('✨', 'Two weeks conflict-free', 'No conflict logged in 14 days.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', goInsights));
   }
 
   // ── Repair ──
   if (S.showRepair && hasEnoughData && repairToday)
-    kudos.push(card('🤝', 'Repair logged today', 'Working through a rupture takes effort. That shows up in the data.', 'var(--c-partner)', 'rgba(77,196,120,0.20)', 'rgba(77,196,120,0.05)', goInsights));
+    kudos.push(card('🤝', 'Repair logged today', 'Reconnection work tracked.', 'var(--c-partner)', 'rgba(77,196,120,0.20)', 'rgba(77,196,120,0.05)', goInsights));
 
   // ── Overall balance ──
   if (hasEnoughData) {
     if (relBal7 >= relThresh)
-      kudos.push(card('💚', 'Relational balance positive', '7-day balance at +'+relBal7+'. Deposits are outpacing withdrawals this week.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', ()=>goInsightsMode('relational')));
+      kudos.push(card('💚', 'Relational balance positive', 'Balance at +'+relBal7+'. Deposits are outpacing withdrawals.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', ()=>goInsightsMode('relational')));
     else if (relBal7 < -relThresh)
-      nudges.push(card('📉', 'Balance running low', '7-day relational balance at '+relBal7+'. More withdrawals than deposits recently — worth some intentional connection.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>goInsightsMode('relational')));
+      nudges.push(card('📉', 'Balance running low', 'Relational balance at '+relBal7+'. More withdrawals than deposits recently.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>goInsightsMode('relational')));
 
     if (perBal7 >= perThresh)
-      kudos.push(card('🌿', 'Personal tank healthy', 'Restore is outpacing drain this week. That matters.', 'var(--c-restore)', 'rgba(90,184,212,0.25)', 'rgba(90,184,212,0.06)', ()=>goInsightsMode('personal')));
+      kudos.push(card('🌿', 'Personal tank healthy', 'Restore is outpacing drain this week.', 'var(--c-restore)', 'rgba(90,184,212,0.25)', 'rgba(90,184,212,0.06)', ()=>goInsightsMode('personal')));
     else if (perBal7 < -perThresh && week7Restore === 0)
-      nudges.push(card('🪫', 'Personal tank depleted', 'Wobble or steadying load without restorative activity. Something needs to give.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>goInsightsMode('personal')));
+      nudges.push(card('🪫', 'Personal tank depleted', 'Wobble or steadying load without restorative activity this week.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>goInsightsMode('personal')));
   }
 
   // ── Steady / wellbeing ──
   if (S.showCaretaker && hasEnoughData) {
     if (week7Burnout >= 4 && week7Restore === 0)
-      nudges.push(card('🕯️', 'Heavy steadying load', week7Burnout+' steadying entries this week with no restore. Make sure your own needs aren\'t getting crowded out.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      nudges.push(card('🕯️', 'Heavy steadying load', week7Burnout+' steadying entries this week with no restorative activity logged.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (week7Burnout >= 2 && week7Restore >= 1)
-      kudos.push(card('🕯️', 'Caretaking with self-care', 'Steadying for others and restoring yourself this week. That balance matters.', 'var(--c-restore)', 'rgba(90,184,212,0.20)', 'rgba(90,184,212,0.04)', goInsights));
+      kudos.push(card('🕯️', 'Caretaking with self-care', 'Steadying for others and restoring yourself this week.', 'var(--c-restore)', 'rgba(90,184,212,0.20)', 'rgba(90,184,212,0.04)', goInsights));
   }
 
   // ── New user ──
   if (!hasEnoughData)
-    nudges.push(card('👋', 'Getting started', 'Log a few days and this page will start showing you patterns, nudges, and encouragement based on your data.'));
+    nudges.push(card('👋', 'Getting started', 'Log a few days and this page will start showing you patterns, nudges, and observations based on your data.'));
 
   const section = (items) => items.length > 0 ? h('div',{}, ...items) : null;
 
   // ── Quick-log chips ──
-  const todayLoggedKeys = new Set(todayEs.map(e => e.category));
   const todayMoodEntry  = todayEs.find(e => e.category === 'libido');
 
   const quickRows = [
@@ -1608,7 +1505,8 @@ function buildHomePage() {
       { icon:'⚡', label:'Conflict', key:'conflict', show: true },
     ],
     [
-      { icon:'🤝', label:'Repair', key:'repair', show: S.showRepair },
+      { icon:'🤝', label:'Repair',   key:'repair',   show: S.showRepair },
+      { icon:'🔀', label:'Combined', key:'combined', show: true },
     ],
   ].map(row => row.filter(c => c.show)).filter(row => row.length > 0);
 
@@ -1624,7 +1522,7 @@ function buildHomePage() {
         borderRadius:'14px', padding:'14px 16px', marginBottom:'14px',
       }},
         h('div',{style:{fontSize:'10px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'4px'}},
-          'The tenor of your life this week'),
+          'Your Tenor is currently'),
         h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'28px',fontWeight:'400',color:zoneBand7?.color ?? 'var(--muted)',lineHeight:'1',marginBottom:'6px'}},
           zoneBand7 ? zoneBand7.label : '—'),
         h('div',{style:{fontSize:'12px',color:'var(--muted)',lineHeight:'1.5'}}, zoneNote),
@@ -1680,17 +1578,6 @@ function buildHomePage() {
           h('div',{style:{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid var(--surface-2)',fontSize:'10px',color:'var(--muted)',lineHeight:'1.5'}},
             'Zones (7d): thriving ≥ '+zones7.thriving+' · healthy ≥ '+zones7.stable+' · progressing ≥ 0 · unsettled ≥ '+zones7.strained+' · difficult ≥ '+zones7.depleted+' · hurting < '+zones7.depleted
           ),
-          (() => {
-            const tenorTrend = forecast?.[2]?.trend?.label || '(no forecast)';
-            const positive   = tenorScore7 != null && tenorScore7 >= 0;
-            const cooling    = ['a touch cooler','cooler','much cooler'].includes(tenorTrend);
-            return h('div',{style:{marginTop:'6px',paddingTop:'6px',borderTop:'1px solid var(--surface-2)',fontSize:'10px',color:'var(--muted)',lineHeight:'1.6'}},
-              h('div',{}, 'Suggestion gate:'),
-              h('div',{}, '  · Tenor trend: '+tenorTrend+(cooling ? ' ✓ (cooling)' : ' ✗ (not cooling)')),
-              h('div',{}, '  · Today positive: '+(positive ? '✓ ('+tenorScore7+' ≥ 0)' : '✗ ('+tenorScore7+' < 0)')),
-              h('div',{}, '  · Suggestion: '+(maintenanceSuggestion || '(none — gate not met)')),
-            );
-          })(),
         );
       })() : null,
       // Quick-log chips — each row is its own flex container so vertical spacing
@@ -1722,9 +1609,8 @@ function buildHomePage() {
       )
     ),
 
-    // Nudges
+    // Nudges (no header — most fire on weekly stats, not "today" signals)
     nudges.length > 0 ? h('div',{style:{marginBottom:'6px'}},
-      h('div',{style:{fontSize:'11px',fontWeight:'600',color:'var(--muted)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:'10px'}}, 'Today'),
       section(nudges)
     ) : null,
 
@@ -1777,103 +1663,11 @@ function buildInsightsPanel() {
   // In experimental mode the window selector is hidden — pin observation labels to 7 days.
   const w = S.useExperimentalScoring ? 7 : Number(S.loveBankWindow);
 
-  // ── Frequency stats ──
-  const physical  = winEntries.filter(e=>e.category==='physical'&&!e.solo);
-  const solo      = winEntries.filter(e=>e.category==='physical'&&e.solo);
-  const affection = winEntries.filter(e=>e.category==='affection');
-  const conflict  = winEntries.filter(e=>e.category==='conflict');
-  const turndown  = winEntries.filter(e=>e.category==='turndown');
-  const burnout   = winEntries.filter(e=>e.category==='burnout');
-  const restore   = winEntries.filter(e=>e.category==='restore');
-  const regulation= winEntries.filter(e=>e.category==='regulation');
-
-  const prevPhysical  = prevEntries.filter(e=>e.category==='physical'&&!e.solo);
-  const prevAffection = prevEntries.filter(e=>e.category==='affection');
-  const prevConflict  = prevEntries.filter(e=>e.category==='conflict');
-  const prevBurnout   = prevEntries.filter(e=>e.category==='burnout');
-  const prevRestore   = prevEntries.filter(e=>e.category==='restore');
-  const prevTurndown  = prevEntries.filter(e=>e.category==='turndown');
-
-  const totalDays = w;
-  const prevDays  = w;
-
-  // Positive trend: up = good (green), down = bad (red)
-  const freqTrend = (curr, prev) => {
-    if (!prevDays || prev === undefined) return null;
-    const r1 = curr / totalDays * 30;
-    const r2 = prev / prevDays * 30;
-    return trendLabel(r1, r2);
-  };
-
-  // Negative trend: down = good (green), up = bad (red)
-  const negTrend = (curr, prev) => {
-    if (!prevDays || prev === undefined) return null;
-    const r1 = curr / totalDays * 30;
-    const r2 = prev / prevDays * 30;
-    const diff = r1 - r2;
-    if (Math.abs(diff) < 0.5) return {cls:'trend-flat', text:'→ Stable'};
-    if (diff < 0) return {cls:'trend-up', text:'↓ Down from prior period'};   // down is good, show green
-    return {cls:'trend-dn', text:'↑ Up from prior period'};                    // up is bad, show red
-  };
-
-  // Point-based load trend
-  const loadTrendConflict = (currEntries, prevEntriesArr) => {
-    if (!prevDays) return null;
-    const r1 = currEntries.reduce((s,e)=>s+bankConfLoad(e),0) / totalDays * 30;
-    const r2 = prevEntriesArr.reduce((s,e)=>s+bankConfLoad(e),0) / prevDays * 30;
-    const diff = r1 - r2;
-    if (Math.abs(diff) < 2) return {cls:'trend-flat', text:'→ Stable'};
-    if (diff < 0) return {cls:'trend-up', text:'↓ Load down'};
-    return {cls:'trend-dn', text:'↑ Load up'};
-  };
-  const loadTrendBurnout = (currEntries, prevEntriesArr) => {
-    if (!prevDays) return null;
-    const r1 = currEntries.reduce((s,e)=>s+burnoutLoadEntry(e),0) / totalDays * 30;
-    const r2 = prevEntriesArr.reduce((s,e)=>s+burnoutLoadEntry(e),0) / prevDays * 30;
-    const diff = r1 - r2;
-    if (Math.abs(diff) < 2) return {cls:'trend-flat', text:'→ Stable'};
-    if (diff < 0) return {cls:'trend-up', text:'↓ Load down'};
-    return {cls:'trend-dn', text:'↑ Load up'};
-  };
-
-  const physTrend     = freqTrend(physical.length,  prevPhysical.length);
-  const affTrend      = freqTrend(affection.length, prevAffection.length);
-  const conflictTrend = negTrend(conflict.length,   prevConflict.length);
-  const burnoutTrend  = negTrend(burnout.length,    prevBurnout.length);
-  const restoreTrend  = freqTrend(restore.length,   prevRestore.length);
-  const turndownTrend = negTrend(turndown.length,   prevTurndown.length);
-  const conflictLoadTrend = loadTrendConflict(conflict, prevConflict);
-  const burnoutLoadTrend  = loadTrendBurnout(burnout, prevBurnout);
-
-  // ── Weekly bar data ──
-  const weeks = groupByWeek(winEntries, w);
-
-  // ── Libido line data ──
-  const libiEntries = winEntries.filter(e=>e.category==='libido').sort((a,b)=>a.date.localeCompare(b.date));
-
-  // Keep raw values for separate-scale sparklines
-  const libiPoints = libiEntries.slice(-30).map(e=>({
-    libi:      e.libiLevel ?? null,
-    moodRaw:   e.mood   ?? null,
-    energyRaw: e.energy ?? null,
-  }));
-
-  // Avg libido
-  const avgLibido  = avg(libiEntries.map(e=>e.libiLevel));
-  const prevLibido = avg(prevEntries.filter(e=>e.category==='libido').map(e=>e.libiLevel));
-  const libiTrend  = trendLabel(avgLibido, prevLibido);
-
   // ── Correlations — use full history so sample sizes are meaningful ──
   const correlations = computeCorrelations(calcEntries());
 
   // Empty state check
   const hasData = winEntries.length > 0;
-
-  const strengthBadge = s => {
-    const cls = s==='strong'?'corr-strong':s==='moderate'?'corr-moderate':s==='weak'?'corr-weak':'corr-none';
-    const label = s==='strong'?'Strong pattern':s==='moderate'?'Moderate pattern':'Weak / unclear';
-    return h('span',{class:'corr-badge '+cls}, label);
-  };
 
   return h('div',{class:'insights-panel'},
     (() => { try { return buildLoveBankPanel(); } catch(e) { console.error('Balance widget error:', e); return null; } })(),
@@ -1919,12 +1713,13 @@ function buildInsightsPanel() {
         const allCards = (S.showPhysical
           ? correlations
           : correlations.filter(c => !physicalIcons.some(icon => c.icon.includes(icon))))
+          .filter(c => c.strength !== 'weak')
           .slice().sort((a, b) => (strengthRank[a.strength] ?? 2) - (strengthRank[b.strength] ?? 2));
         const positiveIcons = ['🩷→🌹','🌹→🩷','🩷→🌹★','🌿✓→🕯️','🕯️💬→🌡️','🌊→🌡️','🌊→🕯️','🌸→🩷','🧭→🩷','🌸🧭→🌹','🩷🌹↔','🧭🩺→🩷','🌸→🌹+1','🧭🛡→🧭❤','🌸🩺→🌹','🌸🧭→🩷★'];
         const isPositive = c => positiveIcons.some(icon => c.icon.startsWith(icon));
         if (allCards.length === 0) return h('div',{style:{marginBottom:'14px'}},
           h('div',{class:'ins-section'},h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'Correlations')),
-          h('div',{class:'ins-empty'},'Not enough data yet.\nKeep logging — correlations appear once you have 3+ relevant events.')
+          h('div',{class:'ins-empty'},'No clear patterns yet.\nKeep logging — meaningful correlations need more data to surface.')
         );
         return h('div',{style:{marginBottom:'14px'}},
           h('div',{class:'ins-section'},h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'Correlations')),
@@ -2069,20 +1864,30 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
   const avgRestoreQ = avg(restore.map(e=>migrateRestoreQuality(e.restoreQuality, e)).filter(Boolean));
   const restoreGood = restore.length > 0 && avgRestoreQ !== null && avgRestoreQ >= 3;
 
-  // Repair ↔ Conflict pairing: a conflict is "closed" if a repair entry sits
-  // within REPAIR_WINDOW_DAYS after it; "open" if it's older than that window
-  // and still has no repair logged. Uses all entries (not just this window)
-  // so a repair just outside the window still counts.
-  const REPAIR_WINDOW_DAYS = 5;
+  // Repair ↔ Conflict pairing:
+  //  · "closed" (positive kudos) = a repair within REPAIR_WINDOW_DAYS — a
+  //    prompt repair earns the call-out.
+  //  · "open" (concern flag) = the conflict has NO subsequent repair at all,
+  //    AND it sits in a narrow 1–5 day actionable window. Repair typically
+  //    happens during or shortly after a conflict; if it hasn't by day 5,
+  //    it likely isn't going to, so the flag ages out rather than nagging.
+  const REPAIR_WINDOW_DAYS      = 5;
+  const OPEN_FLAG_MIN_AGE_DAYS  = 1;
+  const OPEN_FLAG_MAX_AGE_DAYS  = 5;
   const allRepairsByDate = (S.allEntries || []).filter(e => e.category === 'repair');
   const conflictRepaired = (c) => allRepairsByDate.some(r => {
     const days = daysBetween(c.date, r.date);
     return days >= 0 && days <= REPAIR_WINDOW_DAYS;
   });
-  const closedConflicts = conflict.filter(conflictRepaired);
-  const openConflicts   = conflict.filter(c =>
-    !conflictRepaired(c) && daysBetween(c.date, end) >= REPAIR_WINDOW_DAYS
+  const conflictHasAnyLaterRepair = (c) => allRepairsByDate.some(r =>
+    daysBetween(c.date, r.date) >= 0
   );
+  const closedConflicts = conflict.filter(conflictRepaired);
+  const openConflicts   = conflict.filter(c => {
+    if (conflictHasAnyLaterRepair(c)) return false;
+    const ageDays = daysBetween(c.date, end);
+    return ageDays >= OPEN_FLAG_MIN_AGE_DAYS && ageDays <= OPEN_FLAG_MAX_AGE_DAYS;
+  });
 
   // Scored observations with priority — highest priority first, first match wins
   const candidates = [
@@ -2233,11 +2038,11 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       text: `Turn-downs followed conflict on the same or next day ${periodRef} — the two events overlapped.`
     },
     {
-      icon:'⚡🤝', title:'Conflict without a repair logged', tone:'concern',
+      icon:'⚡🤝', title:'Recent conflict, no repair logged', tone:'concern',
       test: S.showRepair && openConflicts.length > 0,
       text: (() => {
         const n = openConflicts.length;
-        return `${n === 1 ? 'A conflict' : n + ' conflicts'} from at least ${REPAIR_WINDOW_DAYS} days ago ${n === 1 ? 'has' : 'have'} no repair entry yet — the relational loop is still open.`;
+        return `${n === 1 ? 'A conflict' : n + ' conflicts'} from the last ${OPEN_FLAG_MAX_AGE_DAYS} days ${n === 1 ? 'has' : 'have'} no repair entry.`;
       })()
     },
     {
