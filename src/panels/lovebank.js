@@ -6,7 +6,6 @@
 // gaugeType: 'relational' | 'personal' | 'combined'
 function buildTypedPills(winEntries, gaugeType) {
   const buckets = {};
-  const wDays = 7;
   const add = (key, label, color, score) => {
     if (!buckets[key]) buckets[key] = { label, color, total: 0 };
     buckets[key].total += score;
@@ -311,30 +310,24 @@ function buildLoveBankPanel() {
         }
 
         return h('div',{style:{marginTop:'10px', padding:'12px 14px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:'14px'}},
-          wDays === 7
-            ? h('div',{style:{textAlign:'right', marginBottom:'8px'}},
-                h('div',{style:{fontSize:'10px', fontWeight:'600', letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--muted)', marginBottom:'2px'}}, 'Base Tenor'),
-                h('div',{style:{fontFamily:"'Libre Baskerville',serif", fontSize:'26px', fontWeight:'400', color:baseColor, lineHeight:'1'}},
-                  (baseTenor >= 0 ? '+' : '') + baseTenor.toFixed(1)),
-              )
-            : null,
-          wDays === 7
-            ? h('div',{},
-                svgEl,
-                h('div',{style:{display:'flex', gap:'14px', marginTop:'8px'}},
-                  h('div',{style:{display:'flex', alignItems:'center', gap:'5px'}},
-                    h('div',{style:{width:'20px', height:'2px', borderRadius:'1px', background:'var(--muted-3)', opacity:'0.7'}}),
-                    h('span',{style:{fontSize:'10px', color:'var(--muted)'}}, 'Tenor'),
-                  ),
-                  h('div',{style:{display:'flex', alignItems:'center', gap:'5px'}},
-                    h('div',{style:{width:'20px', height:'2.5px', borderRadius:'1px', background:baseColor}}),
-                    h('span',{style:{fontSize:'10px', color:'var(--muted)'}}, 'Base Tenor'),
-                  ),
-                ),
-              )
-            : h('div',{style:{height:'96px', display:'flex', alignItems:'center', justifyContent:'center'}},
-                h('span',{style:{fontSize:'11px', color:'var(--muted)', fontStyle:'italic'}}, 'Chart available in 7-day view')
+          h('div',{style:{textAlign:'right', marginBottom:'8px'}},
+            h('div',{style:{fontSize:'10px', fontWeight:'600', letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--muted)', marginBottom:'2px'}}, 'Base Tenor'),
+            h('div',{style:{fontFamily:"'Libre Baskerville',serif", fontSize:'26px', fontWeight:'400', color:baseColor, lineHeight:'1'}},
+              (baseTenor >= 0 ? '+' : '') + baseTenor.toFixed(1)),
+          ),
+          h('div',{},
+            svgEl,
+            h('div',{style:{display:'flex', gap:'14px', marginTop:'8px'}},
+              h('div',{style:{display:'flex', alignItems:'center', gap:'5px'}},
+                h('div',{style:{width:'20px', height:'2px', borderRadius:'1px', background:'var(--muted-3)', opacity:'0.7'}}),
+                h('span',{style:{fontSize:'10px', color:'var(--muted)'}}, 'Tenor'),
               ),
+              h('div',{style:{display:'flex', alignItems:'center', gap:'5px'}},
+                h('div',{style:{width:'20px', height:'2.5px', borderRadius:'1px', background:baseColor}}),
+                h('span',{style:{fontSize:'10px', color:'var(--muted)'}}, 'Base Tenor'),
+              ),
+            ),
+          ),
           h('div',{style:{fontSize:'11px', color:'var(--muted)', marginTop:'8px', lineHeight:'1.6'}},
             'Base Tenor is your emotional baseline — where your relationship and inner life typically sit over the past month. It moves slowly, so when it shifts, something has genuinely changed.'
           ),
@@ -347,7 +340,7 @@ function buildLoveBankPanel() {
         fontSize:'11px', fontFamily:"'DM Sans',sans-serif", color:'var(--muted)',
       }},
         h('div',{style:{fontWeight:'600',color:'var(--text-strong)',marginBottom:'8px'}},
-          'Thresholds — ' + wDays + ' days · cap ±' + zones.cap),
+          'Thresholds — cap ±' + zones.cap),
         h('div',{style:{display:'flex',flexDirection:'column',gap:'2px'}},
           ...[
             'Thriving ≥ '  + zones.thriving,
