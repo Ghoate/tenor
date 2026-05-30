@@ -1,12 +1,9 @@
 'use strict';
 
 /* ── Data ops ───────────────────────────────────────── */
-function loadDay() { return dbByIdx('entries','date',S.selectedDate).then(r=>{ S.dayEntries=r.map(e=>e.category==='partner'?{...e,category:'notes'}:e); }); }
+function loadDay() { return dbByIdx('entries','date',S.selectedDate).then(r=>{ S.dayEntries=r; }); }
 function loadAll() {
-  return dbAll('entries').then(r=>{
-    // Migrate legacy 'partner' category to 'notes'
-    S.allEntries = r.map(e => e.category === 'partner' ? {...e, category:'notes'} : e);
-  });
+  return dbAll('entries').then(r=>{ S.allEntries = r; });
 }
 function delEntry(id){ dbDel('entries',id).then(loadDay).then(loadAll).then(render).catch(e=>{console.error('Save failed:',e);alert('Save failed — '+e.message);}); }
 function recalculateAllWeights() {
@@ -45,12 +42,8 @@ function saveSettings(){
   dbPut('settings',{key:'tagToneOverrides',         value:S.tagToneOverrides});
   dbPut('settings',{key:'showDebug',         value:S.showDebug});
   dbPut('settings',{key:'showCardPoints',    value:S.showCardPoints});
-  dbPut('settings',{key:'needs2Ratings',     value:S.needs2Ratings});
-  dbPut('settings',{key:'needs2Order',       value:S.needs2Order});
-  dbPut('settings',{key:'needs2Hits',        value:S.needs2Hits});
   dbPut('settings',{key:'needsHits',         value:S.needsHits});
   dbPut('settings',{key:'needsPnHits',       value:S.needsPnHits});
-  dbPut('settings',{key:'needs2Sort',        value:S.needs2Sort});
   dbPut('settings',{key:'useExponentialDecay',    value:S.useExponentialDecay});
   dbPut('settings',{key:'calcStartDate',         value:S.calcStartDate});
   dbPut('settings',{key:'showQuickDelete',   value:S.showQuickDelete});
@@ -172,23 +165,11 @@ function loadSettings(){
     dbGet('settings','showCardPoints').then(s=>{
       if(s&&s.value!=null) S.showCardPoints = s.value;
     }),
-    dbGet('settings','needs2Ratings').then(s=>{
-      if(s&&s.value&&typeof s.value==='object') S.needs2Ratings = s.value;
-    }),
-    dbGet('settings','needs2Order').then(s=>{
-      if(s&&Array.isArray(s.value)) S.needs2Order = s.value;
-    }),
-    dbGet('settings','needs2Hits').then(s=>{
-      if(s&&s.value&&typeof s.value==='object') S.needs2Hits = s.value;
-    }),
     dbGet('settings','needsHits').then(s=>{
       if(s&&s.value&&typeof s.value==='object') S.needsHits = s.value;
     }),
     dbGet('settings','needsPnHits').then(s=>{
       if(s&&s.value&&typeof s.value==='object') S.needsPnHits = s.value;
-    }),
-    dbGet('settings','needs2Sort').then(s=>{
-      if(s&&s.value!=null) S.needs2Sort = s.value;
     }),
     dbGet('settings','useExponentialDecay').then(s=>{
       if(s&&s.value!=null) S.useExponentialDecay = s.value;
@@ -206,8 +187,7 @@ function loadSettings(){
     }),
     dbGet('settings','calFilters').then(s=>{
       if(s&&Array.isArray(s.value)) {
-        // Migrate legacy 'partner' category name to 'notes'
-        S.calFilters = new Set(s.value.map(v => v === 'partner' ? 'notes' : v));
+        S.calFilters = new Set(s.value);
       }
     }),
     dbGet('settings','gaugeMode').then(s=>{

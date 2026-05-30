@@ -43,8 +43,6 @@ const PERSONAL_NEEDS = [
   {val:'sensory',      icon:'🛁', label:'Aesthetic Pleasure', hint:'The need for a pleasant physical environment — atmosphere, comfort, sounds, tastes, warmth, and aesthetic surroundings.'},
 ];
 
-const RESTORE_NEEDS = [...EMOTIONAL_NEEDS, ...PERSONAL_NEEDS];
-
 const S = {
   today:         dateStr(new Date()),
   selectedDate:  dateStr(new Date()),
@@ -90,14 +88,10 @@ const S = {
   showCardPoints:    false, // show point values inline on entry cards
   useExponentialDecay: false, // DEBUG: switches the lifetime sum from power-law decay to per-event exponential decay (for side-by-side comparison)
   calcStartDate:     '',    // DEBUG: YYYY-MM-DD — ignore entries before this date for all calculations (empty = no filter)
-  needs2Ratings:     {},    // EN calibration playground: { needVal: rating (9/7/5/3/1) } — not yet wired to scoring
-  needs2Order:       null,  // Array of need.val in user-visible order (post-quiz, manually reorderable)
-  needs2Hits:        {},    // Raw selection counts per need from the last quiz, for debug visibility
   needsQuiz:         null,  // Transient quiz state for the Needs tab EN calibration (live answers + tie-breaker progress)
   needsHits:         {},    // Saved hit counts from the last Needs-tab EN calibration (debug visibility)
   needsPnQuiz:       null,  // Transient quiz state for the Needs tab PN calibration
   needsPnHits:       {},    // Saved hit counts from the last Needs-tab PN calibration
-  needs2Sort:        'default', // 'default' | 'rank' — sort mode on the Needs2 calibration panel
   showQuickDelete:   false, // show × button on entry cards
   relationshipMode:  'partner', // 'partner' | 'dating' — controls Bonding form shape and labels
   weights: {

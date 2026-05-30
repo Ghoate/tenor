@@ -268,7 +268,7 @@ function importJSON(file) {
         if (data.settings.showRegulation != null) S.showRegulation     = data.settings.showRegulation;
         if (data.settings.showPhysical   != null) S.showPhysical       = data.settings.showPhysical;
         if (data.settings.calFilters && Array.isArray(data.settings.calFilters))
-          S.calFilters = new Set(data.settings.calFilters.map(v => v === 'partner' ? 'notes' : v));
+          S.calFilters = new Set(data.settings.calFilters);
         saveSettings();
         dbPut('settings', {key:'onboarded', value:true}); // prevent onboarding from running again after import
       }
@@ -302,8 +302,6 @@ function importJSON(file) {
           return;
         }
         const entry = {...toImport[i]};
-        // Migrate legacy 'partner' category to 'notes'
-        if (entry.category === 'partner') entry.category = 'notes';
         delete entry.id;
         dbPut('entries', entry).then(()=>{imported++;importNext(i+1);});
       };

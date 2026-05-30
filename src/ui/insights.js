@@ -15,42 +15,7 @@ function getPrevWindowEntries() {
   return calcEntries().filter(e => e.date >= start && e.date < end);
 }
 
-function groupByWeek(entries, windowDays) {
-  // Weeks always start on Monday
-  // Find the most recent Monday on or before today
-  const todayDate = new Date(S.today + 'T00:00:00');
-  const dow = todayDate.getDay(); // 0=Sun
-  const daysSinceMonday = (dow === 0) ? 6 : dow - 1;
-  const lastMonday = new Date(todayDate);
-  lastMonday.setDate(lastMonday.getDate() - daysSinceMonday);
-
-  const w = windowDays;
-  const numWeeks = Math.ceil(w / 7);
-  const weeks = [];
-  for (let i = numWeeks - 1; i >= 0; i--) {
-    const wkStart = new Date(lastMonday);
-    wkStart.setDate(wkStart.getDate() - i * 7);
-    const wkEnd = new Date(wkStart);
-    wkEnd.setDate(wkEnd.getDate() + 6);
-    weeks.push({ start: dateStr(wkStart), end: dateStr(wkEnd), entries: [] });
-  }
-  for (const e of entries) {
-    for (const wk of weeks) {
-      if (e.date >= wk.start && e.date <= wk.end) { wk.entries.push(e); break; }
-    }
-  }
-  return weeks;
-}
-
 function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
-
-function trendLabel(curr, prev) {
-  if (prev === null || curr === null) return null;
-  const diff = curr - prev;
-  if (Math.abs(diff) < 0.5) return {cls:'trend-flat', text:'→ Stable'};
-  if (diff > 0) return {cls:'trend-up', text:'↑ Up from prior period'};
-  return {cls:'trend-dn', text:'↓ Down from prior period'};
-}
 
 function isNextDay(a, b) { return daysBetween(a, b) === 1; }
 
