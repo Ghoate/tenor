@@ -6,19 +6,18 @@ function resolveSub(val) { return typeof val === 'function' ? val() : (val || ''
 // ── Tenor zone bounds ────────────────────────────────────
 // Zone thresholds for the relational gauge. Negative boundaries mirror positives.
 function getBounds() {
-  const stable   = S.weights.stable7   || 40;
-  const thriving = S.weights.thriving7 || 80;
-  const cap      = S.weights.cap7      || 240;
+  const stable   = S.weights.stable7   || 30;
+  const thriving = S.weights.thriving7 || 60;
+  const cap      = S.weights.cap7      || 150;
   return { cap, thriving, stable, neutral:0, strained:-stable, depleted:-thriving, critical:-cap };
 }
 
-// Returns entries that are still meaningfully contributing right now under
-// the experimental decay model — i.e. those whose decayed score has not yet
-// faded to zero. Used by the threshold observations on the Insights page so
-// "what's going on right now" reflects what's still alive, not a hard
-// calendar window. For categories without a scoring path (libido, notes,
-// repair), falls back to a 30-day recency window so observations that
-// reference them still get a fresh frame.
+// Returns entries that are still meaningfully contributing right now — i.e.
+// those whose decayed score has not yet faded to zero. Used by the threshold
+// observations on the Insights page so "what's going on right now" reflects
+// what's still alive, not a hard calendar window. For categories without a
+// scoring path (libido, notes, repair), falls back to a 30-day recency
+// window so observations that reference them still get a fresh frame.
 function aliveEntries(refDate) {
   const ref = refDate || S.today;
   const src = calcEntries();

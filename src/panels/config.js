@@ -292,20 +292,6 @@ function buildConfigPanel() {
       ),
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderTop:'1px solid var(--border)'}},
         h('div',{},
-          h('div',{style:{fontSize:'13px',color:'var(--text)'}},'Exponential decay (alternate model)'),
-          h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Per-event exponential fade with magnitude-scaled lifespan. Below 1 → 0.')
-        ),
-        h('button',{
-          style:{padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
-            fontFamily:"'DM Sans',sans-serif",
-            border: S.useExponentialDecay ? '1px solid var(--c-partner)' : '1px solid var(--border)',
-            background: S.useExponentialDecay ? 'var(--c-partner-tint)' : 'var(--bg3)',
-            color: S.useExponentialDecay ? 'var(--c-partner)' : 'var(--muted)'},
-          onclick:()=>{ S.useExponentialDecay=!S.useExponentialDecay; saveSettings(); render(); }
-        }, S.useExponentialDecay ? 'On' : 'Off')
-      ),
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderTop:'1px solid var(--border)'}},
-        h('div',{},
           h('div',{style:{fontSize:'13px',color:'var(--text)'}},'Quick delete on entry cards'),
           h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Show × button directly on each log entry card')
         ),
@@ -356,20 +342,14 @@ function buildConfigPanel() {
         'Adjust the core scoring parameters.'
       ),
       ...[
-        {key:'stable7',    label:'Healthy anchor',                hint:'Score threshold for the Healthy zone',                     min:10, max:500,  step:5,  def:40},
-        {key:'thriving7',  label:'Thriving anchor',               hint:'Score threshold for the Thriving zone',                    min:20, max:1000, step:10, def:80},
-        {key:'cap7',       label:'Cap anchor',                    hint:'Hard ceiling on the relational balance',                   min:50, max:2000, step:10, def:240},
-        {key:'calStable',  label:'Calendar — stable threshold',   hint:'Daily combined score at which a day shows medium color',   min:1,  max:200,  step:1,  def:11},
-        {key:'calThriving',label:'Calendar — thriving threshold', hint:'Daily combined score at which a day shows strong color',   min:1,  max:500,  step:1,  def:25},
+        {key:'stable7',    label:'Healthy anchor',                hint:'Score threshold for the Healthy zone',                     min:10, max:500,  step:5,  def:30},
+        {key:'thriving7',  label:'Thriving anchor',               hint:'Score threshold for the Thriving zone',                    min:20, max:1000, step:10, def:60},
+        {key:'cap7',       label:'Gauge Cap Anchor',              hint:'Outer edge of the gauge needle swing (UI only — does not affect scoring)',  min:50, max:2000, step:10, def:150},
+        {key:'calStable',  label:'Calendar — Healthy threshold',  hint:'Daily combined score at which a day shows medium color',   min:1,  max:200,  step:1,  def:11},
+        {key:'calThriving',label:'Calendar — Thriving threshold', hint:'Daily combined score at which a day shows strong color',   min:1,  max:500,  step:1,  def:25},
         {key:'fcTouch',    label:'Forecast — a touch warmer/cooler', hint:'|Δ| at which tomorrow flags as a touch warmer or cooler (mirrored)', min:0.5, max:10,  step:0.5, def:1},
         {key:'fcWarm',     label:'Forecast — warmer/cooler',         hint:'|Δ| at which tomorrow flags as warmer or cooler (mirrored)',         min:1,   max:30,  step:0.5, def:4},
         {key:'fcMuch',     label:'Forecast — much warmer/cooler',    hint:'|Δ| at which tomorrow flags as much warmer or cooler (mirrored)',    min:2,   max:100, step:1,   def:8},
-        {key:'lifespanSlope',    label:'Power-law — lifespan slope',     hint:'Days of lifespan per point of score (bigger events linger longer)',    min:0,   max:10,  step:0.1, def:0.5},
-        {key:'lifespanFloor',    label:'Power-law — lifespan floor',     hint:'Minimum lifespan in days, even for tiny events',                       min:0,   max:30,  step:0.5, def:1.5},
-        {key:'decayPower',       label:'Power-law — decay power',        hint:'Shape of the fade curve — higher values create a sharper cliff at lifespan', min:0.5, max:10,  step:0.5, def:2},
-        {key:'cutoffMultiplier', label:'Power-law — cutoff multiplier',  hint:'Hard zero past this many lifespans — kills the long power-law tail',  min:1,   max:10,  step:0.5, def:2.5},
-        {key:'expT_Slope',       label:'Exponential — lifespan slope',     hint:'Days of lifespan per point of score (per-event exponential model)',    min:0,   max:5,   step:0.01, def:0.58},
-        {key:'expT_Floor',       label:'Exponential — lifespan floor',     hint:'Minimum lifespan in days, even for tiny events (per-event exponential)', min:0,   max:30,  step:0.1, def:1.8},
       ].map(({key,label,hint,min,max,step,def}) =>
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--border)'}},
           h('div',{style:{flex:'1'}},
@@ -394,6 +374,80 @@ function buildConfigPanel() {
           })
         )
       ),
+
+      // ── Lifespan anchors (derive slope/floor from two event-size anchors) ──
+      (() => {
+        const slope = W.expT_Slope ?? 0.6122;
+        const floor = W.expT_Floor ?? 1.7755;
+        const bigLife   = 100 * slope + floor;   // -100 event lifespan
+        const smallLife =   2 * slope + floor;   // -2   event lifespan
+        const setFromAnchors = (newBig, newSmall) => {
+          const newSlope = (newBig - newSmall) / 98;
+          const newFloor = newSmall - 2 * newSlope;
+          S.weights = {...S.weights, expT_Slope: newSlope, expT_Floor: newFloor};
+          saveSettings();
+          render();
+        };
+        const anchorRow = (label, hint, val, min, max, onSave) => h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--border)'}},
+          h('div',{style:{flex:'1'}},
+            h('div',{style:{fontSize:'13px',color:'var(--text)'}}, label),
+            h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}}, hint)
+          ),
+          h('div',{style:{display:'flex',alignItems:'center',gap:'6px',flexShrink:'0'}},
+            h('input',{
+              type:'number', step:'1', min:String(min), max:String(max),
+              value: String(Math.round(val * 10) / 10),
+              style:{width:'70px',background:'var(--bg3)',border:'1px solid var(--border)',
+                borderRadius:'8px',padding:'6px 10px',fontSize:'14px',
+                color:'var(--c-physical)',fontFamily:"'Libre Baskerville',serif",
+                textAlign:'right',outline:'none'},
+              onchange: e => {
+                const n = parseFloat(e.target.value);
+                if (!isNaN(n) && n >= min && n <= max) onSave(n);
+              }
+            }),
+            h('span',{style:{fontSize:'11px',color:'var(--muted)'}}, 'days')
+          )
+        );
+        return h('div',{},
+          anchorRow(
+            'Big event lifespan (+100)',
+            'How many days a 100-point event takes to fade to zero',
+            bigLife, 5, 365,
+            (n) => setFromAnchors(n, smallLife)
+          ),
+          anchorRow(
+            'Small event lifespan (+2)',
+            'How many days a 2-point event takes to fade to zero',
+            smallLife, 1, 60,
+            (n) => setFromAnchors(bigLife, n)
+          ),
+          // ── Derived lifespan preview ──────────────────────
+          (() => {
+            const sl = W.expT_Slope ?? 0.6122;
+            const fl = W.expT_Floor ?? 1.7755;
+            const lifespan = (mag) => mag * sl + fl;
+            const previewRow = (mag) => h('div',{style:{
+              display:'flex', justifyContent:'space-between', padding:'3px 0',
+            }},
+              h('span',{style:{fontSize:'11px',color:'var(--muted)'}}, '+' + mag + ' event'),
+              h('span',{style:{fontSize:'12px',fontFamily:"'Libre Baskerville',serif",color:'var(--muted)'}},
+                '~' + Math.round(lifespan(mag) * 10) / 10 + ' days')
+            );
+            return h('div',{style:{
+              padding:'8px 12px 6px',marginTop:'8px',marginBottom:'4px',
+              borderRadius:'8px',background:'var(--bg3)',
+            }},
+              h('div',{style:{fontSize:'10px',fontWeight:'600',letterSpacing:'0.06em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'4px'}}, 'Derived lifespans'),
+              previewRow(50),
+              previewRow(20),
+              previewRow(10),
+              previewRow(5),
+            );
+          })(),
+        );
+      })(),
+
       // ── Debug: calc start date ────────────────────────
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--border)',gap:'10px'}},
         h('div',{style:{flex:'1',minWidth:'0'}},

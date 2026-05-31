@@ -86,7 +86,6 @@ const S = {
   tagToneOverrides:   {}, // per-tag tone overrides for custom/renamed tags
   showDebug:         false, // show scoring debug panels in forms
   showCardPoints:    false, // show point values inline on entry cards
-  useExponentialDecay: false, // DEBUG: switches the lifetime sum from power-law decay to per-event exponential decay (for side-by-side comparison)
   calcStartDate:     '',    // DEBUG: YYYY-MM-DD — ignore entries before this date for all calculations (empty = no filter)
   needsQuiz:         null,  // Transient quiz state for the Needs tab EN calibration (live answers + tie-breaker progress)
   needsHits:         {},    // Saved hit counts from the last Needs-tab EN calibration (debug visibility)
@@ -95,9 +94,9 @@ const S = {
   showQuickDelete:   false, // show × button on entry cards
   relationshipMode:  'partner', // 'partner' | 'dating' — controls Bonding form shape and labels
   weights: {
-    stable7:     40,
-    thriving7:   80,
-    cap7:        240,
+    stable7:     30,
+    thriving7:   60,
+    cap7:        150,
     calStable:   11,
     calThriving: 25,
 
@@ -107,15 +106,10 @@ const S = {
     fcWarm:      4,
     fcMuch:      8,
 
-    // Power-law scoring model (lifetime sum with per-event lifespan decay)
-    lifespanSlope:    0.5,   // days of lifespan per point of score
-    lifespanFloor:    1.5,   // minimum lifespan even for tiny events
-    decayPower:       2,     // shape of the fade — higher = sharper cliff at lifespan
-    cutoffMultiplier: 2.5,   // hard zero past this many lifespans (kills the long tail)
-
-    // Exponential decay model (alternate lifetime-sum model, toggle: useExponentialDecay)
-    expT_Slope:       0.58,  // days of lifespan per point of score
-    expT_Floor:       1.8,   // minimum lifespan even for tiny events
+    // Lifetime-sum scoring (per-event exponential fade)
+    // Anchored on +100 → 63 days and +2 → 3 days. Slope/floor derived from those anchors.
+    expT_Slope:       0.6122,
+    expT_Floor:       1.7755,
 
     confR:       {resolved:0.40, partial:0.60, unresolved:0.80, worsened:1.00, breakthrough:0.20},
 

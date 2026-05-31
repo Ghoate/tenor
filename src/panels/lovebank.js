@@ -11,9 +11,7 @@ function buildTypedPills(winEntries, gaugeType) {
     buckets[key].total += score;
   };
 
-  // Per-event power-law decay for the bucket pills.
-  // (Gauge totals use the active model via computeExperimentalScores; this
-  // pill breakdown stays on the power-law primitive regardless.)
+  // Per-event decay for the bucket pills, using the scoring model's decay primitive.
   const sourceEntries = calcEntries();
   const applyDecay    = (raw, daysAgo) => expRemaining(raw, daysAgo);
 

@@ -55,6 +55,8 @@ function getCorrData(entries) {
       conflictLoad:        es.filter(e=>e.category==='conflict').reduce((s,e)=>s+bankConfLoad(e),0),
       conflictHeavy:       es.some(e=>e.category==='conflict'&&(e.intensity>=3||e.conduct==='angry'||e.conduct==='withdrawn')),
       libidoLevel:         (es.find(e=>e.category==='libido')||{}).libiLevel ?? null,
+      mood:                (es.find(e=>e.category==='libido')||{}).mood ?? null,
+      energy:              (es.find(e=>e.category==='libido')||{}).energy ?? null,
       physQuality:         physEntries.filter(e=>!e.solo&&e.connectionQuality).length > 0
                              ? avg(physEntries.filter(e=>!e.solo).map(e=>e.connectionQuality).filter(Boolean))
                              : null,
@@ -1137,6 +1139,72 @@ function computeCorrelations(winEntries) {
     }
   }
 
+  // 28. Mood / energy as predictor — does a low check-in day forecast tomorrow's load?
+  //     Days where (mood ≤ 2 OR energy ≤ 2) are flagged "low"; we look at the rate of
+  //     conflict / turn-down / wobble on the *next* day vs days where both were ≥ 3.
+  {
+    const lowDays  = [];
+    const highDays = [];
+    for (const d of dates) {
+      const s = signals[d];
+      if (s.mood == null && s.energy == null) continue;
+      const next = addDays(d, 1);
+      if (!signals[next]) continue; // need a next-day record to compare
+      const isLow  = (s.mood != null && s.mood <= 2) || (s.energy != null && s.energy <= 2);
+      const isHigh = (s.mood == null || s.mood >= 3) && (s.energy == null || s.energy >= 3);
+      if (isLow)  lowDays.push(next);
+      else if (isHigh) highDays.push(next);
+    }
+    if (lowDays.length >= minSamples && highDays.length >= minSamples) {
+      const rate = (arr, pred) => arr.filter(d => pred(signals[d])).length / arr.length;
+      const stressorLow  = rate(lowDays,  s => s.hasConflict || s.hasTurndownByHer || s.hasWobble);
+      const stressorHigh = rate(highDays, s => s.hasConflict || s.hasTurndownByHer || s.hasWobble);
+      const diff = stressorLow - stressorHigh;
+      if (diff >= 0.20) {
+        const pctLow  = Math.round(stressorLow  * 100);
+        const pctHigh = Math.round(stressorHigh * 100);
+        results.push({
+          icon:'🌡️→⚡', title:'Low check-in days forecast harder next days',
+          desc: `On days following a low mood/energy check-in (≤ 2/5), conflict/turn-down/wobble landed ${pctLow}% of the time — vs ${pctHigh}% after a steady check-in. The daily reading is doing predictive work.`,
+          strength: diff >= 0.40 ? 'strong' : diff >= 0.30 ? 'moderate' : 'weak',
+          n: lowDays.length,
+        });
+      }
+    }
+  }
+
+  // 29. Time since last bonding → conflict / turn-down rate
+  //     Compares friction rate on days that are far from the most recent bonding entry
+  //     against days that are close to one.
+  {
+    let lastBondDate = null;
+    const farDays = [], nearDays = [];
+    for (const d of dates) {
+      if (lastBondDate != null) {
+        const gap = daysBetween(lastBondDate, d);
+        if (gap >= 6) farDays.push(d);
+        else if (gap <= 2) nearDays.push(d);
+      }
+      if (signals[d].hasAffection) lastBondDate = d;
+    }
+    if (farDays.length >= minSamples && nearDays.length >= minSamples) {
+      const rate = (arr) => arr.filter(d => signals[d].hasConflict || signals[d].hasTurndownByHer).length / arr.length;
+      const farRate  = rate(farDays);
+      const nearRate = rate(nearDays);
+      const diff = farRate - nearRate;
+      if (diff >= 0.15) {
+        const pctFar  = Math.round(farRate  * 100);
+        const pctNear = Math.round(nearRate * 100);
+        results.push({
+          icon:'🩷⏳→⚡', title:'Bonding gaps coincide with friction',
+          desc: `Days that came 6+ days after a ${bondingLabel().toLowerCase()} entry saw conflict or turn-down ${pctFar}% of the time — vs ${pctNear}% on days that came within 2 days. Cadence appears to matter.`,
+          strength: diff >= 0.30 ? 'strong' : diff >= 0.22 ? 'moderate' : 'weak',
+          n: farDays.length,
+        });
+      }
+    }
+  }
+
   return results;
 }
 
@@ -1764,6 +1832,41 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
     return ageDays >= OPEN_FLAG_MIN_AGE_DAYS && ageDays <= OPEN_FLAG_MAX_AGE_DAYS;
   });
 
+  // ── Streak / momentum helpers ──────────────────────────────────────────
+  // Walk back from `end` and count consecutive days where relational balance
+  // is at or above the Healthy threshold. Used by the sustained-stretch
+  // observation; capped at 14 days of lookback.
+  const healthyStreak = (() => {
+    const stableT = zones.stable;
+    let streak = 0;
+    for (let d = 0; d < 14; d++) {
+      const rel = computeExperimentalScores(addDays(end, -d)).rel;
+      if (rel >= stableT) streak++;
+      else break;
+    }
+    return streak;
+  })();
+
+  // Days since the last bonding entry (regardless of decay status).
+  const lastBondingDate = (S.allEntries || [])
+    .filter(e => e.category === 'affection')
+    .map(e => e.date).sort().pop();
+  const daysSinceLastBonding = lastBondingDate ? daysBetween(lastBondingDate, end) : null;
+
+  // Today positive after a tough stretch — relational ≥ 0 today,
+  // and the previous 3+ consecutive days were < 0.
+  const recoveryToday = (() => {
+    const todayRel = computeExperimentalScores(end).rel;
+    if (todayRel < 0) return false;
+    let neg = 0;
+    for (let d = 1; d <= 7; d++) {
+      const r = computeExperimentalScores(addDays(end, -d)).rel;
+      if (r < 0) neg++;
+      else break;
+    }
+    return neg >= 3;
+  })();
+
   // Scored observations with priority — highest priority first, first match wins
   const candidates = [
 
@@ -1882,6 +1985,11 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       })(),
       text: `You turned ${P.obj} down ${turndown.filter(e=>e.initiatedBy==='me').length} times ${periodRef}, all for depletion — your resource tank needs attention.`
     },
+    {
+      icon:'🩷⏳', title:'A while since '+bondingLabel().toLowerCase(), tone:'concern',
+      test: daysSinceLastBonding !== null && daysSinceLastBonding >= 7,
+      text: `${daysSinceLastBonding} days since the last ${bondingLabel().toLowerCase()} entry — worth noticing.`
+    },
 
     // ── Mixed signals ────────────────────────────────────────────────────
     {
@@ -1936,6 +2044,16 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       icon:'📈', title:'Balance in thriving range', tone:'positive',
       test: weekBal !== null && weekBal >= zones.thriving,
       text: `Relational balance is at +${weekBal?.toFixed(0)} ${periodRef} — in the thriving range. The connection is tracking well.`
+    },
+    {
+      icon:'🌿', title:'Sustained Healthy stretch', tone:'positive',
+      test: healthyStreak >= 5,
+      text: `Relational balance has stayed Healthy+ for ${healthyStreak} consecutive days — a real stretch of stability.`
+    },
+    {
+      icon:'🌅', title:'Turning back to positive', tone:'positive',
+      test: recoveryToday,
+      text: `Relational balance crossed back into positive today after a tough stretch — a transition worth marking.`
     },
     {
       icon:'🩷🌹', title:'A good week', tone:'positive',
@@ -2015,7 +2133,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
     },
   ];
 
-  const matched = candidates.filter(c => c.test).slice(0, 3);
+  const matched = candidates.filter(c => c.test);
   const observationEl = matched.length > 0
     ? matched.map(c => h('p',{style:{margin:'0 0 6px 0'}}, c.text))
     : [h('p',{style:{margin:'0'}}, weekEntries.length === 0

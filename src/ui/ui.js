@@ -21,6 +21,7 @@ const CAL_FILTER_DEFS = [
 
 function buildCalFilterModal() {
   const filters = S.calFilters;
+  const expiredHidden = filters.has('__expired');
   return overlay(h('div',{},
     h('div',{class:'sheet-title'},'Show / hide on calendar'),
     h('div',{style:{display:'flex',flexDirection:'column',gap:'2px'}},
@@ -50,6 +51,31 @@ function buildCalFilterModal() {
         );
       })
     ),
+    // ── Scoring filter ─────────────────────────────────────────────
+    h('div',{style:{
+      marginTop:'12px',padding:'12px 0 4px 0',borderTop:'1px solid var(--border-mid)',
+      fontSize:'10px',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted-2)',
+    }}, 'By scoring status'),
+    h('div',{
+      style:{display:'flex',alignItems:'center',justifyContent:'space-between',
+             padding:'10px 0',borderBottom:'1px solid var(--border)',cursor:'pointer'},
+      onclick:()=>{
+        if (filters.has('__expired')) filters.delete('__expired');
+        else                          filters.add('__expired');
+        render();
+      }
+    },
+      h('div',{style:{display:'flex',alignItems:'center',gap:'10px',flex:'1'}},
+        h('div',{style:{width:'10px',height:'10px',borderRadius:'2px',background:'var(--muted-3)',opacity:expiredHidden?'1':'0.3'}}),
+        h('div',{style:{display:'flex',flexDirection:'column',gap:'2px'}},
+          h('span',{style:{fontSize:'14px',color:expiredHidden?'var(--text)':'var(--muted)'}},'Hide expired entries'),
+          h('span',{style:{fontSize:'11px',color:'var(--muted-2)'}},'Only show entries still contributing points'),
+        ),
+      ),
+      h('span',{style:{fontSize:'12px',color:expiredHidden?'var(--c-partner)':'var(--muted)'}},
+        expiredHidden ? 'On' : 'Off'
+      )
+    ),
     filters.size > 0 ? h('button',{
       style:{marginTop:'16px',width:'100%',padding:'10px',borderRadius:'10px',
              border:'1px solid var(--border)',background:'var(--bg3)',color:'var(--muted)',
@@ -57,6 +83,22 @@ function buildCalFilterModal() {
       onclick:()=>{S.calFilters.clear();render();}
     },'Show all') : null
   ));
+}
+
+// True if the entry still has a non-zero decayed score contribution as of today.
+// Used by the "Hide expired entries" calendar filter so the user can scope the
+// log to only entries that are still actively scoring under the lifetime-sum model.
+// Categories without a scoring path (libido / notes / repair) are always
+// considered "active" — they're context, not score points.
+function entryIsScoring(e) {
+  if (e.category === 'libido' || e.category === 'notes' || e.category === 'repair') return true;
+  const dayLibido = S.allEntries.find(x => x.date === e.date && x.category === 'libido');
+  const cap = bankDayCap(dayLibido);
+  const daysAgo = daysBetween(e.date, S.today);
+  const { rel, per } = expEntryScores(e, cap);
+  if (rel !== 0 && expRemaining(rel, daysAgo) !== 0) return true;
+  if (per !== 0 && expRemaining(per, daysAgo) !== 0) return true;
+  return false;
 }
 
 function entryHasMissingType(e) {
@@ -81,13 +123,17 @@ function entryHasMissingType(e) {
 function buildCalendar() {
   const {calYear,calMonth,selectedDate,today} = S;
 
-  // Build dotMap
+  // Build dotMap. Per-category filters are applied later at render time (line ~247);
+  // here we only honor the show* toggles and the "hide expired" toggle (which gates
+  // by per-entry scoring state, not category).
   const dotMap = {};
+  const hideExpired = S.calFilters.has('__expired');
   for (const e of S.allEntries) {
     if (!S.showCaretaker  && e.category === 'burnout') continue;
     if (!S.showRegulation && e.category === 'regulation') continue;
     if (!S.showPhysical   && (e.category === 'physical' || e.category === 'turndown')) continue;
     if (!S.showRepair     && e.category === 'repair') continue;
+    if (hideExpired && !entryIsScoring(e)) continue;
     if (!dotMap[e.date]) dotMap[e.date] = new Set();
     dotMap[e.date].add(e.category);
   }
@@ -259,11 +305,14 @@ function buildDayPanel() {
   const allEntries=[...S.dayEntries].sort((a,b)=>a.id-b.id);
   // Apply calendar filters to day entries too
   const filters = S.calFilters;
+  const hideExpired = filters.has('__expired');
   const entries = allEntries.filter(e => {
     if (!S.showCaretaker && e.category === 'burnout') return false;
     if (!S.showRegulation && e.category === 'regulation') return false;
     if (!S.showRepair && e.category === 'repair') return false;
-    return !filters.has(e.category);
+    if (filters.has(e.category)) return false;
+    if (hideExpired && !entryIsScoring(e)) return false;
+    return true;
   });
   const hiddenCount = allEntries.length - entries.length;
   const CAT_ORDER = ['affection','burnout','conflict','libido','notes','physical','regulation','repair','restore','turndown'];
@@ -355,39 +404,19 @@ function buildDayPanel() {
           h('span',{style:{color:'var(--muted)'}}, fmt(contrib)+' from this day'),
         )
       );
-      const sectionHeader = (text) => h('div',{style:{marginTop:'10px',marginBottom:'6px',fontWeight:'600',color:'var(--text-strong)',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}}, text);
-
-      // Power-law (default model) — always computed
-      const expPL  = computeExperimentalScores(S.today, 'powerlaw');
-      const plRel  = expRemaining(relRaw,  daysAgo);
-      const plPer  = expRemaining(persRaw, daysAgo);
-
-      // Exponential (alternate) — only computed/shown when the toggle is on
-      const showExp = !!S.useExponentialDecay;
-      const expEXP   = showExp ? computeExponentialScores(S.today) : null;
-      const expRelEXP = showExp ? expDecayRemaining(relRaw,  daysAgo) : 0;
-      const expPerEXP = showExp ? expDecayRemaining(persRaw, daysAgo) : 0;
-
-      // Heading label notes which model the rest of the app is actually using.
-      const activeLabel = showExp ? ' · active: exponential' : '';
-
+      const exp    = computeExperimentalScores(S.today);
+      const relRem = expRemaining(relRaw,  daysAgo);
+      const perRem = expRemaining(persRaw, daysAgo);
       return h('div',{style:{
         marginTop:'16px', padding:'10px 12px', borderRadius:'10px',
         background:'var(--surface-1)', border:'1px solid var(--surface-2)',
         fontSize:'11px', fontFamily:"'DM Sans',sans-serif",
       }},
         h('div',{style:{fontWeight:'600',color:'var(--text-strong)',marginBottom:'8px',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}},
-          'Day debug · ' + (_isToday ? 'today' : daysAgo+'d ago') + activeLabel),
-
-        showExp ? sectionHeader('Power-law (alternate)') : null,
-        row('Relational', expPL.rel,   plRel),
-        row('Personal',   expPL.per,   plPer),
-        row('Tenor',      expPL.tenor, (plRel + plPer) / 2),
-
-        showExp ? sectionHeader('Exponential (active)') : null,
-        showExp ? row('Relational', expEXP.rel,   expRelEXP) : null,
-        showExp ? row('Personal',   expEXP.per,   expPerEXP) : null,
-        showExp ? row('Tenor',      expEXP.tenor, (expRelEXP + expPerEXP) / 2) : null,
+          'Day debug · ' + (_isToday ? 'today' : daysAgo+'d ago')),
+        row('Relational', exp.rel,   relRem),
+        row('Personal',   exp.per,   perRem),
+        row('Tenor',      exp.tenor, (relRem + perRem) / 2),
       );
     })() : null,
   );
