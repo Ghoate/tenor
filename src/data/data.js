@@ -38,6 +38,7 @@ function saveSettings(){
   dbPut('settings',{key:'showRepair',     value:S.showRepair});
   dbPut('settings',{key:'showAttachment', value:S.showAttachment});
   dbPut('settings',{key:'horsemenExpanded',        value:S.horsemenExpanded});
+  dbPut('settings',{key:'homeForecastExpanded',    value:S.homeForecastExpanded});
   dbPut('settings',{key:'tagPolyvagalOverrides',   value:S.tagPolyvagalOverrides});
   dbPut('settings',{key:'tagToneOverrides',         value:S.tagToneOverrides});
   dbPut('settings',{key:'showDebug',         value:S.showDebug});
@@ -148,6 +149,9 @@ function loadSettings(){
     }),
     dbGet('settings','horsemenExpanded').then(s=>{
       if(s&&s.value!=null) S.horsemenExpanded = s.value;
+    }),
+    dbGet('settings','homeForecastExpanded').then(s=>{
+      if(s&&s.value!=null) S.homeForecastExpanded = s.value;
     }),
     dbGet('settings','tagPolyvagalOverrides').then(s=>{
       if(s&&s.value&&typeof s.value==='object') S.tagPolyvagalOverrides = s.value;

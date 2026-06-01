@@ -1350,10 +1350,165 @@ function buildHomePage() {
     return                    { arrow:'⇊', label:'much cooler',    color:'var(--c-conflict)' };
   };
   const forecast  = hasEnoughData ? [
-    { name:'Relational', ..._zoneIcon(fcRel),   trend:_tempDelta(relBal7,    fcRel)   },
-    { name:'Personal',   ..._zoneIcon(fcPer),   trend:_tempDelta(perBal7,    fcPer)   },
-    { name:'Tenor',      ..._zoneIcon(fcTenor), trend:_tempDelta(tenorScore7, fcTenor) },
+    { name:'Relational', ..._zoneIcon(fcRel),   trend:_tempDelta(relBal7,    fcRel),   today: relBal7,     tomorrow: fcRel   },
+    { name:'Personal',   ..._zoneIcon(fcPer),   trend:_tempDelta(perBal7,    fcPer),   today: perBal7,     tomorrow: fcPer   },
+    { name:'Tenor',      ..._zoneIcon(fcTenor), trend:_tempDelta(tenorScore7, fcTenor), today: tenorScore7, tomorrow: fcTenor },
   ] : null;
+
+  // ── 10-day forecast strip data (−2 ··· today ··· +7) ──────────────────
+  // For each day d:
+  //   morning   = "decay-only" value — what the score would be at end of d if nothing logged that day
+  //   d_gain    = day's logging contribution (rel + per)
+  //               · past:   actual sum of entries dated d
+  //               · today:  DOW projection (LOCKED — logging today does not move the forecast line;
+  //                         the "now" card shows actual. The line updates only when the day rolls
+  //                         over and today becomes a past day.)
+  //               · future: DOW average, ignoring zero-contribution days
+  //   afternoon = morning + d_gain
+  // Sub-daily shape: morning (low) → afternoon (peak) → evening (= afternoon for now).
+  // Between days the line drops from afternoon_d to morning_(d+1), showing the
+  // overnight decay naturally.
+  const wxData = (() => {
+    const allE = allEntries;
+    const byDate = {};
+    for (const e of allE) { (byDate[e.date] ||= []).push(e); }
+
+    // Day's contribution = sum of expRemaining(score, 0) per series for entries dated d.
+    // Returns null for an empty day so dow averaging can skip it.
+    const contributionOnDate = (date) => {
+      const dayEs = byDate[date] || [];
+      if (dayEs.length === 0) return null;
+      const cap = bankDayCap(dayEs.find(le => le.category === 'libido'));
+      let r = 0, p = 0;
+      for (const e of dayEs) {
+        const { rel, per } = expEntryScores(e, cap);
+        if (rel !== 0) r += expRemaining(rel, 0);
+        if (per !== 0) p += expRemaining(per, 0);
+      }
+      if (r === 0 && p === 0) return null;
+      return { rel: r, per: p };
+    };
+
+    // Per-day-of-week averages from last 28 days, ignoring zero-contribution days.
+    const dowVals = {}; for (let d = 0; d < 7; d++) dowVals[d] = [];
+    for (let i = 1; i <= 28; i++) {
+      const dt  = addDays(S.today, -i);
+      const dow = new Date(dt + 'T00:00:00').getDay();
+      const c   = contributionOnDate(dt);
+      if (c) dowVals[dow].push(c);
+    }
+    const dowAvgs = {};
+    for (let d = 0; d < 7; d++) {
+      const vs = dowVals[d];
+      dowAvgs[d] = {
+        rel: vs.length ? vs.reduce((s, v) => s + v.rel, 0) / vs.length : 0,
+        per: vs.length ? vs.reduce((s, v) => s + v.per, 0) / vs.length : 0,
+      };
+    }
+
+
+    // Build each day's morning + d_gain + afternoon.
+    const START_OFFSET = -2, END_OFFSET = 7;
+    const out = [];
+    for (let off = START_OFFSET; off <= END_OFFSET; off++) {
+      const date = addDays(S.today, off);
+      const dow  = new Date(date + 'T00:00:00').getDay();
+
+      // Morning = lifetime sum at end of d *without* d's own contribution.
+      // Past/today: computeExperimentalScores(d) − d's_actual_contribution.
+      // Future: decay-only at d + expected logging from days strictly between today and d.
+      const decayOnly = computeExperimentalScores(date);
+      let mornRel, mornPer;
+      let gainRel, gainPer;
+
+      if (off < 0) {
+        // Past day — morning is decay-only (without that day's logging), afternoon is actual.
+        const dayContrib = contributionOnDate(date) || { rel: 0, per: 0 };
+        gainRel = dayContrib.rel;
+        gainPer = dayContrib.per;
+        mornRel = decayOnly.rel - gainRel;
+        mornPer = decayOnly.per - gainPer;
+      } else if (off === 0) {
+        // Today — forecast is LOCKED to the start-of-day DOW projection. Logging today updates
+        // the "now" card but does not move this line; the line "updates" only when the day rolls
+        // over (today becomes a past day and uses actual).
+        const todayContrib = contributionOnDate(date) || { rel: 0, per: 0 };
+        mornRel = decayOnly.rel - todayContrib.rel;
+        mornPer = decayOnly.per - todayContrib.per;
+        gainRel = dowAvgs[dow].rel;
+        gainPer = dowAvgs[dow].per;
+      } else {
+        // Future day — today is treated as locked to its projection (not its actuals), so the
+        // forecast line stays continuous from today's afternoon into tomorrow's morning.
+        // Undo today's actual contribution from decayOnly, substitute today's projection decayed.
+        let intermediateRel = 0, intermediatePer = 0;
+        const todayDow = new Date(S.today + 'T00:00:00').getDay();
+        const todayContrib = contributionOnDate(S.today) || { rel: 0, per: 0 };
+        const todayProjRel = dowAvgs[todayDow].rel;
+        const todayProjPer = dowAvgs[todayDow].per;
+        if (Math.abs(todayContrib.rel) >= 1) intermediateRel -= expRemaining(todayContrib.rel, off);
+        if (Math.abs(todayContrib.per) >= 1) intermediatePer -= expRemaining(todayContrib.per, off);
+        if (Math.abs(todayProjRel) >= 1) intermediateRel += expRemaining(todayProjRel, off);
+        if (Math.abs(todayProjPer) >= 1) intermediatePer += expRemaining(todayProjPer, off);
+        for (let f = 1; f < off; f++) {
+          const futureDate = addDays(S.today, f);
+          const fDow = new Date(futureDate + 'T00:00:00').getDay();
+          const fRel = dowAvgs[fDow].rel;
+          const fPer = dowAvgs[fDow].per;
+          const ageAtTarget = off - f;
+          if (Math.abs(fRel) >= 1) intermediateRel += expRemaining(fRel, ageAtTarget);
+          if (Math.abs(fPer) >= 1) intermediatePer += expRemaining(fPer, ageAtTarget);
+        }
+        mornRel = decayOnly.rel + intermediateRel;
+        mornPer = decayOnly.per + intermediatePer;
+        gainRel = dowAvgs[dow].rel;
+        gainPer = dowAvgs[dow].per;
+      }
+
+      const aftRel = mornRel + gainRel;
+      const aftPer = mornPer + gainPer;
+
+      out.push({
+        date, offset: off, dow,
+        isPast:  off < 0,
+        isToday: off === 0,
+        morning:   { rel: mornRel, per: mornPer, tenor: (mornRel + mornPer) / 2 },
+        afternoon: { rel: aftRel,  per: aftPer,  tenor: (aftRel  + aftPer)  / 2 },
+        gain:      { rel: gainRel, per: gainPer },
+      });
+    }
+    // Extra morning value for the day immediately after END_OFFSET — used by the score chart
+    // line so it can extend to the morning of the day after the last visible column instead of
+    // stopping at the last day's afternoon midpoint.
+    const _extraOff = END_OFFSET + 1;
+    const _extraDate = addDays(S.today, _extraOff);
+    const _extraDecay = computeExperimentalScores(_extraDate);
+    let _extraInterRel = 0, _extraInterPer = 0;
+    const _todayDow = new Date(S.today + 'T00:00:00').getDay();
+    const _todayContrib = contributionOnDate(S.today) || { rel: 0, per: 0 };
+    const _todayProjRel = dowAvgs[_todayDow].rel;
+    const _todayProjPer = dowAvgs[_todayDow].per;
+    if (Math.abs(_todayContrib.rel) >= 1) _extraInterRel -= expRemaining(_todayContrib.rel, _extraOff);
+    if (Math.abs(_todayContrib.per) >= 1) _extraInterPer -= expRemaining(_todayContrib.per, _extraOff);
+    if (Math.abs(_todayProjRel) >= 1)     _extraInterRel += expRemaining(_todayProjRel, _extraOff);
+    if (Math.abs(_todayProjPer) >= 1)     _extraInterPer += expRemaining(_todayProjPer, _extraOff);
+    for (let f = 1; f < _extraOff; f++) {
+      const fDate = addDays(S.today, f);
+      const fDow  = new Date(fDate + 'T00:00:00').getDay();
+      const ageAtTarget = _extraOff - f;
+      if (Math.abs(dowAvgs[fDow].rel) >= 1) _extraInterRel += expRemaining(dowAvgs[fDow].rel, ageAtTarget);
+      if (Math.abs(dowAvgs[fDow].per) >= 1) _extraInterPer += expRemaining(dowAvgs[fDow].per, ageAtTarget);
+    }
+    const extraMorning = {
+      rel:   _extraDecay.rel + _extraInterRel,
+      per:   _extraDecay.per + _extraInterPer,
+      tenor: ((_extraDecay.rel + _extraInterRel) + (_extraDecay.per + _extraInterPer)) / 2,
+    };
+    return { days: out, dowAvgs, extraMorning };
+  })();
+  const wxDays    = wxData.days;
+  const wxDowAvgs = wxData.dowAvgs;
+  const wxExtraMorning = wxData.extraMorning;
 
   // ── Build cards ──────────────────────────────────────
 
@@ -1504,63 +1659,768 @@ function buildHomePage() {
       }},
         h('div',{style:{fontSize:'10px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'4px'}},
           'Your Tenor is currently'),
-        h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'28px',fontWeight:'400',color:zoneBand7?.color ?? 'var(--muted)',lineHeight:'1',marginBottom:'6px'}},
-          zoneBand7 ? zoneBand7.label : '—'),
+        h('div',{style:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'6px'}},
+          tenorScore7 !== null ? h('span',{style:{fontSize:'30px',lineHeight:'1'}}, _zoneIcon(tenorScore7).icon) : null,
+          h('span',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'28px',fontWeight:'400',color:zoneBand7?.color ?? 'var(--muted)',lineHeight:'1'}},
+            zoneBand7 ? zoneBand7.label : '—'),
+        ),
         h('div',{style:{fontSize:'12px',color:'var(--muted)',lineHeight:'1.5'}}, zoneNote),
-        forecast ? h('div',{style:{
-          marginTop:'10px', paddingTop:'10px',
-          borderTop:'1px solid var(--surface-2)',
-        }},
-          h('div',{style:{marginBottom:'8px'}},
-            h('span',{style:{fontSize:'10px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)'}}, 'Tomorrow\'s forecast')
-          ),
-          h('div',{style:{display:'flex',gap:'6px'}},
-            ...forecast.map(f => h('div',{style:{flex:'1',textAlign:'center'}},
-              h('div',{style:{fontSize:'9px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'3px'}}, f.name),
-              h('div',{style:{fontSize:'22px',lineHeight:'1',marginBottom:'2px'}}, f.icon),
-              h('div',{style:{fontSize:'10px',color:f.color,fontWeight:'500'}}, f.label),
-              f.trend ? h('div',{style:{fontSize:'10px',color:f.trend.color,marginTop:'3px',letterSpacing:'0.02em'}},
-                f.trend.arrow+' '+f.trend.label
-              ) : null
-            ))
-          )
-        ) : null,
+
+        // Today's HIGH / LOW forecast per series, with actual when logged.
+        // Low  = morning value (decay-only, what would be without today's logging)
+        // High = afternoon value (morning + dow-average projection — LOCKED, ignores actual)
+        // Actual = today's current lifetime sum (= computeExperimentalScores(today))
+        // hasLogged is determined from real today entries, not by comparing rounded values
+        // (rounding can make tenor flip 75 vs 74 even when nothing was logged).
+        hasEnoughData && wxDays.length > 0 ? (() => {
+          const todayDay = wxDays.find(d => d.isToday);
+          if (!todayDay) return null;
+          const fmt = (n) => (n >= 0 ? '+' : '') + Math.round(n);
+
+          // Compute today's actual contribution per series from entries dated today.
+          const todayEs = allEntries.filter(e => e.date === S.today);
+          const todayCap = bankDayCap(todayEs.find(le => le.category === 'libido'));
+          let todayLogRel = 0, todayLogPer = 0;
+          for (const e of todayEs) {
+            const { rel, per } = expEntryScores(e, todayCap);
+            if (rel !== 0) todayLogRel += expRemaining(rel, 0);
+            if (per !== 0) todayLogPer += expRemaining(per, 0);
+          }
+          const hasLoggedRel   = Math.abs(todayLogRel) >= 1;
+          const hasLoggedPer   = Math.abs(todayLogPer) >= 1;
+          const hasLoggedTenor = hasLoggedRel || hasLoggedPer;
+
+          // Low/High = the two end-of-day bounds (morning decay state + locked afternoon projection),
+          // sorted so Low is always the smaller number. The forecast gain can be negative (e.g. a
+          // conflict-heavy DOW) which would push the afternoon below the morning. `forecast` keeps
+          // the afternoon distinct from the sorted bounds so the status column can compare to it.
+          const rng = (a, b) => ({ low: Math.min(a, b), high: Math.max(a, b) });
+          const rRel = rng(todayDay.morning.rel,   todayDay.afternoon.rel);
+          const rPer = rng(todayDay.morning.per,   todayDay.afternoon.per);
+          const rTen = rng(todayDay.morning.tenor, todayDay.afternoon.tenor);
+          const rows = [
+            { name:'Relational', low:rRel.low, high:rRel.high, forecast:todayDay.afternoon.rel,   actual:relBal7,     hasLogged:hasLoggedRel   },
+            { name:'Personal',   low:rPer.low, high:rPer.high, forecast:todayDay.afternoon.per,   actual:perBal7,     hasLogged:hasLoggedPer   },
+            { name:'Tenor',      low:rTen.low, high:rTen.high, forecast:todayDay.afternoon.tenor, actual:tenorScore7, hasLogged:hasLoggedTenor },
+          ];
+          const headerCell = (txt, align = 'right') => h('div',{style:{
+            fontSize:'9px', fontWeight:'600', letterSpacing:'0.07em', textTransform:'uppercase',
+            color:'var(--muted)', textAlign: align, padding:'0 8px 6px',
+          }}, txt);
+          const valCell = (txt, opts = {}) => h('div',{style:{
+            fontFamily:"'Libre Baskerville', serif",
+            fontSize: opts.size || '15px',
+            color: opts.color || 'var(--text-strong)',
+            textAlign:'right', padding:'6px 8px',
+            letterSpacing:'0.01em',
+          }}, txt);
+          return h('div',{style:{
+            marginTop:'12px', paddingTop:'10px',
+            borderTop:'1px solid var(--surface-2)',
+            display:'grid', gridTemplateColumns:'auto 1fr auto auto auto auto', alignItems:'center',
+            columnGap:'4px',
+          }},
+            // Header row — Now sits over the number, the icon column has no header
+            h('div',{}),
+            h('div',{}),
+            headerCell('Now'),
+            h('div',{}),
+            headerCell('Low'),
+            headerCell('High'),
+            // One row per series
+            ...rows.flatMap(r => {
+              // Now always shows the current actual value with weather icon for that score.
+              const zi = _zoneIcon(r.actual);
+              // Status = how the current actual compares to the locked forecast (afternoon).
+              const td = _tempDelta(r.forecast, r.actual);
+              const statusText = td ? td.label : '';
+              const statusCell = h('div',{style:{
+                fontSize:'10px', color:'var(--muted)', fontStyle:'italic',
+                textAlign:'right', padding:'6px 8px',
+              }}, statusText);
+              const nowValCell = h('div',{style:{
+                fontFamily:"'Libre Baskerville', serif", fontSize:'18px',
+                color:'var(--text-strong)', letterSpacing:'0.01em',
+                textAlign:'right', padding:'6px 0 6px 8px',
+              }}, fmt(r.actual));
+              const nowIconCell = h('div',{style:{
+                fontSize:'18px', lineHeight:'1', padding:'6px 8px 6px 4px',
+              }}, zi.icon);
+              return [
+                h('div',{style:{
+                  fontSize:'10px', fontWeight:'600', letterSpacing:'0.07em', textTransform:'uppercase',
+                  color:'var(--muted)', padding:'6px 0',
+                }}, r.name),
+                statusCell,
+                nowValCell,
+                nowIconCell,
+                valCell(fmt(r.low),  { size:'13px', color:'var(--muted-2)' }),
+                valCell(fmt(r.high), { size:'13px', color:'var(--muted-2)' }),
+              ];
+            })
+          );
+        })() : null,
+
+        // ── 10-day weather strip — scrollable, 4 days at a time ────────────
+        hasEnoughData ? (() => {
+          // Two samples per day:
+          //   morning low   at i + 0.0  (column boundary = transition between days)
+          //   afternoon high at i + 0.5 (column midpoint)
+          // Each column's left half = climb, right half = descent to next morning low.
+          // Peaks center on day columns, valleys land on day boundaries.
+          const samplesFor = (key) => {
+            const pts = [];
+            for (let i = 0; i < wxDays.length; i++) {
+              pts.push({ x: i + 0.0, y: wxDays[i].morning[key] });
+              pts.push({ x: i + 0.5, y: wxDays[i].afternoon[key] });
+            }
+            // Morning of the day after the last visible column — closes off the line so it runs
+            // all the way to the chart's right edge instead of stopping at the last midpoint.
+            pts.push({ x: wxDays.length, y: wxExtraMorning[key] });
+            return pts;
+          };
+          const relPts = samplesFor('rel');
+          const perPts = samplesFor('per');
+
+          // Shared Y scale across Rel and Per.
+          const scaleFor = (pts) => {
+            const ys = pts.map(p => p.y);
+            const lo = Math.min(...ys);
+            const hi = Math.max(...ys);
+            const range = Math.max(hi - lo, 8);
+            const pad = range * 0.20;
+            return { yMin: lo - pad, yMax: hi + pad };
+          };
+          const sharedScale = scaleFor([...relPts, ...perPts]);
+          const relScale = sharedScale;
+          const perScale = sharedScale;
+
+          // Nice tick generator — picks ~targetCount ticks at multiples of 1/2/5/10 etc.
+          const niceTicks = (lo, hi, targetCount = 3) => {
+            const span = hi - lo;
+            const rawStep = span / (targetCount + 1);
+            const mag = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+            const normalised = rawStep / mag;
+            const step = (normalised < 1.5 ? 1 : normalised < 3 ? 2 : normalised < 7 ? 5 : 10) * mag;
+            const start = Math.ceil(lo / step) * step;
+            const ticks = [];
+            for (let t = start; t <= hi + 0.01; t += step) ticks.push(Math.round(t * 10) / 10);
+            return ticks;
+          };
+          const sharedTicks = niceTicks(sharedScale.yMin, sharedScale.yMax, 3);
+          const relTicks = sharedTicks;
+          const perTicks = sharedTicks;
+
+          // Layout
+          const DAY_W = 85;
+          const ROW1_H = 60;   // day label + icon + tenor high/low
+          const ROW2_H = 140;  // main Rel/Per line chart
+          const ROW3_H = ROW2_H; // percentage line chart (0-100%) — match score chart height
+          const SVG1_H  = ROW1_H + ROW2_H;   // first SVG height (rows 1+2)
+          const SVG2_H  = ROW3_H;             // second SVG height (row 3)
+          const TOTAL_W = wxDays.length * DAY_W;
+          const chartTop = ROW1_H + 8;
+          const chartBot = ROW1_H + ROW2_H;   // flush to SVG bottom — no empty space before the legend
+          const chartH   = chartBot - chartTop;
+          // Row 3 coordinates relative to SVG2 (its own coordinate space)
+          const r3Top    = 8;
+          const r3Bot    = SVG2_H;            // flush to SVG bottom — no empty space before the legend
+          const r3H      = r3Bot - r3Top;
+          const yOfPct   = (v) => r3Top + (1 - Math.max(0, Math.min(1, v))) * r3H;
+
+          // Per-category date sets and per-DOW probabilities.
+          // Window per series = days since that series' first logged event, capped at big-event lifespan.
+          // Pre-lifespan days dilute the percentages, so we don't count days before the user started tracking.
+          const DOW_WINDOW = Math.max(7, Math.round(expLifespan(100)));
+          const datesWithCat = (cat) => new Set(allEntries.filter(e => e.category === cat).map(e => e.date));
+          const daysBetween = (a, b) => Math.round(
+            (new Date(b + 'T00:00:00') - new Date(a + 'T00:00:00')) / 86400000
+          );
+          const computeDowPct = (dateSet) => {
+            const out = {}; for (let d = 0; d < 7; d++) out[d] = 0;
+            if (dateSet.size === 0) return out;
+            let earliest = null;
+            for (const dt of dateSet) if (earliest === null || dt < earliest) earliest = dt;
+            const win = Math.min(DOW_WINDOW, Math.max(1, daysBetween(earliest, S.today)));
+            const stat = {}; for (let d = 0; d < 7; d++) stat[d] = { total: 0, hit: 0 };
+            for (let i = 1; i <= win; i++) {
+              const dt  = addDays(S.today, -i);
+              const dow = new Date(dt + 'T00:00:00').getDay();
+              stat[dow].total++;
+              if (dateSet.has(dt)) stat[dow].hit++;
+            }
+            for (let d = 0; d < 7; d++) out[d] = stat[d].total > 0 ? stat[d].hit / stat[d].total : 0;
+            return out;
+          };
+          // Only entries that actually contribute points should count toward the percentage
+          // (e.g. solo physical = 0 points → excluded; restore "none" type = 0 points → excluded).
+          // Pre-compute per-day bankDayCap once so we can score each entry consistently.
+          const _dayCapByDate = {};
+          for (const e of allEntries) {
+            if (e.category === 'libido' && _dayCapByDate[e.date] === undefined) {
+              _dayCapByDate[e.date] = bankDayCap(e);
+            }
+          }
+          const _capFor = (date) => _dayCapByDate[date] ?? bankDayCap(null);
+          const _hasPoints = (e) => {
+            const { rel, per } = expEntryScores(e, _capFor(e.date));
+            return rel !== 0 || per !== 0;
+          };
+          const datesWithCatScored = (cat) => {
+            const s = new Set();
+            for (const e of allEntries) {
+              if (e.category === cat && _hasPoints(e)) s.add(e.date);
+            }
+            return s;
+          };
+          // All negative-scoring categories collapse into a weather metaphor:
+          //   Cloudcover    = chance of ANY negative event on a day
+          //   Precipitation = chance of 2+ distinct negative events on the same day
+          const NEG_CATS = new Set(['conflict', 'turndown', 'regulation', 'burnout']);
+          const negCatsByDate = new Map();
+          for (const e of allEntries) {
+            if (!NEG_CATS.has(e.category)) continue;
+            if (!_hasPoints(e)) continue;
+            if (!negCatsByDate.has(e.date)) negCatsByDate.set(e.date, new Set());
+            negCatsByDate.get(e.date).add(e.category);
+          }
+          const cloudDates  = new Set(negCatsByDate.keys());
+          const precipDates = new Set();
+          for (const [date, cats] of negCatsByDate) {
+            if (cats.size >= 2) precipDates.add(date);
+          }
+          // Positive lines stay individual; negative load is summarized by Cloudcover/Precipitation (filled).
+          const PCT_SERIES = [
+            { cat: 'affection',  color: CAT_COLORS.affection,  label: bondingLabel(),  show: true,
+              dateSet: datesWithCatScored('affection') },
+            { cat: 'physical',   color: CAT_COLORS.physical,   label: 'Intimacy',      show: S.showPhysical,
+              dateSet: datesWithCatScored('physical') },
+            { cat: 'restore',    color: CAT_COLORS.restore,    label: 'Restore',       show: true,
+              dateSet: datesWithCatScored('restore') },
+            { cat: 'cloudcover',    color: '#9aa5ad', label: 'Clouds', show: true, fill: true,
+              dateSet: cloudDates },
+            { cat: 'precipitation', color: '#3b7dd8', label: 'Rain',   show: true, fill: true,
+              dateSet: precipDates },
+          ].filter(s => s.show);
+          for (const s of PCT_SERIES) s.dowPct = computeDowPct(s.dateSet);
+          const yOfRel = (v) => chartTop + (relScale.yMax - v) / (relScale.yMax - relScale.yMin) * chartH;
+          const yOfPer = (v) => chartTop + (perScale.yMax - v) / (perScale.yMax - perScale.yMin) * chartH;
+          // Logical x units → pixels: logical x = i is the LEFT boundary of column i,
+          // x = i + 0.5 is the MIDPOINT, x = i + 1 is the right boundary.
+          const xOf = (dayX) => dayX * DAY_W;
+
+          const mk = (tag, attrs, txt) => {
+            const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+            Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k,v));
+            if (txt != null) el.textContent = txt;
+            return el;
+          };
+
+          // ── Main scrollable SVG #1 (rows 1+2: header + score line chart) ──
+          const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svgEl.setAttribute('viewBox', `0 0 ${TOTAL_W} ${SVG1_H}`);
+          svgEl.setAttribute('preserveAspectRatio', 'none');
+          svgEl.style.cssText = `display:block;width:${TOTAL_W}px;height:${SVG1_H}px;`;
+
+          // Horizontal gridlines from Per ticks (rendered subtly)
+          for (const t of perTicks) {
+            const y = yOfPer(t);
+            if (y < chartTop || y > chartBot) continue;
+            svgEl.appendChild(mk('line', {
+              x1:'0', y1: y.toFixed(1), x2: String(TOTAL_W), y2: y.toFixed(1),
+              stroke:'var(--surface-2)', 'stroke-width':'0.5',
+            }));
+          }
+          // Top and bottom chart borders
+          for (const y of [chartTop, chartBot]) {
+            svgEl.appendChild(mk('line', {
+              x1:'0', y1: y.toFixed(1), x2: String(TOTAL_W), y2: y.toFixed(1),
+              stroke:'var(--muted-3)', 'stroke-width':'0.8',
+            }));
+          }
+          // Zero line for Per (if visible)
+          if (perScale.yMin < 0 && perScale.yMax > 0) {
+            const y0 = yOfPer(0);
+            svgEl.appendChild(mk('line', {
+              x1:'0', y1: y0.toFixed(1), x2: String(TOTAL_W), y2: y0.toFixed(1),
+              stroke:'var(--muted-3)', 'stroke-width':'0.8', 'stroke-dasharray':'2,3',
+            }));
+          }
+          // Vertical column dividers (within SVG1)
+          for (let i = 1; i < wxDays.length; i++) {
+            const x = i * DAY_W;
+            svgEl.appendChild(mk('line', {
+              x1: x.toFixed(1), y1: '0', x2: x.toFixed(1), y2: String(SVG1_H),
+              stroke: 'var(--surface-2)', 'stroke-width': '0.5',
+            }));
+          }
+          // Today vertical accent (within SVG1)
+          const todayIdx = wxDays.findIndex(d => d.isToday);
+          if (todayIdx >= 0) {
+            // Bracket today's column with two dashed lines so it's visually clear that today
+            // runs from morning (left edge) to night (right edge).
+            for (const tx of [todayIdx * DAY_W, (todayIdx + 1) * DAY_W]) {
+              svgEl.appendChild(mk('line', {
+                x1: tx.toFixed(1), y1: '0', x2: tx.toFixed(1), y2: String(SVG1_H),
+                stroke: 'var(--text-strong)', 'stroke-width': '1.2', 'stroke-dasharray':'1,3', opacity:'0.5',
+              }));
+            }
+          }
+
+          // Row 1: day label + weather icon + high/low (high = afternoon, low = morning)
+          const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          for (let i = 0; i < wxDays.length; i++) {
+            const d  = wxDays[i];
+            const cx = i * DAY_W + DAY_W / 2;
+            const zi = _zoneIcon(d.afternoon.tenor);
+            const lblText = d.isToday ? 'Today' : DAY_NAMES[d.dow];
+            const opacity = d.isPast ? '0.65' : (d.offset > 0 ? '0.85' : '1');
+            const hi = Math.round(Math.max(d.morning.tenor, d.afternoon.tenor));
+            const lo = Math.round(Math.min(d.morning.tenor, d.afternoon.tenor));
+            // Day label
+            svgEl.appendChild(mk('text', {
+              x: cx.toFixed(1), y: '11', 'text-anchor':'middle',
+              'font-size':'9', 'font-family':"'DM Sans', sans-serif",
+              fill: d.isToday ? 'var(--text-strong)' : 'var(--muted)',
+              'font-weight': d.isToday ? '700' : '500',
+              'letter-spacing': '0.04em',
+              opacity,
+            }, lblText.toUpperCase()));
+            // Weather icon
+            svgEl.appendChild(mk('text', {
+              x: cx.toFixed(1), y: '32', 'text-anchor':'middle',
+              'font-size':'19',
+              opacity,
+            }, zi.icon));
+            // Tenor high / low (afternoon peak / morning low) — single combined line
+            const hiStr = (hi >= 0 ? '+' : '') + hi;
+            const loStr = (lo >= 0 ? '+' : '') + lo;
+            svgEl.appendChild(mk('text', {
+              x: cx.toFixed(1), y: '50', 'text-anchor':'middle',
+              'font-size':'10', 'font-family':"'Libre Baskerville', serif",
+              fill: 'var(--text-strong)',
+              opacity,
+            }, loStr + ' / ' + hiStr));
+          }
+
+          // Row 2 line chart — Rel (right axis) + Per (left axis), each on its own scale.
+          const splitAtX = todayIdx + 1.0;
+          const splitPath = (pts, isPastPart) => {
+            const out = [];
+            for (let i = 0; i < pts.length; i++) {
+              const p = pts[i];
+              if (isPastPart) { if (p.x <= splitAtX) out.push(p); else break; }
+              else            { if (p.x >= splitAtX) out.push(p); }
+            }
+            return out;
+          };
+          // Monotonic cubic Hermite spline (Fritsch–Carlson). Smooth like Catmull-Rom but provably
+          // never overshoots: at local extrema the tangent is zeroed so peaks/valleys stay anchored
+          // to the data points and the curve can't swing above 100% or below 0%.
+          const pathWith = (pts, yOf) => {
+            const n = pts.length;
+            if (n === 0) return '';
+            const px = pts.map(p => xOf(p.x));
+            const py = pts.map(p => yOf(p.y));
+            if (n === 1) return 'M' + px[0].toFixed(1) + ',' + py[0].toFixed(1);
+            // Secant slopes between consecutive points (in pixel space).
+            const dx = [], m = [];
+            for (let i = 0; i < n - 1; i++) {
+              dx[i] = px[i + 1] - px[i];
+              m[i]  = (py[i + 1] - py[i]) / (dx[i] || 1);
+            }
+            // Per-point tangents — 0 at local extrema, weighted harmonic mean otherwise.
+            const t = new Array(n);
+            t[0]     = m[0];
+            t[n - 1] = m[n - 2];
+            for (let i = 1; i < n - 1; i++) {
+              if (m[i - 1] * m[i] <= 0) {
+                t[i] = 0;
+              } else {
+                const w1 = 2 * dx[i] + dx[i - 1];
+                const w2 = dx[i] + 2 * dx[i - 1];
+                t[i] = (w1 + w2) / (w1 / m[i - 1] + w2 / m[i]);
+              }
+            }
+            let d = 'M' + px[0].toFixed(1) + ',' + py[0].toFixed(1);
+            for (let i = 0; i < n - 1; i++) {
+              const h   = dx[i] / 3;
+              const c1x = px[i] + h,     c1y = py[i]     + t[i]     * h;
+              const c2x = px[i + 1] - h, c2y = py[i + 1] - t[i + 1] * h;
+              d += ' C' + c1x.toFixed(1) + ',' + c1y.toFixed(1)
+                 + ' '  + c2x.toFixed(1) + ',' + c2y.toFixed(1)
+                 + ' '  + px[i + 1].toFixed(1) + ',' + py[i + 1].toFixed(1);
+            }
+            return d;
+          };
+          const drawSeries = (pts, yOf, color, width) => {
+            if (pts.length < 2) return;
+            svgEl.appendChild(mk('path', {
+              d: pathWith(pts, yOf), fill:'none', stroke: color,
+              'stroke-width': String(width), 'stroke-linecap':'round', 'stroke-linejoin':'round',
+            }));
+          };
+          drawSeries(perPts, yOfPer, 'var(--c-restore)', 1.9);
+          drawSeries(relPts, yOfRel, 'var(--c-affection)', 1.9);
+
+          // ── Scrollable SVG #2 (row 3: percentage line chart) ──
+          const svgEl2 = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svgEl2.setAttribute('viewBox', `0 0 ${TOTAL_W} ${SVG2_H}`);
+          svgEl2.setAttribute('preserveAspectRatio', 'none');
+          svgEl2.style.cssText = `display:block;width:${TOTAL_W}px;height:${SVG2_H}px;`;
+
+          // Horizontal gridlines at 0%, 50%, 100%
+          for (const tick of [0, 0.5, 1]) {
+            const y = yOfPct(tick);
+            svgEl2.appendChild(mk('line', {
+              x1:'0', y1: y.toFixed(1), x2: String(TOTAL_W), y2: y.toFixed(1),
+              stroke:'var(--surface-2)', 'stroke-width':'0.5',
+            }));
+          }
+          // Top and bottom chart borders
+          for (const y of [r3Top, r3Bot]) {
+            svgEl2.appendChild(mk('line', {
+              x1:'0', y1: y.toFixed(1), x2: String(TOTAL_W), y2: y.toFixed(1),
+              stroke:'var(--muted-3)', 'stroke-width':'0.8',
+            }));
+          }
+          // Vertical column dividers in SVG2
+          for (let i = 1; i < wxDays.length; i++) {
+            const x = i * DAY_W;
+            svgEl2.appendChild(mk('line', {
+              x1: x.toFixed(1), y1: '0', x2: x.toFixed(1), y2: String(SVG2_H),
+              stroke: 'var(--surface-2)', 'stroke-width': '0.5',
+            }));
+          }
+          // Today brackets in SVG2 — same morning/night dashed lines as on the score chart
+          if (todayIdx >= 0) {
+            for (const tx of [todayIdx * DAY_W, (todayIdx + 1) * DAY_W]) {
+              svgEl2.appendChild(mk('line', {
+                x1: tx.toFixed(1), y1: '0', x2: tx.toFixed(1), y2: String(SVG2_H),
+                stroke: 'var(--text-strong)', 'stroke-width': '1.2', 'stroke-dasharray':'1,3', opacity:'0.5',
+              }));
+            }
+          }
+          // One point per day at the column midpoint. Every day uses the per-DOW probability
+          // — the chart shows the projected chance of an event for that day-of-week, never the
+          // binary "did it happen today" fact. Today's logging does NOT move the line (the DOW
+          // window excludes today). Logging entries on past days updates the line everywhere
+          // because past entries shift the per-DOW averages.
+          // Two extra phantom samples sit just outside the visible range — one for the day before
+          // the leftmost column (x=-0.5) and one for the day after the rightmost (x=n+0.5). They
+          // use the real DOW probabilities for those adjacent days so the spline can interpolate
+          // through x=0 and x=n with real neighboring values instead of leaving the outer half-day
+          // gaps blank. The SVG scroll container clips the off-screen portion of the curve.
+          const buildPctLine = (dateSet, dowPct) => {
+            const pts = [];
+            if (wxDays.length === 0) return pts;
+            const beforeDow = (wxDays[0].dow + 6) % 7;
+            const afterDow  = (wxDays[wxDays.length - 1].dow + 1) % 7;
+            pts.push({ x: -0.5, y: dowPct[beforeDow] });
+            for (let i = 0; i < wxDays.length; i++) {
+              const d = wxDays[i];
+              pts.push({ x: i + 0.5, y: dowPct[d.dow] });
+            }
+            pts.push({ x: wxDays.length + 0.5, y: dowPct[afterDow] });
+            return pts;
+          };
+          const drawPctSeries = (pts, color, fill) => {
+            if (pts.length < 2) return;
+            const linePath = pathWith(pts, yOfPct);
+            if (fill) {
+              const zeroY = yOfPct(0);
+              const fillPath = linePath
+                + ' L' + xOf(pts[pts.length-1].x).toFixed(1) + ',' + zeroY.toFixed(1)
+                + ' L' + xOf(pts[0].x).toFixed(1)            + ',' + zeroY.toFixed(1)
+                + ' Z';
+              svgEl2.appendChild(mk('path', {
+                d: fillPath, fill: color, 'fill-opacity':'0.18',
+                stroke: 'none',
+              }));
+            }
+            svgEl2.appendChild(mk('path', {
+              d: linePath, fill:'none', stroke: color,
+              'stroke-width':'1.6', 'stroke-linecap':'round', 'stroke-linejoin':'round',
+            }));
+          };
+          // Pre-compute samples and drop any series whose values are all 0 in the visible window.
+          for (const s of PCT_SERIES) {
+            s.samples = buildPctLine(s.dateSet, s.dowPct);
+            s.hasData = s.samples.some(p => p.y > 0);
+          }
+          const activeSeries = PCT_SERIES.filter(s => s.hasData);
+          // Draw filled series first so unfilled lines stay readable on top
+          for (const s of activeSeries.filter(s => s.fill)) {
+            drawPctSeries(s.samples, s.color, true);
+          }
+          for (const s of activeSeries.filter(s => !s.fill)) {
+            drawPctSeries(s.samples, s.color, false);
+          }
+
+          // ── Y-axis SVGs — fixed outside the scroll containers ──
+          const AXIS_W = 32;
+          // Score axis for SVG1 (rows 1+2). Tick labels are score values.
+          const buildScoreAxis = (ticks, yOf, side) => {
+            const ax = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            ax.setAttribute('viewBox', `0 0 ${AXIS_W} ${SVG1_H}`);
+            ax.setAttribute('preserveAspectRatio', 'none');
+            ax.style.cssText = `display:block;width:${AXIS_W}px;height:${SVG1_H}px;flex-shrink:0;`;
+            const lineX = side === 'left' ? (AXIS_W - 0.5) : 0.5;
+            ax.appendChild(mk('line', {
+              x1: lineX, y1: String(chartTop), x2: lineX, y2: String(chartBot),
+              stroke:'var(--surface-2)', 'stroke-width':'0.8',
+            }));
+            for (const t of ticks) {
+              const y = yOf(t);
+              if (y < chartTop - 1 || y > chartBot + 1) continue;
+              ax.appendChild(mk('line', {
+                x1: side === 'left' ? (AXIS_W - 4) : 0, y1: y.toFixed(1),
+                x2: side === 'left' ? AXIS_W : 4,        y2: y.toFixed(1),
+                stroke:'var(--muted-3)', 'stroke-width':'0.8',
+              }));
+              ax.appendChild(mk('text', {
+                x: side === 'left' ? (AXIS_W - 6) : 6, y: (y + 3).toFixed(1),
+                'text-anchor': side === 'left' ? 'end' : 'start',
+                'font-size':'9', 'font-family':"'DM Sans', sans-serif",
+                fill:'var(--muted)',
+              }, (t >= 0 ? '+' : '') + Math.round(t)));
+            }
+            return ax;
+          };
+          // Percentage axis for SVG2 (row 3). Ticks at 0%/50%/100%.
+          const buildPctAxis = (side) => {
+            const ax = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            ax.setAttribute('viewBox', `0 0 ${AXIS_W} ${SVG2_H}`);
+            ax.setAttribute('preserveAspectRatio', 'none');
+            ax.style.cssText = `display:block;width:${AXIS_W}px;height:${SVG2_H}px;flex-shrink:0;`;
+            const lineX = side === 'left' ? (AXIS_W - 0.5) : 0.5;
+            ax.appendChild(mk('line', {
+              x1: lineX, y1: String(r3Top), x2: lineX, y2: String(r3Bot),
+              stroke:'var(--surface-2)', 'stroke-width':'0.8',
+            }));
+            for (const pct of [0, 0.5, 1]) {
+              const y = yOfPct(pct);
+              ax.appendChild(mk('line', {
+                x1: side === 'left' ? (AXIS_W - 4) : 0, y1: y.toFixed(1),
+                x2: side === 'left' ? AXIS_W : 4,        y2: y.toFixed(1),
+                stroke:'var(--muted-3)', 'stroke-width':'0.8',
+              }));
+              ax.appendChild(mk('text', {
+                x: side === 'left' ? (AXIS_W - 6) : 6, y: (y + 3).toFixed(1),
+                'text-anchor': side === 'left' ? 'end' : 'start',
+                'font-size':'9', 'font-family':"'DM Sans', sans-serif",
+                fill:'var(--muted)',
+              }, Math.round(pct * 100) + '%'));
+            }
+            return ax;
+          };
+          const leftAxis    = buildScoreAxis(sharedTicks, yOfPer, 'left');
+          const rightAxis   = buildScoreAxis(sharedTicks, yOfRel, 'right');
+          const leftAxis2   = buildPctAxis('left');
+          const rightAxis2  = buildPctAxis('right');
+
+          // Legend (rendered above the strip)
+          const legendItem = (color, label) => h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+            h('div',{style:{width:'12px',height:'2px',background:color,borderRadius:'1px'}}),
+            h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, label)
+          );
+
+          const expanded = S.homeForecastExpanded !== false;
+          return h('div',{style:{
+            marginTop:'12px', paddingTop:'10px',
+            borderTop:'1px solid var(--surface-2)',
+          }},
+            h('div',{
+              style:{
+                marginBottom:'8px', display:'flex', alignItems:'center', gap:'6px',
+                cursor:'pointer', userSelect:'none',
+              },
+              onclick: () => {
+                S.homeForecastExpanded = !expanded;
+                saveSettings();
+                render();
+              },
+            },
+              h('span',{style:{
+                fontSize:'10px', color:'var(--muted)', display:'inline-block',
+                transition:'transform 0.15s',
+                transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
+              }}, '▶'),
+              h('span',{style:{fontSize:'10px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)'}}, '7-day forecast (tenor)'),
+            ),
+            expanded ? (() => {
+              // Build the two scroll containers + sync their scroll positions.
+              const mkScroll = (svg) => {
+                const el = h('div', {
+                  style:{
+                    flex:'1', overflowX:'auto', overflowY:'hidden',
+                    WebkitOverflowScrolling:'touch',
+                    minWidth:'0',
+                    cursor:'grab',
+                    userSelect:'none',
+                    touchAction:'pan-x',
+                  }
+                }, svg);
+                // Drag-to-scroll for this container
+                let dragging = false, startX = 0, startScroll = 0;
+                el.addEventListener('pointerdown', (e) => {
+                  dragging = true;
+                  startX = e.clientX;
+                  startScroll = el.scrollLeft;
+                  el.style.cursor = 'grabbing';
+                  try { el.setPointerCapture(e.pointerId); } catch(_) {}
+                });
+                el.addEventListener('pointermove', (e) => {
+                  if (!dragging) return;
+                  el.scrollLeft = startScroll - (e.clientX - startX);
+                });
+                const endDrag = () => { dragging = false; el.style.cursor = 'grab'; };
+                el.addEventListener('pointerup',     endDrag);
+                el.addEventListener('pointercancel', endDrag);
+                el.addEventListener('pointerleave',  endDrag);
+                return el;
+              };
+              const scroll1 = mkScroll(svgEl);
+              const scroll2 = mkScroll(svgEl2);
+              // Sync scroll positions
+              let syncing = false;
+              const onScroll = (src, dst) => () => {
+                if (syncing) return;
+                syncing = true;
+                dst.scrollLeft = src.scrollLeft;
+                syncing = false;
+                S._wxScroll = src.scrollLeft;
+              };
+              scroll1.addEventListener('scroll', onScroll(scroll1, scroll2));
+              scroll2.addEventListener('scroll', onScroll(scroll2, scroll1));
+              // Initial scroll to today (or restore last position)
+              requestAnimationFrame(() => {
+                let initial = S._wxScroll;
+                if (initial == null) {
+                  const todayCol = wxDays.findIndex(d => d.isToday);
+                  if (todayCol >= 0) initial = todayCol * DAY_W;
+                }
+                if (initial != null) {
+                  scroll1.scrollLeft = initial;
+                  scroll2.scrollLeft = initial;
+                }
+              });
+              return h('div', {},
+                // Chart 1: score line chart
+                h('div', { style: { display:'flex', alignItems:'stretch' } },
+                  leftAxis, scroll1, rightAxis,
+                ),
+                // Legend below chart 1
+                h('div',{style:{display:'flex',gap:'14px',justifyContent:'flex-end',marginTop:'0',marginBottom:'10px'}},
+                  legendItem('var(--c-restore)', 'Personal'),
+                  legendItem('var(--c-affection)', 'Relational'),
+                ),
+                // Chart 2: percentage line chart
+                h('div', { style: { display:'flex', alignItems:'stretch' } },
+                  leftAxis2, scroll2, rightAxis2,
+                ),
+                // Legend below chart 2 — only series with data render
+                h('div',{style:{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'0',flexWrap:'wrap'}},
+                  ...activeSeries.map(s => legendItem(s.color, s.label)),
+                ),
+                // Inline hint — clarifies the weather-metaphor names for negative events.
+                h('div',{style:{
+                  fontSize:'10px', color:'var(--muted-2)', marginTop:'4px',
+                  fontStyle:'italic', textAlign:'right', lineHeight:'1.4',
+                }},
+                  'Clouds = chance of any negative day · Rain = chance of 2+ same day'),
+              );
+            })() : null,
+
+            // ── Debug panel — every number behind the 10-day forecast ──────────
+            expanded && S.showDebug ? (() => {
+              const fmt  = (n) => (n == null ? '—' : (n >= 0 ? '+' : '') + (Math.round(n * 10) / 10).toFixed(1));
+              const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+              const cell = (txt, opts={}) => h('span', {style:{
+                display:'inline-block',
+                fontFamily:"'Libre Baskerville', serif",
+                fontSize:'10px',
+                ...opts,
+              }}, txt);
+              const muteCell = (txt) => h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, txt);
+
+              const headerStyle = {fontSize:'10px',fontWeight:'600',color:'var(--text-strong)',letterSpacing:'0.05em',textTransform:'uppercase'};
+
+              // Day-of-week averages table
+              const dowTable = h('div',{style:{marginBottom:'10px'}},
+                h('div',{style:{...headerStyle, marginBottom:'4px'}}, 'Per-DOW non-zero averages (last 28 days)'),
+                h('div',{style:{
+                  display:'grid',
+                  gridTemplateColumns:'auto repeat(7, minmax(0,1fr))',
+                  gap:'2px 6px', fontSize:'10px', color:'var(--muted)',
+                }},
+                  h('span',{},''),
+                  ...DAY_NAMES.map(n => h('span',{style:{textAlign:'right',fontWeight:'600',color:'var(--muted-2)'}}, n)),
+                  h('span',{style:{color:'var(--muted-2)'}}, 'rel'),
+                  ...DAY_NAMES.map((_, i) => h('span',{style:{textAlign:'right',fontFamily:"'Libre Baskerville', serif"}}, fmt(wxDowAvgs[i].rel))),
+                  h('span',{style:{color:'var(--muted-2)'}}, 'per'),
+                  ...DAY_NAMES.map((_, i) => h('span',{style:{textAlign:'right',fontFamily:"'Libre Baskerville', serif"}}, fmt(wxDowAvgs[i].per))),
+                )
+              );
+
+              // Per-day table
+              const dayTable = h('div',{},
+                h('div',{style:{...headerStyle, marginBottom:'4px'}}, 'Per-day breakdown'),
+                h('div',{style:{
+                  display:'grid',
+                  gridTemplateColumns:'70px repeat(8, minmax(0,1fr))',
+                  gap:'2px 4px', fontSize:'10px', color:'var(--muted)',
+                  alignItems:'center',
+                }},
+                  // Header row
+                  h('span',{}, ''),
+                  h('span',{style:{textAlign:'right',color:'var(--muted-2)'}}, 'm.rel'),
+                  h('span',{style:{textAlign:'right',color:'var(--muted-2)'}}, 'a.rel'),
+                  h('span',{style:{textAlign:'right',color:'var(--muted-2)'}}, 'm.per'),
+                  h('span',{style:{textAlign:'right',color:'var(--muted-2)'}}, 'a.per'),
+                  h('span',{style:{textAlign:'right',color:'var(--muted-2)'}}, 'm.ten'),
+                  h('span',{style:{textAlign:'right',color:'var(--muted-2)'}}, 'a.ten'),
+                  h('span',{style:{textAlign:'right',color:'var(--muted-2)'}}, 'gain.r'),
+                  h('span',{style:{textAlign:'right',color:'var(--muted-2)'}}, 'gain.p'),
+                  // Data rows
+                  ...wxDays.flatMap(d => {
+                    const label = d.isToday ? 'Today' : DAY_NAMES[d.dow] + ' ' + d.offset;
+                    const rowStyle = d.isToday
+                      ? {fontWeight:'600', color:'var(--text-strong)'}
+                      : (d.isPast ? {color:'var(--muted-2)'} : {});
+                    const num = (v) => h('span',{style:{textAlign:'right',fontFamily:"'Libre Baskerville', serif", ...rowStyle}}, fmt(v));
+                    return [
+                      h('span',{style:rowStyle}, label),
+                      num(d.morning.rel),   num(d.afternoon.rel),
+                      num(d.morning.per),   num(d.afternoon.per),
+                      num(d.morning.tenor), num(d.afternoon.tenor),
+                      num(d.gain.rel),      num(d.gain.per),
+                    ];
+                  })
+                ),
+                h('div',{style:{fontSize:'9px',color:'var(--muted-2)',marginTop:'6px',lineHeight:'1.5'}},
+                  'm = morning low (decay-only end-of-day, without that day\'s own contribution). ',
+                  'a = afternoon peak (= morning + day\'s gain). ',
+                  'gain = day\'s own contribution: actual sum of entries for past/today, dow-average for future.',
+                )
+              );
+
+              return h('div',{style:{
+                marginTop:'10px', padding:'10px 12px', borderRadius:'10px',
+                background:'var(--surface-1)', border:'1px solid var(--surface-2)',
+                fontFamily:"'DM Sans', sans-serif",
+              }},
+                h('div',{style:{...headerStyle, marginBottom:'8px'}}, 'Forecast debug'),
+                h('div',{style:{fontSize:'10px',color:'var(--muted-2)',marginBottom:'10px',fontStyle:'italic'}},
+                  'Projections use per-day-of-week averages from each series’ first logged event (up to ' + DOW_WINDOW + ' days).'),
+                dowTable,
+                dayTable,
+              );
+            })() : null,
+          );
+        })() : null,
+
       ),
-      // Debug panel — numbers behind the tenor card
-      S.showDebug && hasEnoughData ? (() => {
-        const fmt = n => (n == null ? '—' : (n >= 0 ? '+' : '') + n.toFixed(1));
-        const row = (label, today, tomorrow) => h('div',{style:{
-          display:'flex', justifyContent:'space-between', padding:'4px 0',
-          borderBottom:'1px solid var(--surface-2)', fontSize:'11px',
-        }},
-          h('span',{style:{color:'var(--muted)'}}, label),
-          h('span',{style:{display:'flex', gap:'16px'}},
-            h('span',{style:{color:'var(--text-strong)', fontFamily:"'Libre Baskerville',serif", minWidth:'52px', textAlign:'right'}}, fmt(today)),
-            h('span',{style:{color:'var(--muted)', minWidth:'52px', textAlign:'right'}}, fmt(tomorrow))
-          )
-        );
-        return h('div',{style:{
-          marginBottom:'14px', padding:'10px 12px', borderRadius:'10px',
-          background:'var(--surface-1)', border:'1px solid var(--surface-2)',
-          fontSize:'11px', fontFamily:"'DM Sans',sans-serif",
-        }},
-          h('div',{style:{fontWeight:'600',color:'var(--text-strong)',marginBottom:'8px',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}},
-            'Tenor card · debug'),
-          h('div',{style:{display:'flex', justifyContent:'space-between', fontSize:'10px', color:'var(--muted)', letterSpacing:'0.04em', marginBottom:'4px'}},
-            h('span',{}, ''),
-            h('span',{style:{display:'flex', gap:'16px'}},
-              h('span',{style:{minWidth:'52px', textAlign:'right'}}, 'today'),
-              h('span',{style:{minWidth:'52px', textAlign:'right'}}, 'tomorrow')
-            )
-          ),
-          row('Relational', relBal7, fcRel),
-          row('Personal',   perBal7, fcPer),
-          row('Tenor',      tenorScore7, fcTenor),
-          h('div',{style:{marginTop:'8px',paddingTop:'8px',borderTop:'1px solid var(--surface-2)',fontSize:'10px',color:'var(--muted)',lineHeight:'1.5'}},
-            'Zones (7d): thriving ≥ '+zones7.thriving+' · healthy ≥ '+zones7.stable+' · progressing ≥ 0 · unsettled ≥ '+zones7.strained+' · difficult ≥ '+zones7.depleted+' · hurting < '+zones7.depleted
-          ),
-        );
-      })() : null,
       // Quick-log chips — each row is its own flex container so vertical spacing
       // between rows is fully controlled (gap of 6px) regardless of wrap behavior.
       h('div',{style:{display:'flex',flexDirection:'column',gap:'6px'}},

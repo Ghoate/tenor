@@ -82,6 +82,7 @@ const S = {
   showAttachment:  false, // show/hide Attachment tab in the tab bar
   attachmentRefExpanded: false, // collapsible reference layer on Attachment tab
   horsemenExpanded:  false, // remember if user regularly uses the horsemen section
+  homeForecastExpanded: false, // collapsible 7-day forecast + line chart section on the home page (collapsed by default)
   tagPolyvagalOverrides: {}, // per-tag polyvagal state overrides; keys are tag names
   tagToneOverrides:   {}, // per-tag tone overrides for custom/renamed tags
   showDebug:         false, // show scoring debug panels in forms
