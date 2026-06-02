@@ -101,16 +101,16 @@ const S = {
     calStable:   11,
     calThriving: 25,
 
-    // Forecast temperature-change thresholds (Δ between today and tomorrow)
-    // |Δ| < fcTouch → about the same · ≥ fcTouch → a touch · ≥ fcWarm → warmer · ≥ fcMuch → much warmer
-    fcTouch:     1,
-    fcWarm:      4,
-    fcMuch:      8,
-
     // Lifetime-sum scoring (per-event exponential fade)
     // Anchored on +100 → 63 days and +2 → 3 days. Slope/floor derived from those anchors.
     expT_Slope:       0.6122,
     expT_Floor:       1.7755,
+
+    // Percent-chart per-DOW probability recency. Each day in the window is weighted by an
+    // exponential decay with this half-life. Recent days dominate, older days fade but still
+    // count, so weekly patterns stay visible across longer history.
+    //   ~7d  = recent week dominates · ~14d = balanced · ~28d = gentle fade
+    dowHalfLife:      14,
 
     confR:       {resolved:0.40, partial:0.60, unresolved:0.80, worsened:1.00, breakthrough:0.20},
 

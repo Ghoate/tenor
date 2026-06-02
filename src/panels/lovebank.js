@@ -124,11 +124,15 @@ function buildLoveBankPanel() {
   // Window entries used by the typed-pills breakdown below.
   const winEntries  = calcEntries().filter(e => e.date >= addDays(S.today, -6) && e.date <= S.today);
 
-  // Gauges show lifetime sums via the active scoring model.
+  // Gauges show lifetime sums via the active scoring model. Round to whole integers so the
+  // displayed value and the zone band stay in sync with the home page's "now" card (which also
+  // rounds to whole integers). Tenor averages the 1-decimal-precision rel/per before rounding —
+  // matches the home card's identical formula. Avoids the double-round path that pushed a 14.3
+  // underlying value to 15 when averaged from already-whole-rounded inputs.
   const exp = computeExperimentalScores();
-  const windowGaugeValue = exp.rel;
-  const perWindowGauge   = exp.per;
-  const comWindowGauge   = exp.tenor;
+  const windowGaugeValue = Math.round(exp.rel);
+  const perWindowGauge   = Math.round(exp.per);
+  const comWindowGauge   = Math.round((exp.rel + exp.per) / 2);
 
   const zones = getBounds();
   const zoneBg = b => {
@@ -228,7 +232,7 @@ function buildLoveBankPanel() {
               label),
             svgEl,
             h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'26px',fontWeight:'400',color:'var(--text-strong)',lineHeight:'1',margin:'6px 0 4px'}},
-              (value>=0?'+':'')+value.toFixed(1)),
+              (value>=0?'+':'')+value),
             h('div',{style:{fontSize:'12px',fontWeight:'700',letterSpacing:'0.04em',color:'var(--text-strong)',marginTop:'2px'}},
               bInfo.label),
           );

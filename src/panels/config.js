@@ -347,9 +347,7 @@ function buildConfigPanel() {
         {key:'cap7',       label:'Gauge Cap Anchor',              hint:'Outer edge of the gauge needle swing (UI only — does not affect scoring)',  min:50, max:2000, step:10, def:150},
         {key:'calStable',  label:'Calendar — Healthy threshold',  hint:'Daily combined score at which a day shows medium color',   min:1,  max:200,  step:1,  def:11},
         {key:'calThriving',label:'Calendar — Thriving threshold', hint:'Daily combined score at which a day shows strong color',   min:1,  max:500,  step:1,  def:25},
-        {key:'fcTouch',    label:'Forecast — a touch warmer/cooler', hint:'|Δ| at which tomorrow flags as a touch warmer or cooler (mirrored)', min:0.5, max:10,  step:0.5, def:1},
-        {key:'fcWarm',     label:'Forecast — warmer/cooler',         hint:'|Δ| at which tomorrow flags as warmer or cooler (mirrored)',         min:1,   max:30,  step:0.5, def:4},
-        {key:'fcMuch',     label:'Forecast — much warmer/cooler',    hint:'|Δ| at which tomorrow flags as much warmer or cooler (mirrored)',    min:2,   max:100, step:1,   def:8},
+        {key:'dowHalfLife',label:'Forecast DOW half-life (days)',  hint:'How quickly older days fade from the percent chart\'s per-day-of-week probability. Lower = recent days dominate, older fade fast. Higher = gentle fade with long memory.', min:3, max:60, step:1, def:14},
       ].map(({key,label,hint,min,max,step,def}) =>
         h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid var(--border)'}},
           h('div',{style:{flex:'1'}},

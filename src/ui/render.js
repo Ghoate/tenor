@@ -125,6 +125,7 @@ function render() {
     'cal-filter':     buildCalFilterModal,
     'wobble-presets': buildWobblePresetModal,
     'wobble-emotion-guide': buildWobbleEmotionGuide,
+    'forecast-details': buildForecastDetailsModal,
   };
   if(S.modal && builders[S.modal]) {
     try {
