@@ -8,10 +8,12 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 /* ── Calendar filter defs ───────────────────────────── */
 const CAL_FILTER_DEFS = [
   {key:'affection',     label:'Bonding',     color:CAT_COLORS.affection},
+  {key:'social',        label:'Social',      color:CAT_COLORS.social},
+  {key:'friction',      label:'Friction',    color:CAT_COLORS.friction},
   {key:'burnout',       label:'Steadying',   color:CAT_COLORS.burnout},
   {key:'conflict',      label:'Conflict',    color:CAT_COLORS.conflict},
   {key:'libido',        label:'Mood, Energy & Desire', color:CAT_COLORS.libido},
-  {key:'regulation',    label:'Life Wobble', color:CAT_COLORS.regulation},
+  {key:'regulation',    label:'Wobble', color:CAT_COLORS.regulation},
   {key:'physical',      label:'Intimacy',    color:CAT_COLORS.physical},
   {key:'notes',         label:'Notes',       color:CAT_COLORS.partner},
   {key:'repair',        label:'Repair',      color:CAT_COLORS.repair},
@@ -26,10 +28,14 @@ function buildCalFilterModal() {
     h('div',{class:'sheet-title'},'Show / hide on calendar'),
     h('div',{style:{display:'flex',flexDirection:'column',gap:'2px'}},
       ...CAL_FILTER_DEFS.filter(f => {
+        if (!S.showBonding   && f.key === 'affection') return false;
+        if (!S.showConflict  && f.key === 'conflict') return false;
         if (!S.showCaretaker && f.key === 'burnout') return false;
         if (!S.showRegulation && f.key === 'regulation') return false;
         if (!S.showPhysical  && (f.key === 'physical' || f.key === 'turndown')) return false;
         if (!S.showRepair    && f.key === 'repair') return false;
+        if (S.relationshipMode !== 'individual' && f.key === 'social') return false;
+        if (S.relationshipMode !== 'individual' && f.key === 'friction') return false;
         return true;
       }).map(f => {
         const hidden = filters.has(f.key);
@@ -104,6 +110,8 @@ function entryIsScoring(e) {
 function entryHasMissingType(e) {
   if (e.category === 'affection' && e.eventType)
     return !S.affectionTypes.find(t => t.name === e.eventType);
+  if (e.category === 'social' && e.eventType)
+    return !(S.socialTypes || []).find(t => t.name === e.eventType);
   if (e.category === 'physical' && e.eventType)
     return !S.physicalTypes.find(t => t.name === e.eventType);
   if (e.category === 'restore' && e.eventType)
@@ -331,7 +339,9 @@ function buildDayPanel() {
   const _expMini = computeExperimentalScores(_miniAnchor);
   const _miniRel = _expMini.rel;
   const _miniPer = _expMini.per;
+  const _miniSoc = _expMini.soc;
   const _miniCom = _expMini.tenor;
+  const _miniIsIndividual = S.relationshipMode === 'individual';
   const _miniZones = getBounds();
   const _miniBg = v => {
     const r = Math.round(v);
@@ -345,11 +355,17 @@ function buildDayPanel() {
   const _miniLabel = S.selectedDate === S.today
     ? 'Today'
     : new Date(S.selectedDate+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
-  const _miniScores = [
-    {label:'Relational', val:_miniRel},
-    {label:'Personal',   val:_miniPer},
-    {label:'Tenor',      val:_miniCom},
-  ];
+  const _miniScores = _miniIsIndividual
+    ? [
+        {label:'Atmosphere', val:_miniCom},
+        {label:'Social',     val:_miniSoc},
+        {label:'Personal',   val:_miniPer},
+      ]
+    : [
+        {label:'Atmosphere', val:_miniCom},
+        {label:'Relational', val:_miniRel},
+        {label:'Personal',   val:_miniPer},
+      ];
 
   return h('div',{class:'day-panel'},
     h('div',{class:'day-header'},
@@ -414,9 +430,9 @@ function buildDayPanel() {
       }},
         h('div',{style:{fontWeight:'600',color:'var(--text-strong)',marginBottom:'8px',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}},
           'Day debug · ' + (_isToday ? 'today' : daysAgo+'d ago')),
+        row('Atmosphere', exp.tenor, (relRem + perRem) / 2),
         row('Relational', exp.rel,   relRem),
         row('Personal',   exp.per,   perRem),
-        row('Tenor',      exp.tenor, (relRem + perRem) / 2),
       );
     })() : null,
   );
@@ -460,6 +476,23 @@ function buildCard(e) {
     // Order matches form: whom (or initiator), connection quality
     meta  = [whom || who, cq?cq.label:'', scoreStr].filter(Boolean).join(' · ');
     note  = e.notes;
+  } else if (e.category==='social') {
+    title = e.eventType || 'Social moment';
+    const cq   = CONNECTION_QUALITY.find(q=>q.val===(e.connectionQuality||3));
+    const whom = e.whom ? 'with '+e.whom : '';
+    const scored = bankScoreEntry(e, cardCap);
+    const scoreStr = fmtScore(scored.score);
+    meta = [whom, cq?cq.label:'', scoreStr].filter(Boolean).join(' · ');
+    note = e.notes;
+  } else if (e.category==='friction') {
+    const imp  = FRICTION_IMPACT.find(i=>i.val===e.impact);
+    const intL = FRICTION_INTENSITY.find(i=>i.val===e.intensity);
+    const res  = FRICTION_RESOLUTION.find(r=>r.val===e.resolution);
+    const scored = bankScoreEntry(e, cardCap);
+    const scoreStr = fmtScore(scored.score);
+    title = 'Friction';
+    meta = [imp?imp.label:'', intL?intL.label:'', res?res.label:'', scoreStr].filter(Boolean).join(' · ');
+    note = e.notes;
   } else if (e.category==='libido') {
     const l = LIBIDO_LEVELS[e.libiLevel-1]||LIBIDO_LEVELS[2];
     title = (MOOD_EMOJIS[e.mood-1]||'') + ' ' + (MOOD_LABELS[e.mood-1]||'') +
@@ -619,7 +652,10 @@ function buildCard(e) {
 
   return h('div',{class:'entry-card '+e.category,style:{cursor:'pointer'},onclick:()=>editEntry(e)},
     h('div',{class:'entry-top'},
-      h('span',{class:'entry-cat',style:{color:cardColor}},CAT_LABELS[e.category]||e.category),
+      h('span',{class:'entry-cat',style:{color:cardColor}},
+        CAT_ICONS[e.category] ? h('span',{style:{marginRight:'5px'}}, CAT_ICONS[e.category]) : null,
+        CAT_LABELS[e.category]||e.category
+      ),
       entryHasMissingType(e) ? h('span',{style:{
         fontSize:'10px',fontWeight:'600',color:'var(--muted)',
         background:'rgba(240,180,41,0.12)',borderRadius:'5px',
@@ -647,20 +683,28 @@ function buildPicker() {
   const left  = [
     {key:'libido',     icon:'🌡️', name:'Daily Check In', desc:'My daily state'},
     {key:'restore',    icon:'🌊', name:'Restorative',   desc:'Activities that restore me'},
-    {key:'turndown',   icon:'🌒', name:'Turn Down',      desc:'Desire unmet or turned down'},
-    {key:'burnout',    icon:'🕯️', name:'Steadying',      desc:'You showed up to steady someone'},
+    {key:'turndown',   icon:'❄️', name:'Turn Down',      desc:'Desire unmet or turned down'},
+    {key:'burnout',    icon:'💨', name:'Steadying',      desc:'You showed up to steady someone'},
     {key:'notes',    icon:'🌿', name:'Notes', desc:'Log anything worth remembering today'},
     {key:'combined',   icon:'🔀', name:'Combined',       desc:'One activity — both bonding & restorative'},
   ].filter(c => c.key !== 'turndown' || S.showPhysical)
-   .filter(c => c.key !== 'burnout'  || S.showCaretaker);
+   .filter(c => c.key !== 'burnout'  || S.showCaretaker)
+   .filter(c => c.key !== 'combined' || S.showBonding);
 
+  const isIndividual = S.relationshipMode === 'individual';
   const right = [
     {key:'affection',  icon:'🩷', get name(){ return bondingLabel(); }, desc:'Genuine bonding experiences'},
+    {key:'social',     icon:'🫂', name:'Social',                desc:'Time with friends, family, community'},
+    {key:'friction',   icon:'🌧️', name:'Friction',              desc:'Rough social moment — argument, exclusion, drain'},
     {key:'physical',   icon:'🌹', name:'Intimacy',              desc:'Sexual intimacy & desire'},
-    {key:'conflict',   icon:'⚡', name:'Conflict',              desc:'Arguments & hard talks'},
-    {key:'regulation', icon:'🫧', name:'Life Wobble',           desc:'Your personal difficult moment'},
+    {key:'conflict',   icon:'⛈️', name:'Conflict',              desc:'Arguments & hard talks'},
+    {key:'regulation', icon:'🌪️', name:'Wobble',           desc:'Your personal difficult moment'},
     {key:'repair',     icon:'🤝', name:'Repair',                desc:'Reconnection work after a rupture'},
-  ].filter(c => c.key !== 'physical'    || S.showPhysical)
+  ].filter(c => c.key !== 'affection'   || S.showBonding)
+   .filter(c => c.key !== 'social'      || isIndividual)
+   .filter(c => c.key !== 'friction'    || isIndividual)
+   .filter(c => c.key !== 'physical'    || S.showPhysical)
+   .filter(c => c.key !== 'conflict'    || S.showConflict)
    .filter(c => c.key !== 'regulation'  || S.showRegulation)
    .filter(c => c.key !== 'repair'      || S.showRepair);
   const singlePerDay = new Set(['libido']);
@@ -708,11 +752,20 @@ function buildPicker() {
 function buildScoreBar() {
   // Lifetime sums via the active scoring model.
   const exp = computeExperimentalScores();
-  const scores = [
-    { label:'Relational', val:exp.rel,   key:'relational' },
-    { label:'Personal',   val:exp.per,   key:'personal'   },
-    { label:'Tenor',      val:exp.tenor, key:'combined'   },
-  ];
+  // In Individual mode, the Social axis takes the slot Relational normally
+  // occupies — Relational is always 0 there and would be uninformative.
+  const isIndividual = S.relationshipMode === 'individual';
+  const scores = isIndividual
+    ? [
+        { label:'Atmosphere', val:exp.tenor, key:'combined' },
+        { label:'Social',     val:exp.soc,   key:'social'   },
+        { label:'Personal',   val:exp.per,   key:'personal' },
+      ]
+    : [
+        { label:'Atmosphere', val:exp.tenor, key:'combined'   },
+        { label:'Relational', val:exp.rel,   key:'relational' },
+        { label:'Personal',   val:exp.per,   key:'personal'   },
+      ];
 
   const zones = getBounds();
   // Background color using the same red→gold→green palette as the relational arc.
@@ -736,6 +789,7 @@ function buildScoreBar() {
     ...scores.map(s => {
       const bg = scoreBg(s.val);
       const isActive = S.activeTab==='insights' && S.gaugeMode===s.key;
+      const zi = _zoneIconFor(s.val, zones);
       return h('div',{
         style:{
           flex:'1', padding:'7px 10px', cursor:'pointer',
@@ -753,8 +807,11 @@ function buildScoreBar() {
       },
         h('div',{style:{fontSize:'9px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'2px'}},
           s.label),
-        h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'15px',color:'var(--text-strong)',lineHeight:'1'}},
-          (Math.round(s.val) >= 0 ? '+' : '') + Math.round(s.val))
+        h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',lineHeight:'1'}},
+          h('span',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'15px',color:'var(--text-strong)',lineHeight:'1'}},
+            (Math.round(s.val) >= 0 ? '+' : '') + Math.round(s.val)),
+          h('span',{style:{fontSize:'22px',lineHeight:'1'}}, zi.icon),
+        )
       );
     }),
   );

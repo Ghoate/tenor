@@ -43,7 +43,8 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
           : h('span',{style:{fontSize:'11px',color:'var(--muted)'}},'tap to edit')
       )
     );
-    return isThisRowEditing ? [row, steadyingForm()] : [row];
+    // Inline mode: form opens in popup overlay below — don't double-render here.
+    return (isThisRowEditing && !inline) ? [row, steadyingForm()] : [row];
   });
 
   function steadyingForm() {
@@ -64,7 +65,7 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
           f.ctNeedsMap=Object.fromEntries(EMOTIONAL_NEEDS.map(n=>[n.val,1]));
           render();
         }
-      },'+ Add new steadying type');
+      },'+ Add new steadying profile');
     }
 
     if (isEditing && f.ctEditInit !== f.ctEditName) {
@@ -110,7 +111,7 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
 
       // Heading
       h('div',{style:{fontSize:'15px',fontWeight:'600',color:'var(--text)',marginBottom:'14px',fontFamily:"'Libre Baskerville',serif"}},
-        isEditing ? (editTarget?.name||'') : 'New steadying type'
+        isEditing ? (editTarget?.name||'') : 'New steadying profile'
       ),
 
       // Name
@@ -183,12 +184,17 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
           style:{flex:'1',padding:'12px',borderRadius:'14px',border:'1px solid var(--border)',
             background:'var(--bg3)',color:'var(--muted)',fontSize:'13px',cursor:'pointer',
             fontFamily:"'DM Sans',sans-serif"},
-          onclick:()=>{f.ctEditName=null;f.ctEditInit=null;f.ctAddingNew=false;f.ctDescription='';f.ctDirty=false;render();}
+          onclick:()=>{
+            f.ctEditName=null;f.ctEditInit=null;f.ctAddingNew=false;f.ctDescription='';f.ctDirty=false;
+            maybeReturnAfterAddSteadying(null);
+            render();
+          }
         },'Cancel'),
         h('button',{class:'submit-btn',style:{flex:'2'},
           onclick:()=>{
             const nameInput = document.getElementById('ct-name-input');
             const v = (nameInput?nameInput.value:f.ctNewType||'').trim();
+            let newlyCreatedName = null;
             if (isAdding) {
               if(!v||list.find(t=>t.name===v)) return;
               const newType = {
@@ -202,6 +208,7 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
               };
               newType.weight = deriveCaretakerWeight(newType);
               S.caretakerTypes.push(newType);
+              newlyCreatedName = v;
             } else if (editTarget) {
               const oldName = editTarget.name;
               if(v) editTarget.name=v;
@@ -234,6 +241,7 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
             }
             saveSettings();
             f.ctEditName=null;f.ctEditInit=null;f.ctAddingNew=false;f.ctNewType='';f.ctDescription='';f.ctDirty=false;
+            maybeReturnAfterAddSteadying(newlyCreatedName);
             render();
           }
         }, isAdding?'Add type':'Save changes')
@@ -241,11 +249,69 @@ function buildManageCaretakerTypes(inline=false, formObj=null) {
     );
   }
 
+  // Resume the originating entry form (if any) after the add/edit popup
+  // dismisses. Steadying entries use the multi-select array
+  // selectedSteadyingTypes, so when a new profile was just created we push it
+  // into the array instead of replacing a single eventType field.
+  function maybeReturnAfterAddSteadying(newlyCreatedName) {
+    const ret = S._returnAfterAdd;
+    if (!ret) return;
+    S._returnAfterAdd = null;
+    S.form = { ...ret.formSnapshot };
+    if (newlyCreatedName && ret.targetField) {
+      if (ret.targetMode === 'push') {
+        const arr = Array.isArray(S.form[ret.targetField]) ? [...S.form[ret.targetField]] : [];
+        if (!arr.includes(newlyCreatedName)) arr.push(newlyCreatedName);
+        S.form[ret.targetField] = arr;
+      } else {
+        S.form[ret.targetField] = newlyCreatedName;
+      }
+    }
+    S.modal = ret.modal;
+    S.activeTab = ret.tab;
+    S._resetSheetScroll = true;
+    S.libSteadyingExpanded = false;
+  }
+
+  // Same popup-on-inline pattern as buildManageTypes: when the panel is
+  // embedded in the Activities tab and a form is active, render the form in
+  // an overlay rather than inline below the list.
+  const ctFormActive = !!(f.ctAddingNew || f.ctEditName);
+  const ctUseFormPopup = inline && ctFormActive;
+
   const inner = h('div',{},
-    inline ? null : h('div',{class:'sheet-title'},'🕯️ Steadying Types'),
+    inline ? null : h('div',{class:'sheet-title'},'💨 Steadying Profiles'),
     h('div',{class:'manage-list'},...items),
-    !f.ctEditName ? steadyingForm() : null
+    // In popup mode, the form is rendered in the overlay below; suppress the
+    // inline form/button here when it would be active.
+    ctUseFormPopup ? null : (!f.ctEditName ? steadyingForm() : null)
   );
+
+  if (ctUseFormPopup) {
+    const dismiss = () => {
+      f.ctEditName = null; f.ctEditInit = null; f.ctAddingNew = false;
+      f.ctNewType = ''; f.ctDescription = ''; f.ctDirty = false;
+      maybeReturnAfterAddSteadying(null);
+      render();
+    };
+    const ov = h('div',{class:'overlay', id:'lib-popup-overlay'},
+      h('div',{class:'sheet'},
+        h('div',{class:'sheet-handle'}),
+        steadyingForm(),
+      )
+    );
+    const openedAt = Date.now();
+    ov.addEventListener('click', e => {
+      if (e.target === ov && Date.now() - openedAt > 300) dismiss();
+    });
+    // Portal to document.body so the overlay's position:fixed anchors to the
+    // viewport rather than the scrolled .insights-panel ancestor — on iOS
+    // Safari, -webkit-overflow-scrolling: touch can otherwise pull the sheet
+    // under the header. Cleanup happens at the start of the next render.
+    document.body.appendChild(ov);
+    return inner;
+  }
+
   return inline ? inner : overlay(inner);
 }
 
@@ -557,12 +623,19 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
   if(f.physDesire==null)       f.physDesire=1;
   if(f.physNovelty==null)        f.physNovelty=1;
   if(f.physSetting==null)        f.physSetting=1;
-  if(!f.needsMap) f.needsMap=Object.fromEntries(EMOTIONAL_NEEDS.map(n=>[n.val,1]));
-
   const isPhysical  = listKey === 'physicalTypes';
   const isAffection = listKey === 'affectionTypes';
   const isRestore   = listKey === 'restoreTypes';
-  const isProfileType = isAffection || isPhysical; // both use activity profile form
+  const isSocial    = listKey === 'socialTypes';
+  // Social activities (Individual mode) reuse the affection structure but
+  // edit a separate type list scored against SOCIAL_NEEDS instead of
+  // EMOTIONAL_NEEDS. Treat them as "affection-like" wherever the form/profile
+  // structure is identical.
+  const isAffectionLike = isAffection || isSocial;
+  const needsListLocal    = isSocial ? SOCIAL_NEEDS         : EMOTIONAL_NEEDS;
+  const needsRankingLocal = isSocial ? S.socialNeedsRanking : S.needsRanking;
+  const isProfileType = isAffectionLike || isPhysical; // all three use the activity profile form
+  if(!f.needsMap) f.needsMap=Object.fromEntries(needsListLocal.map(n=>[n.val,1]));
   const list = S[listKey];
 
   const add=()=>{
@@ -583,7 +656,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
         f.needsMap={}; f.addingNew=false;
         render();
       }
-    } else if(isAffection) {
+    } else if(isAffectionLike) {
       if(!list.find(t=>t.name===v)) {
         S[listKey].push({
           name:       v,
@@ -639,11 +712,14 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
               : h('span',{style:{fontSize:'11px',color:'var(--muted)'}},'tap to edit')
           )
         );
-        return isThisRowEditing ? [row, affectionAddForm()] : [row];
+        // Inline mode: form opens in popup overlay below — don't double-render here.
+        return (isThisRowEditing && !inline) ? [row, affectionAddForm()] : [row];
       })
-    : isAffection
+    : isAffectionLike
     ? list.slice().sort((a,b)=>a.name.localeCompare(b.name)).flatMap(t=>{
         const isThisRowEditing = f.editTypeName === t.name;
+        // Social activities don't have a logging category yet, so skip usage count.
+        const usageCatForRow = isSocial ? null : (isPhysical ? 'physical' : 'affection');
         const row = h('div',{
           class:'manage-item',
           style:{cursor: isThisRowEditing ? 'pointer' : (f.editTypeDirty ? 'default' : 'pointer'), opacity: (!isThisRowEditing && f.editTypeDirty) || t.hidden ? '0.4' : '1'},
@@ -653,7 +729,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
             h('span',{style:{fontSize:'14px',textDecoration:t.hidden?'line-through':'none'}},t.name),
             h('span',{style:{fontSize:'11px',color:'var(--muted)',marginLeft:'8px'},
               title:'Weight (0-100) · times logged in last 60 days'},
-              'w:'+Math.round(deriveActivityWeight(t)/5*100)+' · '+usageCount60d(t.name, isPhysical?'physical':'affection')+'×'),
+              'w:'+Math.round(deriveActivityWeight(t)/5*100) + (usageCatForRow ? ' · '+usageCount60d(t.name, usageCatForRow)+'×' : '')),
             t.description ? h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}, t.description) : null
           ),
           h('div',{style:{display:'flex',alignItems:'center',gap:'6px',flexShrink:'0'}},
@@ -664,11 +740,12 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
               onclick:ev=>{ev.stopPropagation(); t.hidden=!t.hidden; saveSettings(); render();}
             }, t.hidden ? 'Show' : 'Hide'),
             isThisRowEditing
-              ? h('span',{style:{fontSize:'11px',color:'var(--c-affection)'}},'editing…')
+              ? h('span',{style:{fontSize:'11px',color: isSocial ? 'var(--c-social)' : 'var(--c-affection)'}},'editing…')
               : h('span',{style:{fontSize:'11px',color:'var(--muted)'}},'tap to edit')
           )
         );
-        return isThisRowEditing ? [row, affectionAddForm()] : [row];
+        // Inline mode: form opens in popup overlay below — don't double-render here.
+        return (isThisRowEditing && !inline) ? [row, affectionAddForm()] : [row];
       })
     : isRestore
     ? list.slice().sort((a,b)=>(typeof a==='string'?a:a.name).localeCompare(typeof b==='string'?b:b.name)).flatMap(t=>{
@@ -708,7 +785,8 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
               : h('span',{style:{fontSize:'11px',color:'var(--muted)'}},'tap to edit')
           )
         );
-        return isThisRowEditing ? [row, restoreAddForm()] : [row];
+        // Inline mode: form opens in popup overlay below — don't double-render here.
+        return (isThisRowEditing && !inline) ? [row, restoreAddForm()] : [row];
       })
     : [];
 
@@ -718,11 +796,13 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
     const isAdding  = !!f.addingNew;
     if (!isEditing && !isAdding) {
       // Show "Add new" button
+      const addBtnAccent = isSocial ? 'var(--c-social)' : 'var(--c-affection)';
+      const addBtnBg     = isSocial ? 'rgba(217,152,117,0.08)' : 'rgba(224,133,184,0.08)';
       return h('button',{
         style:{
           width:'100%', marginTop:'10px', padding:'12px',
-          borderRadius:'14px', border:'1px solid var(--c-affection)',
-          background:'rgba(224,133,184,0.08)', color:'var(--c-affection)',
+          borderRadius:'14px', border:'1px solid '+addBtnAccent,
+          background:addBtnBg, color:addBtnAccent,
           fontSize:'13px', cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
           fontWeight:'500',
         },
@@ -730,10 +810,10 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
           f.addingNew=true; f.newType='';
           f.descEffort=1; f.descTime=1; f.descFinancial=1; f.descRarity=1; f.descPresence=1;
           f.physIntentionality=1; f.physEnergy=1; f.physDesire=1; f.physNovelty=1; f.physSetting=1;
-          f.needsMap=Object.fromEntries(EMOTIONAL_NEEDS.map(n=>[n.val,1]));
+          f.needsMap=Object.fromEntries(needsListLocal.map(n=>[n.val,1]));
           render();
         }
-      },(isPhysical ? '+ Add new Intimacy event type' : '+ Add new '+bondingLabel()+' event type'));
+      },(isPhysical ? '+ Add new Intimacy activity' : isSocial ? '+ Add new Social activity' : '+ Add new '+bondingLabel()+' activity'));
     }
 
     const editTarget = isEditing ? list.find(t=>t.name===f.editTypeName) : null;
@@ -759,21 +839,26 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
       f.physNovelty        = t.physNovelty         || 1;
       f.physSetting        = t.physSetting         || 1;
       f.needsMap = Object.fromEntries(
-        EMOTIONAL_NEEDS.map(n=>[n.val, (t.needsMap||{})[n.val] || 1])
+        needsListLocal.map(n=>[n.val, (t.needsMap||{})[n.val] || 1])
       );
     }
 
     const nameVal = isEditing ? editTarget?.name : (f.newType||'');
-    const heading = isEditing ? 'Editing: '+nameVal : 'New activity type';
+    const heading = isEditing ? 'Editing: '+nameVal : 'New activity';
     // For physical types, solo types skip profile and needs
     const isSoloType = isPhysical && (isEditing ? !!editTarget?.defaultSolo : !!f.newDefaultSolo);
 
     const SCALE_LABELS = ['None / trivial','Some','Moderate','High','Significant'];
 
+    // Social activities re-purpose descFinancial as a "Depth" dimension and
+    // re-word the Effort/Meaning/Presence copy so it doesn't read partner-flavored.
+    // The underlying field names stay the same so the scoring math is unchanged.
     const DESC_SCALES = {
       descEffort:    ['Trivial','Low','Moderate','High','Significant'],
       descTime:      ['Minimal','Under 1 hour','1–2 hours','2–4 hours','4+ hours'],
-      descFinancial: ['None','Minimal','Moderate','Meaningful','Significant'],
+      descFinancial: isSocial
+        ? ['Surface','Casual','Some real talk','Substantial','Vulnerable']
+        : ['None','Minimal','Moderate','Meaningful','Significant'],
       descRarity:    ['Routine','Pleasant','Meaningful','Special','Significant'],
       descPresence:  ['Passive','Casual','Engaged','Focused','Fully immersed'],
     };
@@ -781,19 +866,32 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
     const DESC_LABELS = {
       descEffort:    'Effort',
       descTime:      'Time',
-      descFinancial: 'Financial',
-      descRarity:    'Meaning',
+      descFinancial: isSocial ? 'Depth' : 'Financial',
+      descRarity:    isSocial ? 'Significance' : 'Meaning',
       descPresence:  'Presence',
     };
 
     const DESC_HINTS = {
-      descEffort:    'How much personal effort — physical, mental, or logistical — was anticipated or required from your partner. Higher can signal care and investment if matched by results.',
+      descEffort: isSocial
+        ? 'What was invested in making this happen — yours or theirs (initiating, planning, showing up). Higher signals real investment in the connection.'
+        : 'How much personal effort — physical, mental, or logistical — was anticipated or required from your partner. Higher can signal care and investment if matched by results.',
       descTime:      'How much time was anticipated or required, including preparation and duration. Moderate to high values reward dedicated connection time.',
-      descFinancial: 'What was the anticipated or actual financial cost. Higher scales potential value for special events, but only when other factors confirm impact.',
-      descRarity:    'How personally meaningful or relationally significant was this activity anticipated or experienced to be.',
-      descPresence:  'How much focused mutual presence, attention, or active engagement was required or experienced from both of you.',
+      descFinancial: isSocial
+        ? 'How much real connection happened — surface chat vs. vulnerable disclosure. Based on Reis & Shaver: self-disclosure + responsiveness predicts relationship quality more than any other dimension.'
+        : 'What was the anticipated or actual financial cost. Higher scales potential value for special events, but only when other factors confirm impact.',
+      descRarity: isSocial
+        ? 'How notable this was — a routine hang vs. a milestone moment. Both matter; routine builds trust, special occasions punctuate.'
+        : 'How personally meaningful or relationally significant was this activity anticipated or experienced to be.',
+      descPresence: isSocial
+        ? 'How attentive and engaged everyone was — phones away, fully there vs. distracted or going through motions.'
+        : 'How much focused mutual presence, attention, or active engagement was required or experienced from both of you.',
     };
 
+    // Highlight color for the profile-row buttons. Social activities use
+    // their own accent; bonding/intimacy continue to share orange.
+    const profileAccent   = isSocial ? 'var(--c-social)' : 'var(--c-physical)';
+    const profileBorderOn = isSocial ? 'rgba(217,152,117,0.6)' : 'rgba(224,122,74,0.6)';
+    const profileBgOn     = isSocial ? 'rgba(217,152,117,0.12)' : 'rgba(224,122,74,0.12)';
     const descQ = (key) => {
       const cur = f[key] || 1;
       const labels = DESC_SCALES[key] || SCALE_LABELS;
@@ -803,16 +901,16 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
         h('div',{style:{marginBottom:'5px'}},
           h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline'}},
             h('span',{style:{fontSize:'12px',color:'var(--text)',fontWeight:'500'}}, label),
-            h('span',{style:{fontSize:'11px',color:'var(--c-physical)'}}, labels[cur-1])
+            h('span',{style:{fontSize:'11px',color:profileAccent}}, labels[cur-1])
           ),
           hint ? h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px',lineHeight:'1.4'}}, hint) : null
         ),
         h('div',{style:{display:'flex',gap:'4px'}},
           ...[1,2,3,4,5].map(v=>h('button',{
             style:{flex:'1',padding:'7px 2px',borderRadius:'8px',fontSize:'11px',
-              border:'1px solid '+(cur===v?'rgba(224,122,74,0.6)':'var(--border)'),
-              background:cur===v?'rgba(224,122,74,0.12)':'var(--bg3)',
-              color:cur===v?'var(--c-physical)':'var(--muted)',cursor:'pointer'},
+              border:'1px solid '+(cur===v?profileBorderOn:'var(--border)'),
+              background:cur===v?profileBgOn:'var(--bg3)',
+              color:cur===v?profileAccent:'var(--muted)',cursor:'pointer'},
             onclick:()=>{f[key]=v;markDirty();render();}
           }, labels[v-1]))
         )
@@ -821,7 +919,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
 
     const NEEDS_LABELS = ['None','Some','Moderate','High','Significant'];
 
-    const orderedNeeds = S.needsRanking.map(val=>EMOTIONAL_NEEDS.find(n=>n.val===val)).filter(Boolean);
+    const orderedNeeds = needsRankingLocal.map(val=>needsListLocal.find(n=>n.val===val)).filter(Boolean);
 
     const saveOk = isAdding ? true : true; // always allow save; name read from DOM on submit
     const markDirty = () => { if(isEditing) f.editTypeDirty = true; };
@@ -830,7 +928,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
 
       // Heading
       h('div',{style:{fontSize:'15px',fontWeight:'600',color:'var(--text)',marginBottom:'14px',fontFamily:"'Libre Baskerville',serif"}},
-        isEditing ? nameVal : (isPhysical ? 'New intimacy type' : 'New '+bondingLabel().toLowerCase()+' type')
+        isEditing ? nameVal : (isPhysical ? 'New intimacy activity' : isSocial ? 'New social activity' : 'New '+bondingLabel().toLowerCase()+' activity')
       ),
 
       // Name field — for both new and edit
@@ -914,9 +1012,11 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
 
         // Needs
         h('div',{style:{marginBottom:'12px',paddingTop:'16px',borderTop:'1px solid var(--border)',marginTop:'28px'}},
-          h('div',{style:{fontSize:'14px',color:'var(--text)',fontWeight:'600',marginBottom:'3px',fontFamily:"'Libre Baskerville',serif"}},'Love Needs'),
+          h('div',{style:{fontSize:'14px',color:'var(--text)',fontWeight:'600',marginBottom:'3px',fontFamily:"'Libre Baskerville',serif"}}, isSocial ? 'Social Needs' : 'Love Needs'),
           h('div',{style:{fontSize:'11px',color:'var(--muted)',lineHeight:'1.5'}},
-            'How strongly does this activity address each need? Ordered by your personal ranking in Config.'
+            isSocial
+              ? 'How strongly does this activity address each social need? Ordered by your ranking in the Needs tab.'
+              : 'How strongly does this activity address each need? Ordered by your personal ranking in Config.'
           )
         ),
         ...orderedNeeds.map((need,idx) => {
@@ -928,7 +1028,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
                   h('span',{style:{color:'var(--muted)',marginRight:'6px',fontSize:'11px'}},String(idx+1)),
                   need.icon ? h('span',{style:{marginRight:'6px',fontSize:'14px'}}, need.icon) : null,
                   need.label),
-                h('span',{style:{fontSize:'11px',color:cur>1?'var(--c-physical)':'var(--muted)'}},
+                h('span',{style:{fontSize:'11px',color:cur>1?profileAccent:'var(--muted)'}},
                   NEEDS_LABELS[cur-1])
               ),
               h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px',lineHeight:'1.4'}},
@@ -937,9 +1037,9 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
             h('div',{style:{display:'flex',gap:'3px'}},
               ...[1,2,3,4,5].map(v=>h('button',{
                 style:{flex:'1',padding:'5px 2px',borderRadius:'7px',fontSize:'10px',
-                  border:'1px solid '+(cur===v?'rgba(224,122,74,0.6)':'var(--border)'),
-                  background:cur===v?'rgba(224,122,74,0.12)':'var(--bg3)',
-                  color:cur===v?'var(--c-physical)':'var(--muted)',cursor:'pointer'},
+                  border:'1px solid '+(cur===v?profileBorderOn:'var(--border)'),
+                  background:cur===v?profileBgOn:'var(--bg3)',
+                  color:cur===v?profileAccent:'var(--muted)',cursor:'pointer'},
                 onclick:()=>{f.needsMap={...(f.needsMap||{})};f.needsMap[need.val]=v;markDirty();render();}
               }, NEEDS_LABELS[v-1]))
             )
@@ -968,10 +1068,12 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
           needsMap: f.needsMap || {},
         },
         typeList: S[listKey],
-        weightFn: deriveActivityWeight,
-        // Bonding/Intimacy: only one quality knob (connectionQuality 0.20 → 1.00)
+        // Social types score against SN ranking, not EN — use the dedicated
+        // weight function so the preview reflects real Social scoring.
+        weightFn: isSocial ? deriveSocialActivityWeight : deriveActivityWeight,
+        // Bonding/Intimacy/Social: only one quality knob (connectionQuality 0.20 → 1.00)
         minMult: 0.20, maxMult: 1.00,
-        accentColor: isPhysical ? 'var(--c-physical)' : 'var(--c-affection)',
+        accentColor: isPhysical ? 'var(--c-physical)' : isSocial ? 'var(--c-social)' : 'var(--c-affection)',
         excludeName: isEditing ? f.editTypeName : null,
       }) : null,
 
@@ -994,12 +1096,17 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
           style:{flex:'1',padding:'12px',borderRadius:'14px',border:'1px solid var(--border)',
             background:'var(--bg3)',color:'var(--muted)',fontSize:'13px',cursor:'pointer',
             fontFamily:"'DM Sans',sans-serif"},
-          onclick:()=>{f.editTypeName=null;f.editInit=null;f.addingNew=false;f.newTypeDesc='';f.editTypeDirty=false;render();}
+          onclick:()=>{
+            f.editTypeName=null;f.editInit=null;f.addingNew=false;f.newTypeDesc='';f.editTypeDirty=false;
+            maybeReturnAfterAdd(null);
+            render();
+          }
         },'Cancel'),
         h('button',{
           class:'submit-btn',
           style:{flex:'2'},
           onclick: ()=>{
+            let newlyCreatedName = null;
             if (isAdding) {
               const nameInput = document.getElementById('activity-name-input');
               const v = (nameInput ? nameInput.value : f.newType||'').trim();
@@ -1018,8 +1125,9 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
                   descFinancial:f.descFinancial, descRarity:f.descRarity,
                   descPresence:f.descPresence, needsMap:{...(f.needsMap||{})},
                 };
-                newType.weight = deriveActivityWeight(newType);
+                newType.weight = (isSocial ? deriveSocialActivityWeight : deriveActivityWeight)(newType);
                 S[listKey].push(newType);
+                newlyCreatedName = v;
               }
             } else if (editTarget) {
               const nameInput = document.getElementById('activity-name-input');
@@ -1030,7 +1138,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
               // don't get flagged as "type deleted" — a rename should carry
               // history forward, not orphan it.
               if (newName && newName !== oldName) {
-                const cat = isPhysical ? 'physical' : isAffection ? 'affection' : isRestore ? 'restore' : null;
+                const cat = isPhysical ? 'physical' : isAffection ? 'affection' : isRestore ? 'restore' : isSocial ? 'social' : null;
                 if (cat) {
                   for (const e of (S.allEntries || [])) {
                     if (e.category === cat && e.eventType === oldName) {
@@ -1057,16 +1165,39 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
                 editTarget.descPresence=f.descPresence;
               }
               editTarget.needsMap={...(f.needsMap||{})};
-              editTarget.weight = deriveActivityWeight(editTarget);
+              editTarget.weight = (isSocial ? deriveSocialActivityWeight : deriveActivityWeight)(editTarget);
             }
             saveSettings();
             f.editTypeName=null; f.editInit=null; f.addingNew=false; f.newType=''; f.newTypeDesc=''; f.editTypeDirty=false;
+            maybeReturnAfterAdd(newlyCreatedName);
             render();
           }
         }, isAdding?'Add activity':'Save changes')
       )
     );
   };
+
+  // Resume the originating entry form (if any) after the add/edit popup
+  // dismisses. When a new activity was just created, pre-select it as the
+  // entry form's eventType. Used by save / cancel / click-outside dismiss.
+  function maybeReturnAfterAdd(newlyCreatedName) {
+    const ret = S._returnAfterAdd;
+    if (!ret) return;
+    S._returnAfterAdd = null;
+    S.form = { ...ret.formSnapshot };
+    if (newlyCreatedName && ret.targetField) {
+      S.form[ret.targetField] = newlyCreatedName;
+    }
+    S.modal = ret.modal;
+    S.activeTab = ret.tab;
+    S._resetSheetScroll = true;
+    // Collapse the library section so it doesn't sit "open" behind the
+    // entry form when the user returns to it next time.
+    if (listKey === 'affectionTypes') S.libBondingExpanded = false;
+    else if (listKey === 'physicalTypes') S.libIntimacyExpanded = false;
+    else if (listKey === 'restoreTypes')  S.libRestoreExpanded = false;
+    else if (listKey === 'socialTypes')   S.libSocialExpanded = false;
+  }
 
   // ── Restore add/edit form ─────────────────────────
   function restoreAddForm() {
@@ -1087,7 +1218,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
           f.needsMap=Object.fromEntries([...EMOTIONAL_NEEDS,...PERSONAL_NEEDS].map(n=>[n.val,1]));
           render();
         }
-      },'+ Add new restore type');
+      },'+ Add new restorative activity');
     }
 
     const editTarget = isEditing ? list.find(t=>(typeof t==='string'?t:t.name)===f.editTypeName) : null;
@@ -1113,7 +1244,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
 
       // Heading
       h('div',{style:{fontSize:'15px',fontWeight:'600',color:'var(--text)',marginBottom:'14px',fontFamily:"'Libre Baskerville',serif"}},
-        isEditing ? nameVal : 'New restore type'
+        isEditing ? nameVal : 'New restorative activity'
       ),
 
       h('div',{style:{marginBottom:'12px'}},
@@ -1252,7 +1383,11 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
           style:{flex:'1',padding:'12px',borderRadius:'14px',border:'1px solid var(--border)',
             background:'var(--bg3)',color:'var(--muted)',fontSize:'13px',cursor:'pointer',
             fontFamily:"'DM Sans',sans-serif"},
-          onclick:()=>{f.editTypeName=null;f.editInit=null;f.addingNew=false;f.newType='';f.newTypeDesc='';f.editTypeDirty=false;render();}
+          onclick:()=>{
+            f.editTypeName=null;f.editInit=null;f.addingNew=false;f.newType='';f.newTypeDesc='';f.editTypeDirty=false;
+            maybeReturnAfterAdd(null);
+            render();
+          }
         },'Cancel'),
         h('button',{
           class:'submit-btn', style:{flex:'2'},
@@ -1260,8 +1395,10 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
             const nameInput = document.getElementById('activity-name-input');
             const v = (nameInput ? nameInput.value : f.newType||'').trim();
             if (!v) { if(nameInput) nameInput.focus(); return; }
+            let newlyCreatedName = null;
             if (isAdding) {
               if (!list.find(t=>(typeof t==='string'?t:t.name)===v)) {
+                newlyCreatedName = v;
                 S[listKey].push({
                   name:v,
                   description: (f.newTypeDesc||'').trim()||undefined,
@@ -1306,6 +1443,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
             }
             saveSettings();
             f.editTypeName=null;f.editInit=null;f.addingNew=false;f.newType='';f.newTypeDesc='';f.editTypeDirty=false;
+            maybeReturnAfterAdd(newlyCreatedName);
             render();
           }
         }, isAdding?'Add type':'Save changes')
@@ -1313,15 +1451,23 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
     );
   };
 
+  // When inline (Activities tab usage) AND a form is active, render the form
+  // as a popup overlay over the list — otherwise the editor sits below all
+  // existing items and the user can't see the list while editing.
+  const formActive = !!(f.addingNew || f.editTypeName);
+  const useFormPopup = inline && formActive && (isProfileType || isRestore);
+
   const inner = h('div',{},
     inline ? null : h('div',{class:'sheet-title'},title),
     h('div',{class:'manage-list'},...items),
 
     // ── Add new ──
+    // In popup mode the form is rendered in the overlay below; here we only
+    // show the "+ Add new" button (when nothing's active).
     isProfileType
-      ? (!f.editTypeName ? affectionAddForm() : null)
+      ? (useFormPopup ? null : (!f.editTypeName ? affectionAddForm() : null))
       : isRestore
-        ? (!f.editTypeName ? restoreAddForm() : null)
+        ? (useFormPopup ? null : (!f.editTypeName ? restoreAddForm() : null))
         : h('div',{},
             h('div',{class:'manage-add-row'},
               h('input',{type:'text',class:'form-input',placeholder:'New type…',value:f.newType,
@@ -1336,6 +1482,32 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
       f.addStep=1; f.newType=''; f.needsMap={}; openModal(returnModal);
     }},'Done') : null
   );
+
+  // Popup overlay wrapping the active add/edit form. Click outside dismisses
+  // (and resets the form state so the button reappears).
+  if (useFormPopup) {
+    const formContent = isProfileType ? affectionAddForm() : restoreAddForm();
+    const dismiss = () => {
+      f.editTypeName = null; f.editInit = null; f.addingNew = false;
+      f.newType = ''; f.newTypeDesc = ''; f.editTypeDirty = false;
+      maybeReturnAfterAdd(null);
+      render();
+    };
+    const ov = h('div',{class:'overlay', id:'lib-popup-overlay'},
+      h('div',{class:'sheet'},
+        h('div',{class:'sheet-handle'}),
+        formContent,
+      )
+    );
+    const openedAt = Date.now();
+    ov.addEventListener('click', e => {
+      if (e.target === ov && Date.now() - openedAt > 300) dismiss();
+    });
+    // Portal to document.body — see note in buildManageCaretakerTypes.
+    document.body.appendChild(ov);
+    return inner;
+  }
+
   return inline ? inner : overlay(inner);
 }
 

@@ -16,10 +16,29 @@ function buildRestoreForm() {
       title: restTypeNames.includes(f.eventType) ? 'This type is hidden — unhide it in Library to re-select' : 'This type was removed from your library'
     }, '⚠️ '+f.eventType) : null,
     ...S.restoreTypes.filter(t=>!(typeof t==='object'&&t.hidden)).slice().sort((a,b)=>(typeof a==="string"?a:a.name).localeCompare(typeof b==="string"?b:b.name)).map(t=>h('div',{
-      class:'chip'+(f.eventType===(typeof t==='string'?t:t.name)?' selected':''),
+      class:'chip'+(f.eventType===(typeof t==='string'?t:t.name)?' selected sel-restore':''),
       onclick:()=>{ f.eventType=typeof t==='string'?t:t.name; render(); }
     }, typeof t==='string'?t:t.name)),
-    h('div',{class:'chip add-new',onclick:()=>{S.activeTab='library';S.libRestoreExpanded=true;S.libBondingExpanded=false;S.libBondingForm={};S.libIntimacyExpanded=false;S.libIntimacyForm={};S.libSteadyingExpanded=false;S.libSteadyingForm={};S.libWobbleExpanded=false;closeModalSilent();render();}},'+ Manage types'),
+    h('div',{class:'chip add-new',onclick:()=>{
+      // Save restorative-form state so we can resume here after the
+      // add-activity popup closes (Save → pre-select, Cancel → as-is).
+      S._resetSheetScroll = true;
+      S._returnAfterAdd = {
+        tab: S.activeTab,
+        modal: 'restore',
+        formSnapshot: { ...S.form },
+        targetField: 'eventType',
+      };
+      S.activeTab='library';
+      S.libRestoreExpanded=true;
+      S.libBondingExpanded=false;   S.libBondingForm={};
+      S.libIntimacyExpanded=false;  S.libIntimacyForm={};
+      S.libSteadyingExpanded=false; S.libSteadyingForm={};
+      S.libWobbleExpanded=false;
+      S.libRestoreForm = { addingNew: true };
+      closeModalSilent();
+      render();
+    }},'+ Add new'),
   ];
 
   return overlay(h('div',{},

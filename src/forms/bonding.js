@@ -12,11 +12,30 @@ function buildBondingForm() {
       style:{opacity:'0.5',cursor:'default',textDecoration:'line-through',pointerEvents:'none'},
       title: affTypeNames.includes(f.eventType) ? 'This type is hidden — unhide it in Library to re-select' : 'This type was removed from your library'
     }, '⚠️ '+f.eventType) : null,
-    ...S.affectionTypes.filter(t=>!t.hidden).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(t=>h('div',{class:'chip'+(f.eventType===t.name?' selected':''),onclick:()=>{
+    ...S.affectionTypes.filter(t=>!t.hidden).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(t=>h('div',{class:'chip'+(f.eventType===t.name?' selected sel-bonding':''),onclick:()=>{
       f.eventType=t.name;
       render();
     }},t.name)),
-    h('div',{class:'chip add-new',onclick:()=>{S.activeTab='library';S.libBondingExpanded=true;S.libIntimacyExpanded=false;S.libIntimacyForm={};S.libRestoreExpanded=false;S.libRestoreForm={};S.libSteadyingExpanded=false;S.libSteadyingForm={};S.libWobbleExpanded=false;S.libBondingForm={};closeModalSilent();render();}},'+ Manage types'),
+    h('div',{class:'chip add-new',onclick:()=>{
+      // Save bonding-form state so we can resume here after the add-activity
+      // popup closes (Save → pre-select the new type, Cancel → return as-is).
+      S._resetSheetScroll = true;
+      S._returnAfterAdd = {
+        tab: S.activeTab,
+        modal: 'affection',
+        formSnapshot: { ...S.form },
+        targetField: 'eventType',
+      };
+      S.activeTab='library';
+      S.libBondingExpanded=true;
+      S.libIntimacyExpanded=false;  S.libIntimacyForm={};
+      S.libRestoreExpanded=false;   S.libRestoreForm={};
+      S.libSteadyingExpanded=false; S.libSteadyingForm={};
+      S.libWobbleExpanded=false;
+      S.libBondingForm = { addingNew: true };
+      closeModalSilent();
+      render();
+    }},'+ Add new'),
   ];
   // Save gate: in partner mode, require initiatedBy. In dating mode, require whom.
   const isDating = S.relationshipMode === 'dating';

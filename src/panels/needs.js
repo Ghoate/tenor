@@ -220,7 +220,7 @@ function buildCalibrationSection(cfg) {
       fontSize:'11px', fontFamily:"'DM Sans',sans-serif",
     }},
       h('div',{style:{fontWeight:'600',color:'var(--text-strong)',marginBottom:'8px',fontSize:'11px',letterSpacing:'0.06em',textTransform:'uppercase'}},
-        'Love needs · debug'),
+        (cfg.debugLabel || 'Love needs') + ' · debug'),
       h('div',{style:{fontSize:'10px',color:'var(--muted)',marginBottom:'8px',lineHeight:'1.5'}},
         hasAnyHits
           ? (hasSaved && !hasDraft ? 'Showing saved hit counts and final ranking.' : 'Showing current draft answers (not yet saved).')
@@ -508,11 +508,29 @@ function buildNeedsPanel() {
   // Source colors
   const SRC_COLOR = { physical:'var(--c-physical)', affection:'var(--c-affection)' };
 
+  const isIndividual = S.relationshipMode === 'individual';
+  // In Individual mode, swap Love Needs for Social Needs. In other modes, the
+  // SN tab doesn't exist; in Individual mode the EN tab doesn't exist.
+  if (isIndividual && S.needsTab === 'en') S.needsTab = 'sn';
+  if (!isIndividual && S.needsTab === 'sn') S.needsTab = 'en';
+  if (!S.showBonding && !isIndividual && S.needsTab === 'en') S.needsTab = 'pn';
+
   return h('div',{class:'insights-panel'},
 
     // ── Tab switcher ──────────────────────────────────
-    h('div',{style:{display:'flex',gap:'6px',marginBottom:'20px',paddingTop:'14px'}},
-      h('button',{
+    // Hidden when bonding's off and not in individual mode (PN is the only tab).
+    (S.showBonding || isIndividual) ? h('div',{style:{display:'flex',gap:'6px',marginBottom:'20px',paddingTop:'14px'}},
+      isIndividual ? h('button',{
+        style:{
+          flex:'1', padding:'10px', borderRadius:'12px', fontSize:'13px',
+          fontWeight: S.needsTab==='sn' ? '600' : '400',
+          border: S.needsTab==='sn' ? '1px solid var(--c-social)' : '1px solid var(--border)',
+          background: S.needsTab==='sn' ? 'rgba(217,152,117,0.10)' : 'var(--bg2)',
+          color: S.needsTab==='sn' ? 'var(--c-social)' : 'var(--muted)',
+          cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
+        },
+        onclick:()=>{ S.needsTab='sn'; saveSettings(); render(); }
+      }, '🫂 Social Needs') : h('button',{
         style:{
           flex:'1', padding:'10px', borderRadius:'12px', fontSize:'13px',
           fontWeight: S.needsTab==='en' ? '600' : '400',
@@ -534,7 +552,49 @@ function buildNeedsPanel() {
         },
         onclick:()=>{ S.needsTab='pn'; saveSettings(); render(); }
       }, '🌊 Personal Needs'),
-    ),
+    ) : null,
+
+    // ── SN tab (Individual mode only) ─────────────────
+    isIndividual && S.needsTab === 'sn' ? h('div',{},
+      h('div',{class:'ins-section'},
+        h('div',{class:'ins-section-title',style:{fontWeight:'600'}}, 'Your ranking')
+      ),
+      h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'10px',lineHeight:'1.5'}},
+        'Take the calibration quiz to set your ranking, or fine-tune manually with the arrows.'
+      ),
+      buildCalibrationSection({
+        quizKey:        'needsSnQuiz',
+        rankingKey:     'socialNeedsRanking',
+        hitsKey:        'needsSnHits',
+        needsList:      SOCIAL_NEEDS,
+        quizData:       NEEDS_SN_QUIZ,
+        slotsMap:       NEEDS_SN_SLOTS,
+        tallyHits:      needsSnTallyHits,
+        buildTieGroups: needsSnBuildTieGroups,
+        orderFromCounts:needsSnOrderFromCounts,
+        onSaved:        recalculateAllWeights,
+        accentColor:    'var(--c-social)',
+        accentTintBg:   'rgba(217,152,117,0.12)',
+        modalId:        'needs-sn-calibration-modal',
+        savedToastMsg:  '✓ Social needs ranking saved',
+        maxSelections:  2,
+        debugLabel:     'Social needs',
+      }),
+      h('div',{style:{
+        fontSize:'10px', color:'var(--muted-2)', lineHeight:'1.6',
+        padding:'10px 12px', borderRadius:'8px',
+        background:'var(--bg2)', border:'1px solid var(--border)',
+        marginBottom:'14px', marginTop:'14px',
+      }},
+        h('div',{style:{fontWeight:'500',color:'var(--muted)',marginBottom:'4px'}}, 'Sources'),
+        'Cohen & Wills (1985) social support typology — Emotional Support, Companionship, Advice, Practical Help. ',
+        'Baumeister & Leary (1995) "Need to belong" — Belonging. ',
+        'Weiss (1974) "Provisions of Social Relationships" — Validation, Challenge & Growth. ',
+        'Reis & Shaver (1988) intimacy process model — Intimacy. ',
+        'Stuart Brown (2009) and PERMA — Play. ',
+        'Schwartz values theory and Vaillant Grant Study — Shared Meaning.'
+      ),
+    ) : null,
 
     // ── EN tab ───────────────────────────────────────
     S.needsTab === 'en' ? h('div',{},
@@ -642,6 +702,7 @@ function buildNeedsPanel() {
         modalId:        'needs-pn-calibration-modal',
         savedToastMsg:  '✓ Personal needs ranking saved',
         maxSelections:  2,
+        debugLabel:     'Personal needs',
       }),
 
       // ── Chart section (description + sort toggle + chart) ──

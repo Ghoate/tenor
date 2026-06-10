@@ -43,6 +43,33 @@ const PERSONAL_NEEDS = [
   {val:'sensory',      icon:'🛁', label:'Aesthetic Pleasure', hint:'The need for a pleasant physical environment — atmosphere, comfort, sounds, tastes, warmth, and aesthetic surroundings.'},
 ];
 
+// Social Needs — the relational needs an individual can have outside a
+// romantic/partner context (friends, family, community, casual ties).
+// Sources noted per item so the framework is traceable:
+//   support, companionship, advice, help → Cohen & Wills (1985) social support typology
+//   community                            → Baumeister & Leary (1995) "Need to belong"; Maslow
+//   validation                           → Weiss (1974) "reassurance of worth"
+//   play                                 → Stuart Brown (2009); PERMA positive-emotion pillar
+//   intimacy                             → Reis & Shaver (1988) intimacy process model
+//   growth                               → Weiss (1974) "guidance"; mentorship literature
+//   meaning                              → Schwartz values theory (universalism/benevolence); Vaillant Grant Study
+const SOCIAL_NEEDS = [
+  {val:'support',       icon:'🫂', label:'Emotional Support',         hint:'Being heard, understood, comforted in hard moments — people you can talk to when things are heavy.'},
+  {val:'companionship', icon:'🚶', label:'Companionship',             hint:'Doing things together — shared time as its own reward, no particular purpose required.'},
+  {val:'community',     icon:'🌳', label:'Belonging',                 hint:'Being part of a group with a shared identity — feeling you fit somewhere and are known there.'},
+  {val:'validation',    icon:'🪞', label:'Validation',                hint:'Being seen and appreciated for who you are — recognition that you matter, as you are.'},
+  {val:'play',          icon:'🎲', label:'Play & Lightness',          hint:'Laughter, fun, recreation with others — moments that are simply enjoyable, not productive.'},
+  {val:'intimacy',      icon:'🤝', label:'Intimacy & Vulnerability',  hint:'Being deeply known — sharing private parts of yourself with people who hold them carefully.'},
+  {val:'advice',        icon:'💡', label:'Advice & Perspective',      hint:'Hearing other viewpoints — input on decisions or situations from people whose judgment you value.'},
+  {val:'help',          icon:'🛠️', label:'Practical Help',             hint:'Tangible assistance — rides, money, hands-on help with tasks. People who show up when you need something done.'},
+  {val:'growth',        icon:'⛰️', label:'Challenge & Growth',        hint:'People who push you, sharpen you, or hold you accountable — connections that ask you to be more.'},
+  {val:'meaning',       icon:'🕯️', label:'Shared Meaning',            hint:'Connection through shared purpose or values — causes, beliefs, things you both think matter.'},
+];
+
+const SN_DEFAULTS = {
+  general: ['support','companionship','community','validation','play','intimacy','advice','help','growth','meaning'],
+};
+
 const S = {
   today:         dateStr(new Date()),
   selectedDate:  dateStr(new Date()),
@@ -57,6 +84,7 @@ const S = {
   needsSort:      'fill',  // 'fill' | 'rank'
   needsTab:       'en',    // 'en' | 'pn'
   libBondingExpanded: false,
+  libSocialExpanded: false,
   libIntimacyExpanded: false,
   libRestoreExpanded: false,
   libSteadyingExpanded: false,
@@ -64,6 +92,7 @@ const S = {
   libWhomExpanded: false,
   libLandscapeExpanded: false,
   libBondingForm: {},
+  libSocialForm: {},
   libIntimacyForm: {},
   libRestoreForm: {},
   libSteadyingForm: {},
@@ -73,16 +102,20 @@ const S = {
   _confirmDeleteId: null,   // entry ID pending inline delete confirmation
   needsRanking:   ['sexual','attraction','recreation','admiration','domestic','conversation','honesty','financial','family','affection'], // male default
   personalNeedsRanking: ['competence','escape','autonomy','challenge','flow','competition','identity','belonging','nature','sensory'], // male default
+  socialNeedsRanking: [...SN_DEFAULTS.general], // Individual mode only — replaces Love Needs ranking
+  socialTypes:       [],  // User-defined Social activity types (Individual mode parallel to affectionTypes)
   partnerPronouns: 'she', // 'she' | 'he' | 'they'
   userPronouns:    'he', // 'she' | 'he' | 'they'
   showCaretaker:   true,  // show/hide Caretaker entry type in the picker
   showRegulation:  true,  // show/hide Regulation entry type in the picker
   showPhysical:    true,  // show/hide Physical intimacy entry type in the picker
+  showBonding:     true,  // show/hide Bonding entry type (and Combined) in the picker
+  showConflict:    true,  // show/hide Conflict entry type in the picker
   showRepair:      false, // show/hide Repair entry type in the picker
   showAttachment:  false, // show/hide Attachment tab in the tab bar
   attachmentRefExpanded: false, // collapsible reference layer on Attachment tab
   horsemenExpanded:  false, // remember if user regularly uses the horsemen section
-  homeForecastExpanded: false, // collapsible 7-day forecast + line chart section on the home page (collapsed by default)
+  homeForecastExpanded: false, // 7-day forecast section on home page — transient, collapsed by default and reset on every visit
   tagPolyvagalOverrides: {}, // per-tag polyvagal state overrides; keys are tag names
   tagToneOverrides:   {}, // per-tag tone overrides for custom/renamed tags
   showDebug:         false, // show scoring debug panels in forms
@@ -92,6 +125,8 @@ const S = {
   needsHits:         {},    // Saved hit counts from the last Needs-tab EN calibration (debug visibility)
   needsPnQuiz:       null,  // Transient quiz state for the Needs tab PN calibration
   needsPnHits:       {},    // Saved hit counts from the last Needs-tab PN calibration
+  needsSnQuiz:       null,  // Transient quiz state for the Needs tab SN calibration (Individual mode)
+  needsSnHits:       {},    // Saved hit counts from the last Needs-tab SN calibration
   showQuickDelete:   false, // show × button on entry cards
   relationshipMode:  'partner', // 'partner' | 'dating' — controls Bonding form shape and labels
   weights: {

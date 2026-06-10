@@ -47,7 +47,8 @@ function showInlineOnboarding(onComplete) {
   const OS = {
     step: 0,
     userPronouns: 'he', partnerPronouns: 'she',
-    relationshipMode: 'partner', // 'partner' (one person) | 'dating' (multiple)
+    relationshipMode: 'partner', // 'partner' | 'dating' | 'individual'
+    showBonding: true, showConflict: true,
     showPhysical: true, showCaretaker: false, showRegulation: true,
     showAttachment: false, showRepair: false,
     enRanking: [...EN_MALE_O],
@@ -136,12 +137,26 @@ function showInlineOnboarding(onComplete) {
     oRenderFooter();
   }
 
-  function oNext() { if (OS.step + 1 >= OSTEPS.length) { oFinish(); return; } oGoTo(OS.step + 1); }
+  // In individual mode, skip the feature-intro screens (Intimacy/Wobble/
+  // Caretaking) and the Love Needs ranking — none apply when the user is
+  // tracking personal-only. Indexes 3..6 in OSTEPS cover those four steps.
+  function isStepHidden(idx) {
+    if (OS.relationshipMode !== 'individual') return false;
+    return idx >= 3 && idx <= 6;
+  }
+  function oNext() {
+    let next = OS.step + 1;
+    while (next < OSTEPS.length && isStepHidden(next)) next++;
+    if (next >= OSTEPS.length) { oFinish(); return; }
+    oGoTo(next);
+  }
   function oBack() {
     if (OS.step === 0) return;
+    let prev = OS.step - 1;
+    while (prev > 0 && isStepHidden(prev)) prev--;
     const cur = screens.querySelector('.ob-screen.active');
     if (cur) { cur.classList.remove('active'); cur.style.transition='opacity 0.25s,transform 0.25s'; cur.style.opacity='0'; cur.style.transform='translateX(40px)'; setTimeout(()=>cur.remove(),250); }
-    OS.step--;
+    OS.step = prev;
     OS.footerHint = null; // cleared so the previous step renders fresh
     progFill.style.width = ((OS.step + 1) / OSTEPS.length * 100) + '%';
     const sc = OSTEPS[OS.step](); sc.style.cssText+='opacity:0;transform:translateX(-40px);'; screens.appendChild(sc);
@@ -629,7 +644,7 @@ function showInlineOnboarding(onComplete) {
       letterSpacing:'0.01em',
       color:'#b5762a',
       marginBottom:'4px',
-    }}, 'Tenor'));
+    }}, 'Atmos'));
     s.appendChild(h('div',{style:{
       textAlign:'center',
       fontFamily:"'Libre Baskerville',serif",
@@ -649,14 +664,14 @@ function showInlineOnboarding(onComplete) {
       lineHeight:'1.7',
     }},
       h('div',{style:{display:'flex',alignItems:'baseline',gap:'10px',marginBottom:'6px',flexWrap:'wrap'}},
-        h('span',{style:{fontSize:'19px',fontWeight:'600',color:'#b5762a'}},'Tenor'),
-        h('span',{style:{fontSize:'13px',color:'var(--muted)',fontFamily:"'DM Sans',sans-serif"}},'/ˈte-nər/'),
+        h('span',{style:{fontSize:'19px',fontWeight:'600',color:'#b5762a'}},'Atmos'),
+        h('span',{style:{fontSize:'13px',color:'var(--muted)',fontFamily:"'DM Sans',sans-serif"}},'/ˈat-məs/'),
       ),
       h('div',{style:{fontSize:'12px',fontStyle:'italic',color:'var(--muted)',marginBottom:'8px'}},'noun'),
       h('div',{style:{fontSize:'14px',color:'var(--text)',lineHeight:'1.65',marginBottom:'12px'}},
-        'The general character, course, or prevailing mood of one\'s life, relationships, or experiences.'),
+        'The surrounding atmosphere of one\'s life, relationships, or experiences — the ambient feeling that hangs over a place or moment.'),
       h('div',{style:{fontSize:'11px',fontStyle:'italic',color:'var(--muted)',letterSpacing:'0.02em'}},
-        'from Latin ', h('span',{style:{fontStyle:'italic',color:'var(--text)'}},'tenere'), ', to hold'),
+        'from Greek ', h('span',{style:{fontStyle:'italic',color:'var(--text)'}},'atmós'), ', vapor or breath'),
     );
     s.appendChild(defBox);
 
@@ -675,17 +690,17 @@ function showInlineOnboarding(onComplete) {
     }}, 'Log your relationship.\nWatch it take shape.'));
     s.appendChild(h('div',{style:{
       fontSize:'14px', color:'var(--muted)', lineHeight:'1.65', marginBottom:'24px',
-    }}, 'Every entry is scored, weighted to what matters to you personally, and rolled into one running number — the emotional tenor of your life right now.'));
+    }}, 'Every entry is scored, weighted to what matters to you personally, and rolled into one running number — the emotional atmosphere of your life right now.'));
 
     // Feature list
     const features = [
       { icon:'🩷', label:'Bonding',          desc:'Quality time, affection, and shared experiences.',      color:'#e87a9b' },
       { icon:'🌡️', label:'Mood & Energy',    desc:'Daily check-in that calibrates everything else.',       color:'#e0a040' },
-      { icon:'⚡',  label:'Conflict',         desc:'Hard moments logged — intensity, resolution, repair.',  color:'#e06060' },
+      { icon:'⛈️',  label:'Conflict',         desc:'Hard moments logged — intensity, resolution, repair.',  color:'#e06060' },
       { icon:'🌊',  label:'Restorative',      desc:'Activities that refill your personal meter.',           color:'#4dc4a0' },
       { icon:'🌹',  label:'Intimacy',         desc:'Desire and closeness, tracked over time.',              color:'#e07a4a' },
-      { icon:'🫧',  label:'Life Wobble',      desc:'Your difficult moments, separate from the relationship.',color:'#7d99c9' },
-      { icon:'🕯️', label:'Steadying',        desc:'When you show up for someone in a hard moment.',        color:'#d4956a' },
+      { icon:'🌪️',  label:'Wobble',      desc:'Your difficult moments, separate from the relationship.',color:'#7d99c9' },
+      { icon:'💨', label:'Steadying',        desc:'When you show up for someone in a hard moment.',        color:'#d4956a' },
     ];
 
     for (const {icon,label,desc,color} of features) {
@@ -712,15 +727,19 @@ function showInlineOnboarding(onComplete) {
     const s = oScreen();
     s.appendChild(oEyebrow(oStepLabel()));
     s.appendChild(oTitle('Pronouns'));
-    s.appendChild(oBody('Used throughout the app when referring to you' + (OS.relationshipMode === 'partner' ? ' and your partner.' : ' and the people you log moments with.')));
+    const bodyText = OS.relationshipMode === 'individual'
+      ? 'Used throughout the app when referring to you.'
+      : 'Used throughout the app when referring to you' + (OS.relationshipMode === 'partner' ? ' and your partner.' : ' and the people you log moments with.');
+    s.appendChild(oBody(bodyText));
 
     s.appendChild(oSectionLabel('Yours'));
     s.appendChild(oPronounGrid(OS.userPronouns, v => { OS.userPronouns = v; }));
     s.appendChild(h('div',{style:{height:'18px'}}));
 
     // ── Relationship-situation question ──
-    // Determines whether dating mode is on. Affects whether we show the
-    // partner-pronoun grid or the dating-pronoun grid.
+    // Determines whether dating mode, partner mode, or individual (personal-only)
+    // mode is on. Affects which pronoun grid we show below, and whether we
+    // show one at all (Individual mode hides the partner area entirely).
 
     // Container so we can re-render the bottom area when mode changes
     const partnerArea = document.createElement('div');
@@ -729,15 +748,19 @@ function showInlineOnboarding(onComplete) {
       const lbl = document.createElement('div');
       lbl.style.cssText = 'font-size:11px;letter-spacing:0.07em;text-transform:uppercase;color:var(--muted);margin:8px 0 8px;';
 
-      if (OS.relationshipMode === 'partner') {
+      if (OS.relationshipMode === 'individual') {
+        // Personal-only tracking — no partner/dating pronouns needed. Show a
+        // brief explanation so the user understands what's happening.
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size:12px;color:var(--muted);line-height:1.6;padding:14px 16px;border-radius:12px;background:var(--bg2);border:1px solid var(--border);';
+        note.textContent = 'Individual mode — relational categories (bonding, intimacy, conflict) are hidden so the app focuses on your personal state. You\'ll skip the relational setup steps.';
+        partnerArea.appendChild(note);
+      } else if (OS.relationshipMode === 'partner') {
         lbl.textContent = 'Your partner\'s pronouns';
         partnerArea.appendChild(lbl);
         partnerArea.appendChild(oPronounGrid(OS.partnerPronouns, v => { OS.partnerPronouns = v; }));
       } else {
         // Dating mode: ask about the pronouns of people they're dating.
-        // Saves to the same partnerPronouns field — used as the default
-        // pronoun for any rendering that references a specific person
-        // when no Whom is selected.
         lbl.textContent = 'Dating';
         partnerArea.appendChild(lbl);
         partnerArea.appendChild(oDatingPronounGrid(OS.partnerPronouns, v => { OS.partnerPronouns = v; }));
@@ -745,16 +768,26 @@ function showInlineOnboarding(onComplete) {
     };
 
     const modeGrid = document.createElement('div');
-    modeGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;';
+    modeGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;';
     for (const {val,icon,label,sub} of [
-      {val:'partner', icon:'👤', label:'Committed', sub:'one person, exclusive'},
-      {val:'dating',  icon:'👥', label:'Dating',    sub:'multiple, casual, or open'},
+      {val:'individual', icon:'🌊', label:'Individual', sub:'personal-only'},
+      {val:'partner',    icon:'👤', label:'Committed',  sub:'one, exclusive'},
+      {val:'dating',     icon:'👥', label:'Dating',     sub:'multiple or open'},
     ]) {
       const btn = document.createElement('button');
       btn.className = 'ob-pronoun-btn' + (OS.relationshipMode === val ? ' ob-sel' : '');
       btn.innerHTML = '<span style="font-size:18px;display:block;margin-bottom:4px;">' + icon + '</span>' + label + '<span style="font-size:11px;display:block;margin-top:3px;opacity:0.6;">' + sub + '</span>';
       btn.onclick = () => {
         OS.relationshipMode = val;
+        // When Individual is selected, flip the relational feature flags off
+        // so oFinish saves consistent state and downstream skip logic kicks in.
+        if (val === 'individual') {
+          OS.showBonding = false; OS.showPhysical = false;
+          OS.showConflict = false; OS.showRepair = false;
+        } else {
+          OS.showBonding = true; OS.showPhysical = true;
+          OS.showConflict = true;
+        }
         modeGrid.querySelectorAll('.ob-pronoun-btn').forEach(b => b.classList.remove('ob-sel'));
         btn.classList.add('ob-sel');
         renderPartnerArea();
@@ -998,11 +1031,11 @@ function showInlineOnboarding(onComplete) {
   function oFeatureWobble() {
     return oFeatureScreen({
       stateKey: 'ownMoments',
-      icon: '🫧',
-      name: 'Life Wobble',
+      icon: '🌪️',
+      name: 'Wobble',
       body: 'Track your own difficult moments — anxiety, dissociation, burnout, dysregulation — and what brought you back. Useful when you want to see the texture of your hard moments separately from how the relationship is doing.',
       demoEl: oSampleEntryCard({
-        color: '#7d99c9', icon: '🫧', title: 'Sunday afternoon spiral',
+        color: '#7d99c9', icon: '🌪️', title: 'Sunday afternoon spiral',
         detail: 'Came on slow, no clear trigger · cold water + a walk eventually broke it',
         tagline: 'Over time, the texture of your hard moments becomes visible.',
       }),
@@ -1013,7 +1046,7 @@ function showInlineOnboarding(onComplete) {
   function oFeatureCaretaking() {
     return oFeatureScreen({
       stateKey: 'partnerMH',
-      icon: '🕯️',
+      icon: '💨',
       name: 'Steadying',
       body: 'Track the emotional work you do showing up for someone in a hard moment — your partner, a parent, a friend, anyone close to you. The app shows your steadying load over time so spikes and breaks become visible.',
       demoEl: oSampleSteadyingBars(),
@@ -1133,15 +1166,17 @@ function showInlineOnboarding(onComplete) {
     const pl = {'he':'He / Him','she':'She / Her','they':'They / Them'};
     const top3EN = OS.enRanking.slice(0,3).map(v=>EN_NEEDS_O.find(n=>n.val===v)?.label.split(' ')[0]).filter(Boolean).join(', ');
     const top3PN = OS.pnRanking.slice(0,3).map(v=>PN_NEEDS_O.find(n=>n.val===v)?.label).filter(Boolean).join(', ');
-    for (const [label,value] of [
+    const isIndividual = OS.relationshipMode === 'individual';
+    const summary = [
       ['Your pronouns',pl[OS.userPronouns]||OS.userPronouns],
-      ['Partner pronouns',pl[OS.partnerPronouns]||OS.partnerPronouns],
-      ['Physical',OS.showPhysical?'On':'Off'],
-      ['Life Wobble',OS.showRegulation?'On':'Off'],
+      isIndividual ? ['Mode','Individual'] : ['Partner pronouns',pl[OS.partnerPronouns]||OS.partnerPronouns],
+      isIndividual ? null : ['Physical',OS.showPhysical?'On':'Off'],
+      ['Wobble',OS.showRegulation?'On':'Off'],
       ['Steadying',OS.showCaretaker?'On':'Off'],
-      ['Top love needs',top3EN+'…'],
+      isIndividual ? null : ['Top love needs',top3EN+'…'],
       ['Top personal needs',top3PN+'…'],
-    ]) {
+    ].filter(Boolean);
+    for (const [label,value] of summary) {
       s.appendChild(h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'baseline',padding:'9px 0',borderBottom:'1px solid var(--border)',fontSize:'14px'}},
         h('span',{style:{color:'var(--muted)'}},label),
         h('span',{style:{color:'var(--text)',fontWeight:'500'}},value)
@@ -1152,11 +1187,11 @@ function showInlineOnboarding(onComplete) {
       'Sample types are added to your library — they won\'t overwrite or remove anything you\'ve already created.'
     ));
     for (const {key,icon,label,show,countFn} of [
-      {key:'loadSampleBonding',   icon:'🩷',label:'Bonding',     show:true,           countFn:()=>S.affectionTypes.length},
+      {key:'loadSampleBonding',   icon:'🩷',label:'Bonding',     show:OS.showBonding, countFn:()=>S.affectionTypes.length},
       {key:'loadSamplePhysical',  icon:'🌹',label:'Intimacy',    show:OS.showPhysical, countFn:()=>S.physicalTypes.length},
       {key:'loadSampleRestore',   icon:'🌊',label:'Restorative', show:true,           countFn:()=>S.restoreTypes.length},
-      {key:'loadSampleSteadying', icon:'🕯️',label:'Steadying',   show:OS.showCaretaker, countFn:()=>S.caretakerTypes.length},
-      {key:'loadSampleWobble',    icon:'🫧',label:'Life Wobble',  show:OS.showRegulation, countFn:()=>S.challengingEmotionTags.length},
+      {key:'loadSampleSteadying', icon:'💨',label:'Steadying',   show:OS.showCaretaker, countFn:()=>S.caretakerTypes.length},
+      {key:'loadSampleWobble',    icon:'🌪️',label:'Wobble',  show:OS.showRegulation, countFn:()=>S.challengingEmotionTags.length},
     ]) {
       if (!show) continue;
       const existingCount = countFn();
@@ -1191,6 +1226,8 @@ function showInlineOnboarding(onComplete) {
       ['userPronouns',         OS.userPronouns],
       ['partnerPronouns',      OS.partnerPronouns],
       ['relationshipMode',     OS.relationshipMode],
+      ['showBonding',          OS.showBonding],
+      ['showConflict',         OS.showConflict],
       ['showPhysical',         OS.showPhysical],
       ['showCaretaker',        OS.showCaretaker],
       ['showRegulation',       OS.showRegulation],
@@ -1206,13 +1243,14 @@ function showInlineOnboarding(onComplete) {
     // Re-read type lists from IndexedDB before merging — don't trust S which
     // could be stale. This ensures existing custom types are always preserved
     // even if the in-memory state got out of sync before oFinish ran.
-    const [storedAffection, storedPhysical, storedRestore, storedCaretaker, storedWobble] =
+    const [storedAffection, storedPhysical, storedRestore, storedCaretaker, storedWobble, storedSocial] =
       await Promise.all([
         dbGet('settings','affectionTypes').then(r => r?.value || S.affectionTypes || []),
         dbGet('settings','physicalTypes').then(r  => r?.value || S.physicalTypes  || []),
         dbGet('settings','restoreTypes').then(r   => r?.value || S.restoreTypes   || []),
         dbGet('settings','caretakerTypes').then(r => r?.value || S.caretakerTypes || []),
         dbGet('settings','challengingEmotionTags').then(r => r?.value || S.challengingEmotionTags || []),
+        dbGet('settings','socialTypes').then(r    => r?.value || S.socialTypes    || []),
       ]);
 
     // Sample-loading helper: merges sample types into the existing list,
@@ -1230,7 +1268,23 @@ function showInlineOnboarding(onComplete) {
         {name:'Picnic Dog Beach',description:'Pack a picnic, head to the beach with the dogs, eat outside, get wet and meet new dogs',descEffort:3,descTime:4,descFinancial:2,descRarity:3,descPresence:3,needsMap:{sexual:1,recreation:5,affection:2,conversation:3,honesty:1,admiration:1,financial:1,domestic:2,family:3,attraction:2}},
         {name:'Skein & Tipple',description:'Cocktails at the speakeasy, live music, friends and conversation',descEffort:2,descTime:4,descFinancial:3,descRarity:4,descPresence:4,needsMap:{sexual:1,recreation:5,affection:2,conversation:4,honesty:3,admiration:3,financial:3,domestic:1,family:1,attraction:4}},
       ];
-      await dbPut('settings',{key:'affectionTypes', value: mergeSamples(storedAffection, samples)});
+      // Individual mode: the bonding samples apply equally well to social
+      // activities (movie nights, markets, dog beach, speakeasy can be with
+      // friends/family). Duplicate them into socialTypes with the needsMap
+      // reset to SN defaults since the EN keys don't translate.
+      if (OS.relationshipMode === 'individual') {
+        const snDefaults = Object.fromEntries(SOCIAL_NEEDS.map(n => [n.val, 1]));
+        const socialSamples = samples.map(s => ({
+          name: s.name, description: s.description,
+          descEffort: s.descEffort, descTime: s.descTime,
+          descFinancial: s.descFinancial, descRarity: s.descRarity,
+          descPresence: s.descPresence,
+          needsMap: {...snDefaults},
+        }));
+        await dbPut('settings',{key:'socialTypes', value: mergeSamples(storedSocial, socialSamples)});
+      } else {
+        await dbPut('settings',{key:'affectionTypes', value: mergeSamples(storedAffection, samples)});
+      }
     }
     if (OS.loadSamplePhysical) {
       const samples = [

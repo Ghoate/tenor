@@ -22,7 +22,7 @@ function buildSteadyingForm() {
   };
   const ok = (S.caretakerTypes.length === 0 || f.selectedSteadyingTypes.length > 0) && !!f.steadyingIntensity && !!f.drain && !!f.duration;
   return overlay(h('div',{},
-    h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'🕯️ Steadying'),
+    h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'💨 Steadying'),
 
     // Caretaker type selector — multi-select
     S.caretakerTypes.length > 0 ? h('div',{class:'form-section'},
@@ -32,16 +32,53 @@ function buildSteadyingForm() {
           h('div',{class:'chip selected',style:{opacity:'0.5',cursor:'default',textDecoration:'line-through',pointerEvents:'none'},title: S.caretakerTypes.find(t=>t.name===n) ? 'This type is hidden' : 'This type was removed from your library'}, '⚠️ '+n)
         ),
         ...S.caretakerTypes.filter(t=>!t.hidden).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(t=>h('div',{
-          class:'chip'+(f.selectedSteadyingTypes.includes(t.name)?' selected':''),
+          class:'chip'+(f.selectedSteadyingTypes.includes(t.name)?' selected sel-steadying':''),
           onclick:()=>toggleType(t.name)
         },t.name)),
-        h('div',{class:'chip add-new',onclick:()=>{S.activeTab='library';S.libSteadyingExpanded=true;S.libBondingExpanded=false;S.libBondingForm={};S.libIntimacyExpanded=false;S.libIntimacyForm={};S.libRestoreExpanded=false;S.libRestoreForm={};closeModalSilent();render();}},'+ Manage types'),
+        h('div',{class:'chip add-new',onclick:()=>{
+          // Save steadying-form state so we can resume here after the
+          // add-profile popup closes (Save → add the new profile to the
+          // selected chips, Cancel → return as-is).
+          S._resetSheetScroll = true;
+          S._returnAfterAdd = {
+            tab: S.activeTab,
+            modal: 'burnout',
+            formSnapshot: { ...S.form, selectedSteadyingTypes: [...(S.form.selectedSteadyingTypes||[])] },
+            targetField: 'selectedSteadyingTypes',
+            targetMode: 'push',
+          };
+          S.activeTab='library';
+          S.libSteadyingExpanded=true;
+          S.libBondingExpanded=false;  S.libBondingForm={};
+          S.libIntimacyExpanded=false; S.libIntimacyForm={};
+          S.libRestoreExpanded=false;  S.libRestoreForm={};
+          S.libSteadyingForm = { ctAddingNew: true };
+          closeModalSilent();
+          render();
+        }},'+ Add new'),
       )
     ) : h('div',{class:'form-section'},
       h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'8px'}},
-        'No steadying types defined yet.'),
+        'No steadying profiles defined yet.'),
       h('div',{class:'chips'},
-        h('div',{class:'chip add-new',style:{display:'inline-block'},onclick:()=>{S.activeTab='library';S.libSteadyingExpanded=true;S.libBondingExpanded=false;S.libBondingForm={};S.libIntimacyExpanded=false;S.libIntimacyForm={};S.libRestoreExpanded=false;S.libRestoreForm={};closeModalSilent();render();}},'+ Add steadying type'),
+        h('div',{class:'chip add-new',style:{display:'inline-block'},onclick:()=>{
+          S._resetSheetScroll = true;
+          S._returnAfterAdd = {
+            tab: S.activeTab,
+            modal: 'burnout',
+            formSnapshot: { ...S.form, selectedSteadyingTypes: [...(S.form.selectedSteadyingTypes||[])] },
+            targetField: 'selectedSteadyingTypes',
+            targetMode: 'push',
+          };
+          S.activeTab='library';
+          S.libSteadyingExpanded=true;
+          S.libBondingExpanded=false;  S.libBondingForm={};
+          S.libIntimacyExpanded=false; S.libIntimacyForm={};
+          S.libRestoreExpanded=false;  S.libRestoreForm={};
+          S.libSteadyingForm = { ctAddingNew: true };
+          closeModalSilent();
+          render();
+        }},'+ Add steadying profile'),
       )
     ),
     h('div',{class:'form-section'},
@@ -97,7 +134,7 @@ function buildSteadyingForm() {
         background:'var(--c-conflict-tint)', border:'1px solid var(--c-conflict-border)',
         fontSize:'12px', color:'var(--muted)', lineHeight:'1.6'
       }},
-        '⚡ After saving this steadying you\'ll be taken to log the conflict — that\'s where the relational impact scores.'
+        '⛈️ After saving this steadying you\'ll be taken to log the conflict — that\'s where the relational impact scores.'
       ) : null
     ),
 

@@ -12,7 +12,7 @@ function buildTurndownForm() {
     (herTurnedMeDown ? (!!f.tdSignificance && !!f.tdImpact) : !!f.tdMyReason);
 
   return overlay(h('div',{},
-    h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'🌒 Turn Down'),
+    h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'❄️ Turn Down'),
 
     // Who
     h('div',{class:'form-section'},

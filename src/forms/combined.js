@@ -38,7 +38,7 @@ function buildCombinedForm() {
       title: affNames.includes(f.eventType) ? 'This type is hidden — unhide it in Library' : 'This type was removed from your library'
     }, '⚠️ '+f.eventType) : null,
     ...affVisible.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(t=>h('div',{
-      class:'chip'+(f.eventType===t.name?' selected':''),
+      class:'chip'+(f.eventType===t.name?' selected sel-bonding':''),
       onclick:()=>{ f.eventType=t.name; render(); }
     }, t.name)),
     h('div',{class:'chip add-new',onclick:()=>{
@@ -60,7 +60,7 @@ function buildCombinedForm() {
       title: restAllNames.includes(f.restoreType) ? 'This type is hidden — unhide it in Library' : 'This type was removed from your library'
     }, '⚠️ '+f.restoreType) : null,
     ...restVisible.slice().sort((a,b)=>restName(a).localeCompare(restName(b))).map(t=>h('div',{
-      class:'chip'+(f.restoreType===restName(t)?' selected':''),
+      class:'chip'+(f.restoreType===restName(t)?' selected sel-restore':''),
       onclick:()=>{ f.restoreType=restName(t); render(); }
     }, restName(t))),
     h('div',{class:'chip add-new',onclick:()=>{

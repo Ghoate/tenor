@@ -120,7 +120,7 @@ function buildWobbleForm() {
   ] : [];
 
   return overlay(h('div',{},
-    h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'🫧 Life Wobble'),
+    h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'🌪️ Wobble'),
     h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'14px',marginTop:'-4px',lineHeight:'1.5'}},
       'Any internally hard stretch — not just emotional or relational struggles. A run-down or off day (poor sleep, illness, depletion) counts too.'),
 
@@ -143,7 +143,7 @@ function buildWobbleForm() {
       (familyGroups.length > 0 || orphanGroup.length > 0)
         ? h('div',{}, ...familyGroups, ...orphanGroup)
         : h('div',{style:{fontSize:'12px',color:'var(--muted)',padding:'8px 0',lineHeight:'1.5'}},
-            'No emotion tags in your list yet — use the walkthrough above to find and add what fits, or add some in Library → Life Wobble.')
+            'No emotion tags in your list yet — use the walkthrough above to find and add what fits, or add some in Library → Wobble.')
     ),
 
     h('div',{class:'form-section'},
@@ -213,7 +213,7 @@ function buildWobbleForm() {
         background:'var(--c-conflict-tint)', border:'1px solid var(--c-conflict-border)',
         fontSize:'12px', color:'var(--muted)', lineHeight:'1.6'
       }},
-        '⚡ After saving this wobble you\'ll be taken to log the conflict — that\'s where the relational impact scores.'
+        '⛈️ After saving this wobble you\'ll be taken to log the conflict — that\'s where the relational impact scores.'
       ) : null
     ),
 
@@ -298,7 +298,7 @@ function saveWobble() {
 // Step 1: pick a family (descriptions aid identification).
 // Step 2: pick tags within it. Loop back to step 1 for more families.
 // Writes straight into S.form.regulationEmotions so picks are already
-// applied when returning to the Life Wobble form. Lives over the form
+// applied when returning to the Wobble form. Lives over the form
 // modal: it swaps S.modal without clearing S.form, and exits back to
 // 'regulation' (NOT closeModal, which would discard the in-progress entry).
 function buildWobbleEmotionGuide() {

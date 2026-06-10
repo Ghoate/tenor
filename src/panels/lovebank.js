@@ -28,9 +28,14 @@ function buildTypedPills(winEntries, gaugeType) {
         } else if (e.category === 'physical' && !e.solo) {
           add('physical', '🌹 Intimacy', CAT_COLORS.physical, ds);
         } else if (e.category === 'conflict') {
-          add('conflict', '⚡ Conflict', CAT_COLORS.conflict, ds);
+          add('conflict', '⛈️ Conflict', CAT_COLORS.conflict, ds);
         } else if (e.category === 'turndown' && S.showPhysical) {
-          add('turndown', '🌒 Turn down', CAT_COLORS.turndown, ds);
+          add('turndown', '❄️ Turn down', CAT_COLORS.turndown, ds);
+        } else if (e.category === 'social') {
+          // Social occupies the relational slot in Individual mode.
+          add('social', '🫂 Social', CAT_COLORS.social, ds);
+        } else if (e.category === 'friction') {
+          add('friction', '🌧️ Friction', CAT_COLORS.friction, ds);
         }
       }
     }
@@ -43,11 +48,11 @@ function buildTypedPills(winEntries, gaugeType) {
       }
       if (e.category === 'regulation' && S.showRegulation) {
         const s = applyDecay(wobbleRestoreScore(e, cap), daysAgo);
-        if (s !== 0) add('wobble', '🫧 Wobble', CAT_COLORS.regulation, s);
+        if (s !== 0) add('wobble', '🌪️ Wobble', CAT_COLORS.regulation, s);
       }
       if (e.category === 'burnout' && S.showCaretaker) {
         const s = applyDecay(caretakerPersonalScore(e, cap), daysAgo);
-        if (s !== 0) add('burnout', '🕯️ Steadying', CAT_COLORS.burnout, s);
+        if (s !== 0) add('burnout', '💨 Steadying', CAT_COLORS.burnout, s);
       }
     }
   }
@@ -86,7 +91,8 @@ function buildTypedPills(winEntries, gaugeType) {
   );
 }
 
-function computeBaseTenorData() {
+function computeBaseTenorData(lookbackDays) {
+  const days = lookbackDays || 60;
   const SMOOTHING_TARGET = 2 / 29;
   const byDate = {};
   for (const e of calcEntries()) {
@@ -95,9 +101,9 @@ function computeBaseTenorData() {
   }
   const startDates = Object.keys(byDate).sort();
   if (!startDates.length) return null;
-  // Cap iteration to the chart's visible 60-day window — anything older isn't rendered,
+  // Cap iteration to the chart's visible window — anything older isn't rendered,
   // so computing it is wasted work.
-  const chartStart = addDays(S.today, -59);
+  const chartStart = addDays(S.today, -(days - 1));
   const firstDay   = startDates[0] > chartStart ? startDates[0] : chartStart;
   const allDays = [];
   let cur = firstDay;
@@ -130,9 +136,11 @@ function buildLoveBankPanel() {
   // matches the home card's identical formula. Avoids the double-round path that pushed a 14.3
   // underlying value to 15 when averaged from already-whole-rounded inputs.
   const exp = computeExperimentalScores();
-  const windowGaugeValue = Math.round(exp.rel);
+  // In Individual mode, the relational gauge slot is filled by Social.
+  const isIndGauge       = S.relationshipMode === 'individual';
+  const windowGaugeValue = Math.round(isIndGauge ? (exp.soc || 0) : exp.rel);
   const perWindowGauge   = Math.round(exp.per);
-  const comWindowGauge   = Math.round((exp.rel + exp.per) / 2);
+  const comWindowGauge   = Math.round(((isIndGauge ? (exp.soc || 0) : exp.rel) + exp.per) / 2);
 
   const zones = getBounds();
   const zoneBg = b => {
@@ -170,15 +178,15 @@ function buildLoveBankPanel() {
         color:'var(--muted)',
         letterSpacing:'0.02em',
         marginBottom:'10px',
-      }}, 'Emotional Tenor'),
+      }}, 'Emotional Atmosphere'),
 
       // ── Triple-gauge overview ─────────────────────────
 
       (() => {
         const gaugeItems = [
-          {label:'Relational', value:windowGaugeValue, gn:'tgNeg0', gp:'tgPos0'},
-          {label:'Personal',   value:perWindowGauge,   gn:'tgNeg1', gp:'tgPos1'},
-          {label:'Tenor',      value:comWindowGauge,   gn:'tgNeg2', gp:'tgPos2'},
+          {label:'Atmosphere',                          value:comWindowGauge,   gn:'tgNeg0', gp:'tgPos0'},
+          {label: isIndGauge ? 'Social' : 'Relational', value:windowGaugeValue, gn:'tgNeg1', gp:'tgPos1'},
+          {label:'Personal',                            value:perWindowGauge,   gn:'tgNeg2', gp:'tgPos2'},
         ];
 
         const makeMiniGauge = ({label, value, gn, gp}) => {
@@ -227,14 +235,17 @@ function buildLoveBankPanel() {
           svgEl.appendChild(mk('line',{x1:String(cx),y1:String(cy),x2:ntip.x.toFixed(1),y2:ntip.y.toFixed(1),stroke:'var(--text-strong)','stroke-width':'2','stroke-linecap':'round'}));
           svgEl.appendChild(mk('circle',{cx:String(cx),cy:String(cy),r:'5',fill:'var(--bg2)',stroke:'var(--pivot-stroke)','stroke-width':'1.5'}));
 
+          const zi = _zoneIconFor(value, zones);
           return h('div',{style:{flex:'1',textAlign:'center',background:zoneBg(value),borderRadius:'10px',padding:'6px 4px 8px'}},
             h('div',{style:{fontSize:'11px',color:'var(--text-strong)',fontWeight:'400',marginBottom:'2px'}},
               label),
             svgEl,
             h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'26px',fontWeight:'400',color:'var(--text-strong)',lineHeight:'1',margin:'6px 0 4px'}},
               (value>=0?'+':'')+value),
-            h('div',{style:{fontSize:'12px',fontWeight:'700',letterSpacing:'0.04em',color:'var(--text-strong)',marginTop:'2px'}},
-              bInfo.label),
+            h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',marginTop:'2px'}},
+              h('span',{style:{fontSize:'16px',lineHeight:'1'}}, zi.icon),
+              h('span',{style:{fontSize:'12px',fontWeight:'700',letterSpacing:'0.04em',color:'var(--text-strong)'}}, bInfo.label),
+            ),
           );
         };
 
@@ -245,115 +256,8 @@ function buildLoveBankPanel() {
 
       (() => buildTypedPills(winEntries, 'combined'))(),
 
-      (() => {
-        const btd = computeBaseTenorData();
-        if (!btd) return null;
-        const { baseTenor, series } = btd;
-        const baseColor = baseTenor > 0 ? 'var(--c-partner)' : baseTenor < 0 ? 'var(--c-conflict)' : 'var(--muted)';
-
-        // SVG line chart — fixed 60-day x-axis, y-axis with labels
-        const W = 280, H = 96;
-        const padL = 32, padR = 6, padT = 6, padB = 18;
-        const plotW = W - padL - padR;
-        const plotH = H - padT - padB;
-        const chartStart = addDays(S.today, -59);
-
-        const allVals = [...series.map(p => p.tenor), ...series.map(p => p.base), 0];
-        const rawMin = Math.min(...allVals);
-        const rawMax = Math.max(...allVals);
-        const rawRange = rawMax - rawMin || 1;
-        const roughStep = rawRange / 3;
-        const mag = Math.pow(10, Math.floor(Math.log10(roughStep || 1)));
-        const yStep = Math.max(Math.ceil(roughStep / mag) * mag, 1);
-        const tickMin = Math.floor(rawMin / yStep) * yStep;
-        const tickMax = Math.ceil(rawMax / yStep) * yStep;
-        const yTicks = [];
-        for (let t = tickMin; t <= tickMax + 0.01; t += yStep) yTicks.push(Math.round(t));
-        const domMin = tickMin - yStep * 0.2;
-        const domMax = tickMax + yStep * 0.2;
-        const rangeV = domMax - domMin || 1;
-
-        const xOf = d => padL + (daysBetween(chartStart, d) / 59) * plotW;
-        const yOf = v => padT + plotH - ((v - domMin) / rangeV) * plotH;
-        const ptsTenor = series.map(p => `${xOf(p.date).toFixed(1)},${yOf(p.tenor).toFixed(1)}`).join(' ');
-        const ptsBase  = series.map(p => `${xOf(p.date).toFixed(1)},${yOf(p.base).toFixed(1)}`).join(' ');
-
-        const mk  = (tag, attrs) => { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el; };
-        const txt = (content, attrs) => { const el = mk('text', attrs); el.textContent = content; return el; };
-
-        const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
-        svgEl.style.cssText = 'display:block;width:100%;height:auto;overflow:visible;';
-
-        // Axes
-        svgEl.appendChild(mk('line', {x1:padL, y1:padT, x2:padL, y2:padT+plotH, stroke:'var(--border)', 'stroke-width':'0.8'}));
-        const zeroY = yOf(0);
-        const xAxisY = (zeroY >= padT && zeroY <= padT + plotH) ? zeroY : padT + plotH;
-        svgEl.appendChild(mk('line', {x1:padL, y1:xAxisY.toFixed(1), x2:padL+plotW, y2:xAxisY.toFixed(1), stroke:'var(--border)', 'stroke-width':'0.8'}));
-
-        // Y ticks + labels
-        for (const t of yTicks) {
-          const ty = yOf(t);
-          if (ty < padT - 2 || ty > padT + plotH + 2) continue;
-          svgEl.appendChild(mk('line', {x1:padL-3, y1:ty.toFixed(1), x2:padL, y2:ty.toFixed(1), stroke:'var(--border)', 'stroke-width':'0.8'}));
-          svgEl.appendChild(txt(t === 0 ? '0' : (t > 0 ? '+' : '') + t, {x:String(padL - 5), y:ty.toFixed(1), 'text-anchor':'end', 'dominant-baseline':'middle', 'font-size':'8', fill:'var(--muted)', 'font-family':"'DM Sans',sans-serif"}));
-        }
-
-        // X labels
-        svgEl.appendChild(txt(fmtS(chartStart), {x:String(padL), y:String(padT + plotH + 12), 'text-anchor':'start', 'font-size':'8', fill:'var(--muted)', 'font-family':"'DM Sans',sans-serif"}));
-        svgEl.appendChild(txt('Today', {x:String(padL + plotW), y:String(padT + plotH + 12), 'text-anchor':'end', 'font-size':'8', fill:'var(--muted)', 'font-family':"'DM Sans',sans-serif"}));
-
-        // Data lines — Tenor (thin/muted), Base Tenor (bold 4-week EMA)
-        svgEl.appendChild(mk('polyline', {points:ptsTenor, fill:'none', stroke:'var(--muted-3)', 'stroke-width':'1',   'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:'0.55'}));
-        svgEl.appendChild(mk('polyline', {points:ptsBase,  fill:'none', stroke:baseColor,        'stroke-width':'2',   'stroke-linecap':'round', 'stroke-linejoin':'round'}));
-        if (series.length) {
-          const last = series[series.length - 1];
-          svgEl.appendChild(mk('circle', {cx:xOf(last.date).toFixed(1), cy:yOf(last.base).toFixed(1), r:'3.5', fill:baseColor}));
-        }
-
-        return h('div',{style:{marginTop:'10px', padding:'12px 14px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:'14px'}},
-          h('div',{style:{textAlign:'right', marginBottom:'8px'}},
-            h('div',{style:{fontSize:'10px', fontWeight:'600', letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--muted)', marginBottom:'2px'}}, 'Base Tenor'),
-            h('div',{style:{fontFamily:"'Libre Baskerville',serif", fontSize:'26px', fontWeight:'400', color:baseColor, lineHeight:'1'}},
-              (baseTenor >= 0 ? '+' : '') + baseTenor.toFixed(1)),
-          ),
-          h('div',{},
-            svgEl,
-            h('div',{style:{display:'flex', gap:'14px', marginTop:'8px'}},
-              h('div',{style:{display:'flex', alignItems:'center', gap:'5px'}},
-                h('div',{style:{width:'20px', height:'2px', borderRadius:'1px', background:'var(--muted-3)', opacity:'0.7'}}),
-                h('span',{style:{fontSize:'10px', color:'var(--muted)'}}, 'Tenor'),
-              ),
-              h('div',{style:{display:'flex', alignItems:'center', gap:'5px'}},
-                h('div',{style:{width:'20px', height:'2.5px', borderRadius:'1px', background:baseColor}}),
-                h('span',{style:{fontSize:'10px', color:'var(--muted)'}}, 'Base Tenor'),
-              ),
-            ),
-          ),
-          h('div',{style:{fontSize:'11px', color:'var(--muted)', marginTop:'8px', lineHeight:'1.6'}},
-            'Base Tenor is your emotional baseline — where your relationship and inner life typically sit over the past month. It moves slowly, so when it shifts, something has genuinely changed.'
-          ),
-        );
-      })(),
-
-      S.showDebug ? h('div',{style:{
-        marginTop:'12px', padding:'10px 12px', borderRadius:'10px',
-        background:'var(--surface-1)', border:'1px solid var(--surface-2)',
-        fontSize:'11px', fontFamily:"'DM Sans',sans-serif", color:'var(--muted)',
-      }},
-        h('div',{style:{fontWeight:'600',color:'var(--text-strong)',marginBottom:'8px'}},
-          'Thresholds — cap ±' + zones.cap),
-        h('div',{style:{display:'flex',flexDirection:'column',gap:'2px'}},
-          ...[
-            'Thriving ≥ '  + zones.thriving,
-            'Healthy ≥ '     + zones.stable,
-            'Progressing ≥ 0',
-            'Unsettled ≤ −1',
-            'Difficult ≤ '  + zones.strained,
-            'Hurting ≤ ' + zones.depleted,
-          ].map(line => h('div',{style:{color:'var(--text-strong)'}}, line))
-        ),
-      ) : null,
+      // Base Tenor chart moved to its own section on the Insights page
+      // (between Weather and Observations). See buildBaseTenorChart in insights.js.
     ),
 
   );

@@ -10,7 +10,7 @@ function buildConflictForm() {
   const ok = !!f.intensity && !!f.conduct && !!f.resolution && !!f.harm;
 
   return overlay(h('div',{},
-    h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'⚡ Conflict'),
+    h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'⛈️ Conflict'),
 
     // ── Harm ───────────────────────────────────────────
     h('div',{class:'form-section'},
@@ -78,7 +78,7 @@ function buildConflictForm() {
           ...CONFLICT_HORSEMEN.map(hm => {
             const sel = Array.isArray(f.horsemen) && f.horsemen.includes(hm.val);
             return h('div',{
-              class:'chip'+(sel?' selected':''),
+              class:'chip'+(sel?' selected sel-conflict':''),
               onclick:()=>{
                 if (!Array.isArray(f.horsemen)) f.horsemen=[];
                 f.horsemen = sel ? f.horsemen.filter(v=>v!==hm.val) : [...f.horsemen, hm.val];

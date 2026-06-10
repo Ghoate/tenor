@@ -6,11 +6,14 @@ function buildLibraryPanel() {
   const intimacyCount  = S.physicalTypes.length;
   const restoreCount   = S.restoreTypes.length;
   const steadyingCount = S.caretakerTypes.length;
+  const socialCount    = (S.socialTypes || []).length;
   const wobbleCount    = (S.challengingEmotionTags || []).length;
   const whomCount      = (S.whomList || []).length;
+  const isIndividual   = S.relationshipMode === 'individual';
 
   const collapseAll = (except) => {
     if (except !== 'bonding')   { S.libBondingExpanded=false;   S.libBondingForm={}; }
+    if (except !== 'social')    { S.libSocialExpanded=false;    S.libSocialForm={}; }
     if (except !== 'intimacy')  { S.libIntimacyExpanded=false;  S.libIntimacyForm={}; }
     if (except !== 'restore')   { S.libRestoreExpanded=false;   S.libRestoreForm={}; }
     if (except !== 'steadying') { S.libSteadyingExpanded=false; S.libSteadyingForm={}; }
@@ -21,50 +24,66 @@ function buildLibraryPanel() {
   return h('div',{class:'insights-panel'},
 
     // ── Bonding ──
-    h('div',{class:'ins-section',style:{cursor:'pointer'},
+    S.showBonding ? h('div',{class:'ins-section',style:{cursor:'pointer'},
       onclick:()=>{ const o=!S.libBondingExpanded; collapseAll('bonding'); S.libBondingExpanded=o; if(!o)S.libBondingForm={}; render(); }},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
-        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🩷 '+bondingLabel()+' event types'),
+        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🩷 '+bondingLabel()+' activities'),
         h('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
-          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(bondingCount>0?bondingCount+' type'+(bondingCount===1?'':'s'):'none')),
+          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(bondingCount>0?bondingCount+' activit'+(bondingCount===1?'y':'ies'):'none')),
           h('span',{style:{color:'var(--muted)',fontSize:'13px'}},S.libBondingExpanded?'▲':'▼')
         )
       )
-    ),
-    S.libBondingExpanded ? h('div',{},
-      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the '+bondingLabel().toLowerCase()+' activity types available when logging.'),
-      buildManageTypes('affectionTypes', 'affection', bondingLabel()+' Types', true, S.libBondingForm)
+    ) : null,
+    S.showBonding && S.libBondingExpanded ? h('div',{},
+      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the '+bondingLabel().toLowerCase()+' activities available when logging.'),
+      buildManageTypes('affectionTypes', 'affection', bondingLabel()+' Activities', true, S.libBondingForm)
+    ) : null,
+
+    // ── Social (Individual mode only — fills the slot Bonding usually does) ──
+    isIndividual ? h('div',{class:'ins-section',style:{cursor:'pointer'},
+      onclick:()=>{ const o=!S.libSocialExpanded; collapseAll('social'); S.libSocialExpanded=o; if(!o)S.libSocialForm={}; render(); }},
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
+        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🫂 Social activities'),
+        h('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
+          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(socialCount>0?socialCount+' activit'+(socialCount===1?'y':'ies'):'none')),
+          h('span',{style:{color:'var(--muted)',fontSize:'13px'}},S.libSocialExpanded?'▲':'▼')
+        )
+      )
+    ) : null,
+    isIndividual && S.libSocialExpanded ? h('div',{},
+      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the social activities — time with friends, family, community — that you want to track. Profiles are scored against your Social Needs ranking.'),
+      buildManageTypes('socialTypes', null, 'Social Activities', true, S.libSocialForm)
     ) : null,
 
     // ── Intimacy ──
     S.showPhysical ? h('div',{class:'ins-section',style:{cursor:'pointer',marginTop:'8px'},
       onclick:()=>{ const o=!S.libIntimacyExpanded; collapseAll('intimacy'); S.libIntimacyExpanded=o; if(!o)S.libIntimacyForm={}; render(); }},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
-        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🌹 Intimacy event types'),
+        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🌹 Intimacy activities'),
         h('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
-          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(intimacyCount>0?intimacyCount+' type'+(intimacyCount===1?'':'s'):'none')),
+          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(intimacyCount>0?intimacyCount+' activit'+(intimacyCount===1?'y':'ies'):'none')),
           h('span',{style:{color:'var(--muted)',fontSize:'13px'}},S.libIntimacyExpanded?'▲':'▼')
         )
       )
     ) : null,
     S.showPhysical && S.libIntimacyExpanded ? h('div',{},
-      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the intimacy event types available when logging.'),
-      buildManageTypes('physicalTypes', 'physical', 'Intimacy Types', true, S.libIntimacyForm)
+      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the intimacy activities available when logging.'),
+      buildManageTypes('physicalTypes', 'physical', 'Intimacy Activities', true, S.libIntimacyForm)
     ) : null,
 
     // ── Restorative ──
     h('div',{class:'ins-section',style:{cursor:'pointer',marginTop:'8px'},
       onclick:()=>{ const o=!S.libRestoreExpanded; collapseAll('restore'); S.libRestoreExpanded=o; if(!o)S.libRestoreForm={}; render(); }},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
-        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🌊 Restorative activity types'),
+        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🌊 Restorative activities'),
         h('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
-          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(restoreCount>0?restoreCount+' type'+(restoreCount===1?'':'s'):'none')),
+          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(restoreCount>0?restoreCount+' activit'+(restoreCount===1?'y':'ies'):'none')),
           h('span',{style:{color:'var(--muted)',fontSize:'13px'}},S.libRestoreExpanded?'▲':'▼')
         )
       )
     ),
     S.libRestoreExpanded ? h('div',{},
-      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the restorative activity types available when logging.'),
+      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the restorative activities available when logging.'),
       buildManageTypes('restoreTypes', 'restore', 'Restorative Activities', true, S.libRestoreForm)
     ) : null,
 
@@ -72,23 +91,23 @@ function buildLibraryPanel() {
     S.showCaretaker ? h('div',{class:'ins-section',style:{cursor:'pointer',marginTop:'8px'},
       onclick:()=>{ const o=!S.libSteadyingExpanded; collapseAll('steadying'); S.libSteadyingExpanded=o; if(!o)S.libSteadyingForm={}; render(); }},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
-        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🕯️ Steadying types'),
+        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'💨 Steadying profiles'),
         h('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
-          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(steadyingCount>0?steadyingCount+' type'+(steadyingCount===1?'':'s'):'none')),
+          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(steadyingCount>0?steadyingCount+' profile'+(steadyingCount===1?'':'s'):'none')),
           h('span',{style:{color:'var(--muted)',fontSize:'13px'}},S.libSteadyingExpanded?'▲':'▼')
         )
       )
     ) : null,
     S.showCaretaker && S.libSteadyingExpanded ? h('div',{},
-      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the steadying types available when logging.'),
+      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the steadying profiles available when logging.'),
       buildManageCaretakerTypes(true, S.libSteadyingForm)
     ) : null,
 
-    // ── Life Wobble emotion tags ──
+    // ── Wobble emotion tags ──
     S.showRegulation ? h('div',{class:'ins-section',style:{cursor:'pointer',marginTop:'8px'},
       onclick:()=>{ const o=!S.libWobbleExpanded; collapseAll('wobble'); S.libWobbleExpanded=o; if(!o)S.libWobbleForm={}; render(); }},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
-        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🫧 Life Wobble emotion tags'),
+        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🌪️ Wobble emotion tags'),
         h('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
           h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(wobbleCount>0?wobbleCount+' tag'+(wobbleCount===1?'':'s'):'none')),
           h('span',{style:{color:'var(--muted)',fontSize:'13px'}},S.libWobbleExpanded?'▲':'▼')
@@ -300,9 +319,9 @@ function buildLibraryPanel() {
     ) : null,
 
     // ── Whom (people you log moments with) ──
-    // Only visible in dating mode — committed mode has no surface that uses
-    // the Whom list, so the section would be vestigial there.
-    S.relationshipMode === 'dating' ? h('div',{class:'ins-section',style:{cursor:'pointer',marginTop:'8px'},
+    // Only visible in dating mode with bonding on — committed mode and
+    // bonding-off both leave no surface that uses the Whom list.
+    S.showBonding && S.relationshipMode === 'dating' ? h('div',{class:'ins-section',style:{cursor:'pointer',marginTop:'8px'},
       onclick:()=>{ const o=!S.libWhomExpanded; collapseAll('whom'); S.libWhomExpanded=o; if(!o)S.libWhomForm={}; render(); }},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
         h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'👤 Whom'),
@@ -312,7 +331,7 @@ function buildLibraryPanel() {
         )
       )
     ) : null,
-    S.relationshipMode === 'dating' && S.libWhomExpanded ? h('div',{},
+    S.showBonding && S.relationshipMode === 'dating' && S.libWhomExpanded ? h('div',{},
       h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Names of people you log moments with — friends, family, dates, anyone close. Used by entry types that ask "with whom".'),
       buildManageTagList('whomList', DEFAULT_WHOM_LIST, 'Whom', 'var(--interactive)', 'library', true, S.libWhomForm,
         {field:'whom'})
@@ -342,7 +361,7 @@ function buildLibraryPanel() {
       //   intensity 1-5, resolution 0.20-1.00. Min: -4, Max: -100
       const staticConflict  = { name: 'Conflict',     min: 0.8, max: 100 };
       const staticTurndown  = { name: 'Turn Down',    min: 0.8, max: 100 };
-      const staticWobble    = { name: 'Life Wobble',  min: 4,   max: 100 };
+      const staticWobble    = { name: 'Wobble',  min: 4,   max: 100 };
 
       // Helper: pick low/mid/high from a sorted-by-weight array
       const pickThree = (entries) => {
@@ -445,23 +464,31 @@ function buildLibraryPanel() {
         }}, 'Per-entry score ranges across your library — for calibration.'),
 
         // ── Relational section ──
-        sectionTitle('Relational balance'),
-        headerRow(),
-        dataRow(staticConflict.name, negRange(staticConflict), 'var(--c-conflict)'),
-        dataRow(staticTurndown.name, negRange(staticTurndown), 'var(--c-turndown)'),
-        // Bonding samples
-        bondingSamples.length > 0 ? subTitle(bondingLabel()) : null,
-        ...(bondingSamples.length > 0
-          ? bondingSamples.map(s => dataRow(s.name, posRange(s), 'var(--c-affection)'))
-          : []),
-        // Intimacy samples (only if showPhysical)
-        S.showPhysical && intimacySamples.length > 0 ? subTitle('Intimacy') : null,
-        ...(S.showPhysical && intimacySamples.length > 0
-          ? intimacySamples.map(s => dataRow(s.name, posRange(s), 'var(--c-physical)'))
-          : []),
-        bondingSamples.length === 0 && (!S.showPhysical || intimacySamples.length === 0)
-          ? emptyRow('No relational positive types defined yet.')
-          : null,
+        // Show only sections whose category toggles are enabled.
+        (() => {
+          const showRel =
+            S.showConflict || S.showPhysical || S.showBonding;
+          if (!showRel) return null;
+          return h('div',{},
+            sectionTitle('Relational balance'),
+            headerRow(),
+            S.showConflict ? dataRow(staticConflict.name, negRange(staticConflict), 'var(--c-conflict)') : null,
+            S.showPhysical ? dataRow(staticTurndown.name, negRange(staticTurndown), 'var(--c-turndown)') : null,
+            // Bonding samples
+            S.showBonding && bondingSamples.length > 0 ? subTitle(bondingLabel()) : null,
+            ...(S.showBonding && bondingSamples.length > 0
+              ? bondingSamples.map(s => dataRow(s.name, posRange(s), 'var(--c-affection)'))
+              : []),
+            // Intimacy samples
+            S.showPhysical && intimacySamples.length > 0 ? subTitle('Intimacy') : null,
+            ...(S.showPhysical && intimacySamples.length > 0
+              ? intimacySamples.map(s => dataRow(s.name, posRange(s), 'var(--c-physical)'))
+              : []),
+            (!S.showBonding || bondingSamples.length === 0) && (!S.showPhysical || intimacySamples.length === 0)
+              ? emptyRow('No relational positive types defined yet.')
+              : null,
+          );
+        })(),
 
         // ── Personal section ──
         sectionTitle('Personal balance'),
@@ -493,7 +520,7 @@ function buildLibraryPanel() {
   );
 }
 
-// Per-family preset browser for Life Wobble emotion tags. Lets the user
+// Per-family preset browser for Wobble emotion tags. Lets the user
 // add/remove individual preset tags instead of the old all-or-nothing
 // pre-fill, so cherry-picking one or two isn't burdensome.
 function buildWobblePresetModal() {
@@ -546,7 +573,7 @@ function buildWobblePresetModal() {
   return overlay(h('div',{},
     h('div',{class:'sheet-title'}, fam.label + ' emotion tags'),
     h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'4px',marginTop:'-4px',lineHeight:'1.5'}},
-      'Tap a tag to add or remove it from your Life Wobble list. Only the ones you pick are added.'),
+      'Tap a tag to add or remove it from your Wobble list. Only the ones you pick are added.'),
     h('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}},
       h('span',{style:{fontSize:'11px',color:'var(--muted)'}}, present + ' of ' + preset.length + ' in your list'),
       h('div',{style:{display:'flex',gap:'10px'}},

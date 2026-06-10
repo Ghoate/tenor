@@ -73,7 +73,7 @@ function exportSummary() {
   lines.push('  Turn down      — Unmet desire events, type and who initiated');
   lines.push(`  Steadying      — My resource expenditure supporting ${P.obj} or others; scores Personal only`);
   lines.push('  Restorative    — Activities that restore my own capacity; scores Personal only');
-  lines.push('  Life Wobble    — Personal emotional regulation; scores Personal only');
+  lines.push('  Wobble    — Personal emotional regulation; scores Personal only');
   lines.push('  Notes          — Free-form notes for the day');
   lines.push('');
 
@@ -211,7 +211,7 @@ function exportSummary() {
           const emotions = (e.regulationEmotions||[]).join(', ');
           const cap      = bankDayCap(S.allEntries.find(le=>le.date===e.date&&le.category==='libido'));
           const cost     = wobbleRestoreScore(e, cap);
-          line += 'Life Wobble'
+          line += 'Wobble'
             + (e.regulationIntensity ? ` · Intensity ${e.regulationIntensity}/5` : '')
             + (trigger ? ` · ${trigger}` : '')
             + (emotions ? ` · ${emotions}` : '')

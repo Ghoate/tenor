@@ -24,27 +24,31 @@ function saveSettings(){
   dbPut('settings',{key:'physicalTypes',  value:S.physicalTypes});
   dbPut('settings',{key:'affectionTypes', value:S.affectionTypes});
   dbPut('settings',{key:'caretakerTypes', value:S.caretakerTypes});
+  dbPut('settings',{key:'socialTypes',    value:S.socialTypes});
   dbPut('settings',{key:'restoreTypes',   value:S.restoreTypes});
   dbPut('settings',{key:'challengingEmotionTags', value:S.challengingEmotionTags});
   dbPut('settings',{key:'whomList',       value:S.whomList});
   dbPut('settings',{key:'weights',        value:S.weights});
   dbPut('settings',{key:'needsRanking',   value:S.needsRanking});
   dbPut('settings',{key:'personalNeedsRanking', value:S.personalNeedsRanking});
+  dbPut('settings',{key:'socialNeedsRanking',   value:S.socialNeedsRanking});
   dbPut('settings',{key:'partnerPronouns',value:S.partnerPronouns});
   dbPut('settings',{key:'userPronouns',   value:S.userPronouns});
   dbPut('settings',{key:'showCaretaker',  value:S.showCaretaker});
   dbPut('settings',{key:'showRegulation', value:S.showRegulation});
   dbPut('settings',{key:'showPhysical',   value:S.showPhysical});
+  dbPut('settings',{key:'showBonding',    value:S.showBonding});
+  dbPut('settings',{key:'showConflict',   value:S.showConflict});
   dbPut('settings',{key:'showRepair',     value:S.showRepair});
   dbPut('settings',{key:'showAttachment', value:S.showAttachment});
   dbPut('settings',{key:'horsemenExpanded',        value:S.horsemenExpanded});
-  dbPut('settings',{key:'homeForecastExpanded',    value:S.homeForecastExpanded});
   dbPut('settings',{key:'tagPolyvagalOverrides',   value:S.tagPolyvagalOverrides});
   dbPut('settings',{key:'tagToneOverrides',         value:S.tagToneOverrides});
   dbPut('settings',{key:'showDebug',         value:S.showDebug});
   dbPut('settings',{key:'showCardPoints',    value:S.showCardPoints});
   dbPut('settings',{key:'needsHits',         value:S.needsHits});
   dbPut('settings',{key:'needsPnHits',       value:S.needsPnHits});
+  dbPut('settings',{key:'needsSnHits',       value:S.needsSnHits});
   dbPut('settings',{key:'calcStartDate',         value:S.calcStartDate});
   dbPut('settings',{key:'showQuickDelete',   value:S.showQuickDelete});
   dbPut('settings',{key:'relationshipMode',  value:S.relationshipMode});
@@ -87,6 +91,15 @@ function loadSettings(){
     dbGet('settings','restoreTypes').then(s=>{
       if(s&&s.value) S.restoreTypes=s.value.map(t=>typeof t==='string'?{name:t,needsMap:{}}:t);
     }),
+    dbGet('settings','socialTypes').then(s=>{
+      if(s&&s.value&&Array.isArray(s.value)) {
+        S.socialTypes = s.value.map(t => {
+          const updated = {...t};
+          if (updated.descEffort != null) updated.weight = deriveSocialActivityWeight(updated);
+          return updated;
+        });
+      }
+    }),
     dbGet('settings','challengingEmotionTags').then(s=>{
       if (s && Array.isArray(s.value)) {
         // Existing user — respect their list exactly, including an
@@ -126,6 +139,9 @@ function loadSettings(){
     dbGet('settings','personalNeedsRanking').then(s=>{
       if(s&&s.value&&Array.isArray(s.value)) S.personalNeedsRanking = s.value;
     }),
+    dbGet('settings','socialNeedsRanking').then(s=>{
+      if(s&&s.value&&Array.isArray(s.value)) S.socialNeedsRanking = s.value;
+    }),
     dbGet('settings','partnerPronouns').then(s=>{
       if(s&&s.value) S.partnerPronouns = s.value;
     }),
@@ -141,6 +157,12 @@ function loadSettings(){
     dbGet('settings','showPhysical').then(s=>{
       if(s&&s.value!=null) S.showPhysical = s.value;
     }),
+    dbGet('settings','showBonding').then(s=>{
+      if(s&&s.value!=null) S.showBonding = s.value;
+    }),
+    dbGet('settings','showConflict').then(s=>{
+      if(s&&s.value!=null) S.showConflict = s.value;
+    }),
     dbGet('settings','showRepair').then(s=>{
       if(s&&s.value!=null) S.showRepair = s.value;
     }),
@@ -149,9 +171,6 @@ function loadSettings(){
     }),
     dbGet('settings','horsemenExpanded').then(s=>{
       if(s&&s.value!=null) S.horsemenExpanded = s.value;
-    }),
-    dbGet('settings','homeForecastExpanded').then(s=>{
-      if(s&&s.value!=null) S.homeForecastExpanded = s.value;
     }),
     dbGet('settings','tagPolyvagalOverrides').then(s=>{
       if(s&&s.value&&typeof s.value==='object') S.tagPolyvagalOverrides = s.value;
@@ -170,6 +189,9 @@ function loadSettings(){
     }),
     dbGet('settings','needsHits').then(s=>{
       if(s&&s.value&&typeof s.value==='object') S.needsHits = s.value;
+    }),
+    dbGet('settings','needsSnHits').then(s=>{
+      if(s&&s.value&&typeof s.value==='object') S.needsSnHits = s.value;
     }),
     dbGet('settings','needsPnHits').then(s=>{
       if(s&&s.value&&typeof s.value==='object') S.needsPnHits = s.value;

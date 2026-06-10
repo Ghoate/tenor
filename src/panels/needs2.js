@@ -289,9 +289,136 @@ function buildQuizSlotsMap(quiz, needsList) {
   return counts;
 }
 
+// 12 scenarios for the Social Needs calibration. Choices map to SOCIAL_NEEDS .val.
+// Distribution: each of the 10 needs appears exactly 6 times across 60 choice slots.
+// Used in Individual mode only.
+const NEEDS_SN_QUIZ = [
+  {
+    q: 'Distance — You and a close friend haven\'t talked in a while. Nothing dramatic, just drifted. Which would mean the most if they reached out today?',
+    choices: [
+      { label: 'They ask how you\'ve actually been — and listen',                                       need: 'support' },
+      { label: 'They invite you to something low-key — coffee, a walk, a hang',                        need: 'companionship' },
+      { label: 'They bring up something you both care about — a project, a cause, an idea',            need: 'meaning' },
+      { label: 'They tell you they\'ve been thinking about you, that you matter to them',              need: 'validation' },
+      { label: 'They send something dumb and funny that makes you laugh out loud',                     need: 'play' },
+    ],
+  },
+  {
+    q: 'Hard week — School or work has been brutal. You\'re walking in Friday evening exhausted. What would mean the most right now?',
+    choices: [
+      { label: 'Someone you can vent to who just listens',                                   need: 'support' },
+      { label: 'Someone brings food over or handles something practical you\'ve been dreading', need: 'help' },
+      { label: 'A friend coming over to just hang in the same space — low-key, no plans',     need: 'companionship' },
+      { label: 'A friend pulls you out for something dumb and fun — no thinking needed',      need: 'play' },
+      { label: 'Someone reminding you that you\'re doing more than you think',                need: 'validation' },
+    ],
+  },
+  {
+    q: 'Tough decision — You\'re facing a real choice — a big one. What matters most from the people around you?',
+    choices: [
+      { label: 'Someone whose judgment you trust telling you what they actually think',     need: 'advice' },
+      { label: 'Someone listening through it without pressuring you to decide',             need: 'support' },
+      { label: 'A friend who challenges your reasoning, won\'t let you off easy',           need: 'growth' },
+      { label: 'Someone reminding you you\'ve handled hard things before',                  need: 'validation' },
+      { label: 'Someone helping you reconnect with what you actually care about',           need: 'meaning' },
+    ],
+  },
+  {
+    q: 'Back in town — You\'ve been away for a stretch and you\'re back. What\'s the first thing that matters?',
+    choices: [
+      { label: 'Doing something normal with a friend — picking up where you left off',  need: 'companionship' },
+      { label: 'A long catch-up with someone close — the real stuff, not the surface', need: 'intimacy' },
+      { label: 'Going out with the group — laughs, music, no agenda',                   need: 'play' },
+      { label: 'Showing up to the regular thing — practice, club, the usual crew',     need: 'community' },
+      { label: 'Someone helping you catch up on what piled up while you were gone',     need: 'help' },
+    ],
+  },
+  {
+    q: 'Group setting — A bunch of people you know are together. What would make the evening actually feel good?',
+    choices: [
+      { label: 'Conversations that get past surface — what you all actually care about', need: 'meaning' },
+      { label: 'It feels like a group, not just individuals — you belong here',           need: 'community' },
+      { label: 'A real one-on-one moment with someone close inside the bigger thing',    need: 'intimacy' },
+      { label: 'Someone in the group having your back on a small thing you need',         need: 'help' },
+      { label: 'Someone actually notices you and pulls you in',                            need: 'validation' },
+    ],
+  },
+  {
+    q: 'After a misstep — You messed something up. Hurt a friend, dropped a ball, said the wrong thing. What matters most that night?',
+    choices: [
+      { label: 'Someone to talk it through with — no judgment',                                 need: 'support' },
+      { label: 'Someone giving you their honest read — what to do to fix it',                   need: 'advice' },
+      { label: 'Someone who pushes you to own it and figure out how to make it right',          need: 'growth' },
+      { label: 'Someone reminding you a mistake doesn\'t define you',                            need: 'validation' },
+      { label: 'Telling someone the real stuff — the parts you don\'t say out loud',             need: 'intimacy' },
+    ],
+  },
+  {
+    q: 'Stuck — You feel stuck. Same routine, same days, nothing moving. What matters most from your people?',
+    choices: [
+      { label: 'Someone challenging you to shake it up — pushing you out of it',                need: 'growth' },
+      { label: 'A friend dragging you somewhere fun and unfamiliar',                             need: 'play' },
+      { label: 'Someone reconnecting you with what you actually want from this stretch of life', need: 'meaning' },
+      { label: 'Someone with perspective pointing out what you can\'t see',                       need: 'advice' },
+      { label: 'Showing up somewhere you belong — a group, a place, a rhythm',                    need: 'community' },
+    ],
+  },
+  {
+    q: 'Ordinary Tuesday — Nothing dramatic. Just a normal weeknight. What makes that evening feel good?',
+    choices: [
+      { label: 'Time with a close person — easy, not productive',                       need: 'companionship' },
+      { label: 'A bit of fun — a game, a stupid show, laughter',                         need: 'play' },
+      { label: 'One real conversation with someone you trust',                           need: 'intimacy' },
+      { label: 'A regular thing — group, club, friends meeting at the usual spot',      need: 'community' },
+      { label: 'A friend showing up with something you\'ve been meaning to get done',   need: 'help' },
+    ],
+  },
+  {
+    q: 'A good day — Something genuinely great happened — recognition, an achievement, a breakthrough. What matters most that night?',
+    choices: [
+      { label: 'Someone naming specifically what\'s impressive about it',           need: 'validation' },
+      { label: 'Going out to celebrate — fun, ridiculous, no holding back',          need: 'play' },
+      { label: 'Someone helping you think about what comes next',                    need: 'advice' },
+      { label: 'Sharing it with your group — they see what it means',                need: 'community' },
+      { label: 'Sitting with someone who gets why it matters beyond the surface',    need: 'meaning' },
+    ],
+  },
+  {
+    q: 'Practical bind — You need something concrete — a ride, a place to crash, a hand with a task. What matters most about how it lands?',
+    choices: [
+      { label: 'Someone who shows up without making a thing of it',                                 need: 'help' },
+      { label: 'Someone who asks if you\'re okay underneath the practical ask',                     need: 'support' },
+      { label: 'Someone offering a smarter way to handle it',                                        need: 'advice' },
+      { label: 'Someone helping but also pushing you to set things up better next time',            need: 'growth' },
+      { label: 'Just being together while you sort it out — even if they can\'t fix it',             need: 'companionship' },
+    ],
+  },
+  {
+    q: 'A friend struggling — Someone you care about is going through something hard. What kind of friend would you most want to be capable of being for them?',
+    choices: [
+      { label: 'The one they can vent to who actually listens',     need: 'support' },
+      { label: 'The person they tell the real stuff to',             need: 'intimacy' },
+      { label: 'The friend who actually shows up with what they need', need: 'help' },
+      { label: 'The voice they trust to tell them straight',         need: 'advice' },
+      { label: 'The one who won\'t let them stay stuck in it',       need: 'growth' },
+    ],
+  },
+  {
+    q: 'A year from now — You\'re picturing your life a year from now. What would make it feel genuinely full on the social side?',
+    choices: [
+      { label: 'A group of people who feel like your people — somewhere you belong',     need: 'community' },
+      { label: 'A handful of close people who really know you',                            need: 'intimacy' },
+      { label: 'Regular time with people you actually enjoy',                              need: 'companionship' },
+      { label: 'Friends who push you to become someone you\'re proud of',                  need: 'growth' },
+      { label: 'Connections built around what matters to you — shared purpose, values',   need: 'meaning' },
+    ],
+  },
+];
+
 // Slot counts per need across each quiz. Computed once at module load.
 const NEEDS2_SLOTS   = buildQuizSlotsMap(NEEDS2_QUIZ,   EMOTIONAL_NEEDS);
 const NEEDS_PN_SLOTS = buildQuizSlotsMap(NEEDS_PN_QUIZ, PERSONAL_NEEDS);
+const NEEDS_SN_SLOTS = buildQuizSlotsMap(NEEDS_SN_QUIZ, SOCIAL_NEEDS);
 
 // Convert quiz answers into a hit count per need. Each answer may be a single
 // choice index OR an array of indices (for quizzes that allow multi-select).
@@ -428,6 +555,65 @@ function needsPnOrderFromCounts(counts, tieGroups) {
     .map(n => {
       const hits  = counts[n.val] || 0;
       const slots = NEEDS_PN_SLOTS[n.val] || 1;
+      return { val: n.val, label: n.label, hits, slots, ratio: hits / slots };
+    })
+    .sort((a, b) => {
+      if (b.hits !== a.hits) return b.hits - a.hits;
+      if (tieGroups && tieGroups.length) {
+        const group = tieGroups.find(g => g.hitCount === a.hits && g.members.includes(a.val) && g.members.includes(b.val));
+        if (group) {
+          const idxOf = (v) => {
+            const pi = group.picks.indexOf(v);
+            return pi >= 0 ? pi : group.picks.length;
+          };
+          const ia = idxOf(a.val), ib = idxOf(b.val);
+          if (ia !== ib) return ia - ib;
+        }
+      }
+      if (b.ratio !== a.ratio) return b.ratio - a.ratio;
+      return a.label.localeCompare(b.label);
+    })
+    .map(o => o.val);
+}
+
+/* ── SN (social needs) equivalents — Individual mode only ── */
+function needsSnTallyHits(answers) {
+  const counts = Object.fromEntries(SOCIAL_NEEDS.map(n => [n.val, 0]));
+  for (const [qIdxStr, value] of Object.entries(answers || {})) {
+    const q = NEEDS_SN_QUIZ[Number(qIdxStr)];
+    if (!q) continue;
+    const indices = Array.isArray(value) ? value : [value];
+    for (const cIdx of indices) {
+      const choice = q.choices[cIdx];
+      if (!choice) continue;
+      if (counts[choice.need] != null) counts[choice.need]++;
+    }
+  }
+  return counts;
+}
+
+function needsSnBuildTieGroups(counts) {
+  const byCount = {};
+  for (const need of SOCIAL_NEEDS) {
+    const c = counts[need.val] || 0;
+    if (!byCount[c]) byCount[c] = [];
+    byCount[c].push(need);
+  }
+  const groups = [];
+  for (const c of Object.keys(byCount).map(Number).sort((a, b) => b - a)) {
+    const members = byCount[c];
+    if (members.length < 2) continue;
+    members.sort((a, b) => a.label.localeCompare(b.label));
+    groups.push({ hitCount: c, members: members.map(m => m.val), picks: [] });
+  }
+  return groups;
+}
+
+function needsSnOrderFromCounts(counts, tieGroups) {
+  return SOCIAL_NEEDS
+    .map(n => {
+      const hits  = counts[n.val] || 0;
+      const slots = NEEDS_SN_SLOTS[n.val] || 1;
       return { val: n.val, label: n.label, hits, slots, ratio: hits / slots };
     })
     .sort((a, b) => {

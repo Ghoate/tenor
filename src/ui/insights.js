@@ -93,7 +93,7 @@ function computeCorrelations(winEntries) {
       const rWithout = noConflictDays>0 ? tdNoConflict/noConflictDays : 0;
       const lift = rWithout>0 ? rWith/rWithout : rWith>0 ? 99 : 1;
       results.push({
-        icon:'⚡→🌒', title:'Conflict & turn downs',
+        icon:'⛈️→❄️', title:'Conflict & turn downs',
         desc:`On conflict days (or the next day), ${P.sub} turned down on ${Math.round(rWith*100)}% of occasions`+
              (rWithout>0 ? ` vs ${Math.round(rWithout*100)}% on other days.` : '.'),
         strength: lift>=2.5?'strong':lift>=1.5?'moderate':'weak', n:conflictDays,
@@ -118,7 +118,7 @@ function computeCorrelations(winEntries) {
       const rL = tdAfterLight/lightDays;
       const diff = rH - rL;
       results.push({
-        icon:'⚡⚡→🌒', title:'Conflict severity & turn downs',
+        icon:'⛈️⛈️→❄️', title:'Conflict severity & turn downs',
         desc:`After heavy conflicts (intensity 3+ or angry/withdrawn conduct), ${P.sub} turned down ${Math.round(rH*100)}% of the time`+
              ` vs ${Math.round(rL*100)}% after lighter conflicts.`,
         strength: Math.abs(diff)>=0.3?'strong':Math.abs(diff)>=0.15?'moderate':'weak',
@@ -143,7 +143,7 @@ function computeCorrelations(winEntries) {
       const aC=avg(afterConflict), aN=avg(afterNoConflict);
       const diff = aC!==null&&aN!==null ? aN-aC : 0;
       results.push({
-        icon:'⚡→🌡️', title:'Conflict & next-day desire',
+        icon:'⛈️→🌡️', title:'Conflict & next-day desire',
         desc:`After conflict days, next-day desire averages ${aC!==null?aC.toFixed(1):'—'}/5`+
              (aN!==null&&afterNoConflict.length>=minSamples ? ` vs ${aN.toFixed(1)}/5 on other days.` : '.'),
         strength: diff>=1.5?'strong':diff>=0.7?'moderate':'weak', n:afterConflict.length,
@@ -167,7 +167,7 @@ function computeCorrelations(winEntries) {
       const aH=avg(afterHeavy), aL=avg(afterLight);
       const diff = aH!==null&&aL!==null ? aL-aH : 0;
       results.push({
-        icon:'🕯️→🌡️', title:'Steadying & next-day desire',
+        icon:'💨→🌡️', title:'Steadying & next-day desire',
         desc:`After medium/heavy steadying, next-day desire averages ${aH!==null?aH.toFixed(1):'—'}/5`+
              (aL!==null ? ` vs ${aL.toFixed(1)}/5 after lighter days.` : '.'),
         strength: diff>=1.5?'strong':diff>=0.7?'moderate':'weak', n:afterHeavy.length,
@@ -216,7 +216,7 @@ function computeCorrelations(winEntries) {
       const aWith = avg(withStressor), aWithout = avg(withoutStressor);
       const diff = aWith !== null && aWithout !== null ? aWithout - aWith : 0;
       results.push({
-        icon:'⚡🌒→🌡️', title:'Relational friction & same-day desire',
+        icon:'⛈️❄️→🌡️', title:'Relational friction & same-day desire',
         desc:`On days with conflict or a turn down, desire averages ${aWith !== null ? aWith.toFixed(1) : '—'}/5`+
              (aWithout !== null && withoutStressor.length >= minSamples ? ` vs ${aWithout.toFixed(1)}/5 on other days.` : '.'),
         strength: diff >= 1.5 ? 'strong' : diff >= 0.7 ? 'moderate' : 'weak',
@@ -248,7 +248,7 @@ function computeCorrelations(winEntries) {
       const typeLabel = t => burnoutLabel(t).label;
       const diff = best.avg - worst.avg;
       results.push({
-        icon:'🕯️→🌡️🔍', title:'Steadying type & next-day desire',
+        icon:'💨→🌡️🔍', title:'Steadying type & next-day desire',
         desc:`Next-day desire averages lowest after ${typeLabel(worst.type)} (${worst.avg.toFixed(1)}/5) `+
              `and highest after ${typeLabel(best.type)} (${best.avg.toFixed(1)}/5).`,
         strength: diff>=1.5?'strong':diff>=0.7?'moderate':'weak',
@@ -303,7 +303,7 @@ function computeCorrelations(winEntries) {
       const aR=avg(afterRun), aS=avg(afterSingle);
       const diff = aR!==null&&aS!==null ? aS-aR : 0;
       results.push({
-        icon:'🕯️🕯️→🌡️', title:'Consecutive steadying & desire',
+        icon:'💨💨→🌡️', title:'Consecutive steadying & desire',
         desc:`After 2+ consecutive steadying days, next-day desire averages ${aR!==null?aR.toFixed(1):'—'}/5`+
              (aS!==null ? ` vs ${aS.toFixed(1)}/5 after a single steadying day.` : '.'),
         strength: diff>=1.5?'strong':diff>=0.7?'moderate':'weak', n:afterRun.length,
@@ -341,7 +341,7 @@ function computeCorrelations(winEntries) {
         ? `After "${tdLabel(worst.type)}" turn downs, next intimacy averages ${worst.avg.toFixed(1)} days. After "${tdLabel(best.type)}", ${best.avg.toFixed(1)} days.`
         : `After "${tdLabel(worst.type)}" turn downs, next intimacy averages ${worst.avg.toFixed(1)} days.`;
       results.push({
-        icon:'🌒→🌹', title:`How ${P.sub} turns you down & recovery time`,
+        icon:'❄️→🌹', title:`How ${P.sub} turns you down & recovery time`,
         desc,
         strength: typeResults.length >= 2 ? (diff >= 3 ? 'strong' : diff >= 1.5 ? 'moderate' : 'weak') : 'weak',
         lowData: worst.n < 3,
@@ -419,7 +419,7 @@ function computeCorrelations(winEntries) {
     if (postTD.length >= 2 && tdDays.length >= 2) {
       const pct = Math.round(postTD.length / tdDays.length * 100);
       results.push({
-        icon:'🌒→🌹', title:'Post-turndown coping',
+        icon:'❄️→🌹', title:'Post-turndown coping',
         desc:`Solo activity logged after a turn-down on ${postTD.length} occasion${postTD.length!==1?'s':''} (${pct}% of turn-down days). ${pct >= 50 ? 'A consistent coping pattern.' : 'Occasional pattern.'}`,
         strength: pct>=50?'moderate':'weak',
         lowData: postTD.length < 3,
@@ -450,7 +450,7 @@ function computeCorrelations(winEntries) {
           + (lowerOnTD ? ' Turn-down days have a noticeably lower average balance than other days.' : '')
         : 'Not enough data yet.';
       results.push({
-        icon:'🌒↩', title:'Your turn downs & relational balance',
+        icon:'❄️↩', title:'Your turn downs & relational balance',
         desc: tdDesc,
         strength: lowerOnTD ? (Math.abs(diff) >= 50 ? 'strong' : 'moderate') : 'weak',
         n: myTurndownDays.length,
@@ -499,7 +499,7 @@ function computeCorrelations(winEntries) {
       const aR=avg(afterRestore), aN=avg(afterNoRestore);
       const diff = aR!==null&&aN!==null ? aN-aR : 0;
       results.push({
-        icon:'🌊→🕯️', title:'Restorative activity & next-day steadying',
+        icon:'🌊→💨', title:'Restorative activity & next-day steadying',
         desc:`After a restorative activity, next-day steadying load averages ${aR!==null?Math.round(aR):'—'} pts`+
              (aN!==null ? ` vs ${Math.round(aN)} pts on other days.` : '.'),
         strength: diff>=15?'strong':diff>=8?'moderate':'weak',
@@ -537,7 +537,7 @@ function computeCorrelations(winEntries) {
         ? `When you turn ${P.obj} down because "${rLabel(worst.reason)}", next-day steadying load averages ${Math.round(worst.avg)} pts — highest of your reasons. "${rLabel(best.reason)}" has the lowest follow-on load (${Math.round(best.avg)} pts).`
         : `When you turn ${P.obj} down because "${rLabel(worst.reason)}", next-day steadying load averages ${Math.round(worst.avg)} pts.`;
       results.push({
-        icon:'🌒↩→🕯️', title:`Why you turn ${P.obj} down & next-day steadying`,
+        icon:'❄️↩→💨', title:`Why you turn ${P.obj} down & next-day steadying`,
         desc,
         strength: diff>=15?'strong':diff>=8?'moderate':'weak',
         lowData: worst.n < 3,
@@ -558,7 +558,7 @@ function computeCorrelations(winEntries) {
       const pct = Math.round(top[1] / allMyTDs.length * 100);
       const parts = sorted.map(([r,n]) => `${rLabel(r)} (${n})`).join(', ');
       results.push({
-        icon:'🌒↩', title:'Your turn down reasons',
+        icon:'❄️↩', title:'Your turn down reasons',
         desc:`You most often turn ${P.obj} down because "${rLabel(top[0])}" (${pct}% of ${allMyTDs.length} logged). Full breakdown: ${parts}.`,
         strength: pct >= 60 ? 'moderate' : 'weak',
         lowData: allMyTDs.length < 5,
@@ -625,7 +625,7 @@ function computeCorrelations(winEntries) {
       const aW=avg(afterWobble), aN=avg(afterNoWobble);
       const diff = aW!==null&&aN!==null ? aN-aW : 0;
       results.push({
-        icon:'🫧→🌡️', title:'Life Wobble & next-day desire',
+        icon:'🌪️→🌡️', title:'Wobble & next-day desire',
         desc:`After a wobble day, next-day desire averages ${aW!==null?aW.toFixed(1):'—'}/5`+
              (aN!==null&&afterNoWobble.length>=minSamples ? ` vs ${aN.toFixed(1)}/5 on other days.` : '.'),
         strength: diff>=1.5?'strong':diff>=0.7?'moderate':'weak',
@@ -647,7 +647,7 @@ function computeCorrelations(winEntries) {
       const rWithout = nonWobbleDays.length > 0 ? nonWobbleRestore / nonWobbleDays.length : null;
       const lift     = rWithout != null && rWithout > 0 ? rWith / rWithout : rWith > 0 ? 99 : 1;
       results.push({
-        icon:'🫧→🌊', title:'Wobble days & restore activity',
+        icon:'🌪️→🌊', title:'Wobble days & restore activity',
         desc:`On wobble days, you logged restorative activity ${Math.round(rWith*100)}% of the time`+
              (rWithout!=null&&nonWobbleDays.length>=minSamples ? ` vs ${Math.round(rWithout*100)}% on other days.` : '.') +
              (rWith < 0.25 ? ' Wobble rarely triggers restoration.' : rWith >= 0.5 ? ' Good instinct — restoration is following wobble.' : ''),
@@ -731,7 +731,7 @@ function computeCorrelations(winEntries) {
 
         const topToneCount = sortedTones[0][1];
         results.push({
-          icon:'🫧', title:'Tones in your wobbles',
+          icon:'🌪️', title:'Tones in your wobbles',
           desc: `${toneIntro} ${leanText[topState]}`,
           strength: Math.round(topToneCount/total*100) >= 50 ? 'moderate' : 'weak',
           lowData: wobbleWithEmotions.length < 8,
@@ -757,7 +757,7 @@ function computeCorrelations(winEntries) {
       if (bodyCount >= 3 && bodyPct >= 0.4) {
         const pctRound = Math.round(bodyPct * 100);
         results.push({
-          icon:'🛌🫧', title:'Body load is driving wobbles',
+          icon:'🛌🌪️', title:'Body load is driving wobbles',
           desc: `${pctRound}% of recent wobbles trace to Body tones (sleep, illness, pain, hormonal). When the body is depleted, the most useful lever tends to be physical — rest, food, recovery — rather than emotional regulation.`,
           strength: bodyPct >= 0.6 ? 'strong' : bodyPct >= 0.5 ? 'moderate' : 'weak',
           n: bodyCount,
@@ -823,7 +823,7 @@ function computeCorrelations(winEntries) {
             || 'Your emotional centre of gravity has shifted — worth noticing what has changed in your circumstances.';
 
           results.push({
-            icon:'🫧↕', title:'Tone shift across periods',
+            icon:'🌪️↕', title:'Tone shift across periods',
             desc: `The dominant tone in your wobbles has shifted from ${pLabel} to ${cLabel} this period. ${meaning}`,
             strength: shift >= 35 ? 'moderate' : 'weak',
             lowData: currWobble.length < 5,
@@ -865,7 +865,7 @@ function computeCorrelations(winEntries) {
       const tone = EMOTION_TONES.find(t => t.val === currentTop);
       const label = tone ? tone.label : currentTop;
       results.push({
-        icon:'🫧🔁', title:'Same tone keeps showing up',
+        icon:'🌪️🔁', title:'Same tone keeps showing up',
         desc: `${label} has been the top wobble tone for ${streak} weeks running. When one tone persists this long, the driver is usually recurring — worth looking at what keeps surfacing it.`,
         strength: streak >= 4 ? 'strong' : 'moderate',
         n: streak,
@@ -904,7 +904,7 @@ function computeCorrelations(winEntries) {
           };
           const meaning = toneText[topVal] || 'Worth noticing which emotional tone tends to follow conflict for you.';
           results.push({
-            icon:'⚡🫧', title:'Tone after conflict',
+            icon:'⛈️🌪️', title:'Tone after conflict',
             desc: `${tLabel} appeared in ${topN} of your ${total} conflict aftermath wobbles. ${meaning}`,
             strength: sorted[0][1] / total >= 0.75 ? 'moderate' : 'weak',
             lowData: aftermathWobbles.length < 5,
@@ -956,7 +956,7 @@ function computeCorrelations(winEntries) {
           ? 'Different states seem to need different responses — worth knowing which resource to reach for.'
           : 'Your own data is pointing toward what helps.';
         results.push({
-          icon:'🫧🌊', title:'What helps which tone',
+          icon:'🌪️🌊', title:'What helps which tone',
           desc: lines.join(' ') + ' ' + closing,
           strength: toneFindings.length >= 3 ? 'moderate' : 'weak',
           lowData: withData.length < 15,
@@ -989,7 +989,7 @@ function computeCorrelations(winEntries) {
         return `${tLabel} ${resLabel(f.avg)}.`;
       });
       results.push({
-        icon:'🫧⏱', title:'How tones settle',
+        icon:'🌪️⏱', title:'How tones settle',
         desc: lines.join(' ') + ' Some tones move through quickly. Some need more time.',
         strength: toneAvgs.length >= 3 ? 'moderate' : 'weak',
         lowData: toneAvgs.every(t => t.n < 8),
@@ -1021,7 +1021,7 @@ function computeCorrelations(winEntries) {
         const cR = Math.round(cPct * 100);
         const pR = Math.round(pPct * 100);
         results.push({
-          icon: better ? '🫧↘' : '🫧↗',
+          icon: better ? '🌪️↘' : '🌪️↗',
           title: better ? 'Wobbles settling more' : 'Wobbles settling less',
           desc: better
             ? `${cR}% of recent wobbles reached "at peace" or "better" — up from ${pR}% the prior week. They're landing softer.`
@@ -1063,7 +1063,7 @@ function computeCorrelations(winEntries) {
         const activatedTones = new Set(['fear','anger','activation']);
         const form = activatedTones.has(topVal) ? 'mobilising' : 'shutdown';
         results.push({
-          icon:'🫧🪫', title:'Capacity-tone correlation',
+          icon:'🌪️🪫', title:'Capacity-tone correlation',
           desc: `${tLabel} tones appeared on low-capacity days about ${ratio}× more often than on other days. When the body is depleted, overwhelm tends to take the ${form} form.`,
           strength: ratio >= 3 ? 'moderate' : 'weak',
           lowData: paired.length < 15,
@@ -1164,7 +1164,7 @@ function computeCorrelations(winEntries) {
         const pctLow  = Math.round(stressorLow  * 100);
         const pctHigh = Math.round(stressorHigh * 100);
         results.push({
-          icon:'🌡️→⚡', title:'Low check-in days forecast harder next days',
+          icon:'🌡️→⛈️', title:'Low check-in days forecast harder next days',
           desc: `On days following a low mood/energy check-in (≤ 2/5), conflict/turn-down/wobble landed ${pctLow}% of the time — vs ${pctHigh}% after a steady check-in. The daily reading is doing predictive work.`,
           strength: diff >= 0.40 ? 'strong' : diff >= 0.30 ? 'moderate' : 'weak',
           n: lowDays.length,
@@ -1196,7 +1196,7 @@ function computeCorrelations(winEntries) {
         const pctFar  = Math.round(farRate  * 100);
         const pctNear = Math.round(nearRate * 100);
         results.push({
-          icon:'🩷⏳→⚡', title:'Bonding gaps coincide with friction',
+          icon:'🩷⏳→⛈️', title:'Bonding gaps coincide with friction',
           desc: `Days that came 6+ days after a ${bondingLabel().toLowerCase()} entry saw conflict or turn-down ${pctFar}% of the time — vs ${pctNear}% on days that came within 2 days. Cadence appears to matter.`,
           strength: diff >= 0.30 ? 'strong' : diff >= 0.22 ? 'moderate' : 'weak',
           n: farDays.length,
@@ -1235,8 +1235,15 @@ function buildForecastDetailsModal() {
       fontSize:'18px', fontFamily:"'Libre Baskerville',serif",
       color:'var(--text-strong)', marginBottom:'4px',
     }}, "Today's forecast details"),
-    h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'12px',fontStyle:'italic'}},
+    h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'10px',fontStyle:'italic'}},
       'For today (' + data.todayDow + ')'),
+    h('div',{style:{
+      fontSize:'11px', color:'var(--muted)',
+      borderLeft:'2px solid var(--c-warning)',
+      paddingLeft:'10px', paddingTop:'2px', paddingBottom:'2px',
+      marginBottom:'14px', lineHeight:'1.55', fontStyle:'italic',
+    }},
+      'Drawn from your recent patterns, not a prediction — the day ahead is yours to shape.'),
     // Per-balance summary — all three rows at once.
     sectionTitle('Balances'),
     h('div',{style:{
@@ -1326,6 +1333,130 @@ function buildForecastDetailsModal() {
   ));
 }
 
+// ── Storm metaphor constants (file-scope so home and past-weather charts share them) ──
+const STORM_MATRIX = {
+  conflict: {
+    thriving:    { icon: '⛈️',   label: 'Light storm' },
+    healthy:     { icon: '⛈️',   label: 'Storm' },
+    progressing: { icon: '⛈️',   label: 'Heavy storm' },
+    unsettled:   { icon: '⛈️',   label: 'Thunderstorm' },
+    difficult:   { icon: '⛈️',   label: 'Severe thunderstorm' },
+    hurting:     { icon: '⛈️⚠️', label: 'Severe thunderstorm warning' },
+  },
+  wobble: {
+    thriving:    { icon: '🌪️',   label: 'Slight whirl' },
+    healthy:     { icon: '🌪️',   label: 'Whirling wind' },
+    progressing: { icon: '🌪️',   label: 'Whirlwind' },
+    unsettled:   { icon: '🌪️',   label: 'Strong whirlwind' },
+    difficult:   { icon: '🌪️',   label: 'Tornado' },
+    hurting:     { icon: '🌪️⚠️', label: 'Tornado warning' },
+  },
+  steadying: {
+    thriving:    { icon: '💨',    label: 'Breezy' },
+    healthy:     { icon: '💨',    label: 'Gusty' },
+    progressing: { icon: '💨',    label: 'Wind advisory' },
+    unsettled:   { icon: '💨',    label: 'Strong winds' },
+    difficult:   { icon: '💨',    label: 'Gale warning' },
+    hurting:     { icon: '💨⚠️',  label: 'High wind warning' },
+  },
+  turndown: {
+    thriving:    { icon: '❄️',   label: 'Chilly' },
+    healthy:     { icon: '❄️',   label: 'Cold' },
+    progressing: { icon: '❄️',   label: 'Frost advisory' },
+    unsettled:   { icon: '❄️',   label: 'Frost warning' },
+    difficult:   { icon: '❄️',   label: 'Freezing rain' },
+    hurting:     { icon: '❄️⚠️', label: 'Ice storm warning' },
+  },
+  friction: {
+    thriving:    { icon: '🌧️',   label: 'Drizzle' },
+    healthy:     { icon: '🌧️',   label: 'Light rain' },
+    progressing: { icon: '🌧️',   label: 'Rain' },
+    unsettled:   { icon: '🌧️',   label: 'Heavy rain' },
+    difficult:   { icon: '🌧️',   label: 'Downpour' },
+    hurting:     { icon: '🌧️⚠️', label: 'Flood warning' },
+  },
+};
+const STORM_COMBO_META = {
+  conflict:  { balance: 'rel', cat: 'conflict' },
+  turndown:  { balance: 'rel', cat: 'turndown' },
+  wobble:    { balance: 'per', cat: 'regulation' },
+  steadying: { balance: 'per', cat: 'burnout' },
+  friction:  { balance: 'rel', cat: 'friction' }, // Social negative — uses the rel slot in Individual mode
+};
+const STORM_PRIORITY = { conflict: 0, wobble: 1, steadying: 2, turndown: 3, friction: 4 };
+
+// Registry of historical-chart scroll containers (Climate + Weather). When one
+// scrolls, the others sync to the same fractional position so both charts move
+// together. Stale entries (chart re-rendered) get cleaned up lazily on broadcast.
+const _historicalScrollWraps = new Set();
+
+// Text-width measurement cache — uses Canvas measureText for accurate pixel-perfect
+// sizing of popup labels (per-char estimates miss real character widths).
+const _textWidthCanvas = (() => {
+  try { return document.createElement('canvas').getContext('2d'); } catch(_) { return null; }
+})();
+function measureTextWidth(text, fontSizePx, fontFamily) {
+  if (!_textWidthCanvas) return (text || '').length * 7; // safe fallback
+  _textWidthCanvas.font = fontSizePx + 'px ' + (fontFamily || "'DM Sans', sans-serif");
+  return _textWidthCanvas.measureText(text || '').width;
+}
+
+// Per-zone storm-icon size multiplier. Bigger zones = bigger icons, so severity
+// reads visually even for combos whose icon glyph doesn't change across tiers
+// (wobble / turndown / steadying). Multipliers stay tight (±20%) so the icon
+// row doesn't visually jump too much from day to day.
+const STORM_ZONE_SIZE = {
+  thriving:    0.70,
+  healthy:     0.80,
+  progressing: 0.90,
+  unsettled:   1.00,
+  difficult:   1.12,
+  hurting:     1.24,
+};
+
+// Zone helpers — both need zones7 passed in (caller computes via getBounds()).
+function _zoneIconFor(v, zones7) {
+  if (v >= zones7.thriving)   return { icon:'☀️',  label:'Thriving',    color:'var(--c-partner)' };
+  if (v >= zones7.stable)     return { icon:'🌤️', label:'Healthy',     color:'rgba(77,196,120,0.85)' };
+  if (v >= 0)                 return { icon:'⛅',  label:'Progressing', color:'#a8b870' };
+  if (v >= zones7.strained)   return { icon:'☁️',  label:'Unsettled',   color:'rgba(210,130,50,1)' };
+  if (v >= zones7.depleted)   return { icon:'🌧️', label:'Difficult',   color:'var(--c-warning)' };
+  return                              { icon:'⛈️', label:'Hurting',     color:'var(--c-conflict)' };
+}
+function _stormZoneKeyFor(v, zones7) {
+  if (v >= zones7.thriving)   return 'thriving';
+  if (v >= zones7.stable)     return 'healthy';
+  if (v >= 0)                 return 'progressing';
+  if (v >= zones7.strained)   return 'unsettled';
+  if (v >= zones7.depleted)   return 'difficult';
+  return                              'hurting';
+}
+
+// Daily-velocity zones — the same scale the Log page calendar uses for one-day deltas.
+// Thresholds (calStable, calThriving) are smaller than the lifetime tenor zones since a
+// day's contribution is bounded compared with the lifetime sum it feeds.
+function _dailyZoneBounds() {
+  const stable   = S.weights.calStable   || 11;
+  const thriving = S.weights.calThriving || 25;
+  return { thriving, stable, neutral:0, strained:-stable, depleted:-thriving };
+}
+function _dailyZoneIconFor(v, dz) {
+  if (v >= dz.thriving)   return { icon:'☀️',  label:'Strong gain',  color:'var(--c-partner)' };
+  if (v >= dz.stable)     return { icon:'🌤️', label:'Gain',         color:'rgba(77,196,120,0.85)' };
+  if (v >= 0)             return { icon:'⛅',  label:'Slight gain',  color:'#a8b870' };
+  if (v >= dz.strained)   return { icon:'☁️',  label:'Slight loss',  color:'rgba(210,130,50,1)' };
+  if (v >= dz.depleted)   return { icon:'🌧️', label:'Loss',         color:'var(--c-warning)' };
+  return                         { icon:'⛈️', label:'Heavy loss',   color:'var(--c-conflict)' };
+}
+function _dailyStormZoneKeyFor(v, dz) {
+  if (v >= dz.thriving)   return 'thriving';
+  if (v >= dz.stable)     return 'healthy';
+  if (v >= 0)             return 'progressing';
+  if (v >= dz.strained)   return 'unsettled';
+  if (v >= dz.depleted)   return 'difficult';
+  return                          'hurting';
+}
+
 /* ── Insights panel builder ─────────────────────────── */
 function buildHomePage() {
   const now = new Date();
@@ -1369,20 +1500,22 @@ function buildHomePage() {
   const repairToday          = todayEs.some(e => e.category === 'repair');
   const recentTurndowns      = allEntries.filter(e => e.category === 'turndown' && e.date >= addDays(S.today, -9) && e.date <= S.today).length;
 
-  // Relational & personal balance — lifetime sum via the active scoring model.
+  // Relational/Social & personal balance — lifetime sum via the active scoring model.
+  // In Individual mode, the Social axis takes the slot Relational normally occupies;
+  // we shadow relBal7 with the social value so downstream display code "just works."
   const expNow = computeExperimentalScores(S.today);
-  const relBal7 = Math.round(expNow.rel);
+  const isIndHome = S.relationshipMode === 'individual';
+  const relBal7 = Math.round(isIndHome ? (expNow.soc || 0) : expNow.rel);
   const perBal7 = Math.round(expNow.per);
+  const socBal7 = Math.round(expNow.soc || 0);
 
   const hasEnoughData = allEntries.length >= 3;
   const loggedMoodToday = todayEs.some(e => e.category === 'libido');
 
   // Tenor zone for greeting card
   const zones7 = getBounds();
-  // Average expNow.rel/per (already 1-decimal-rounded by computeExperimentalScores) then round
-  // to int. Using the already-whole-number-rounded relBal7/perBal7 instead would push 14.3 →
-  // (3+26)/2 = 14.5 → 15, diverging from the lovebank gauge which uses the same formula here.
-  const tenorScore7 = hasEnoughData ? Math.round((expNow.rel + expNow.per) / 2) : null;
+  // In Individual mode atmosphere = (soc + per) / 2; otherwise (rel + per) / 2.
+  const tenorScore7 = hasEnoughData ? Math.round(((isIndHome ? (expNow.soc || 0) : expNow.rel) + expNow.per) / 2) : null;
   const zoneBand7 = tenorScore7 === null ? null
     : tenorScore7 >= zones7.thriving ? { label:'Thriving',  color:'var(--c-partner)' }
     : tenorScore7 >= zones7.stable   ? { label:'Healthy',   color:'rgba(77,196,120,0.85)' }
@@ -1393,7 +1526,7 @@ function buildHomePage() {
   const daySeed = (function() { const [y,m,d]=S.today.split('-').map(Number); const s=new Date(y,m-1,d); return Math.floor((s-new Date(y,0,0))/(1000*60*60*24)); })();
   const pick = (arr) => arr[daySeed % arr.length];
   const zoneLines = {
-    none: ['Log a few more days and your tenor will appear here.'],
+    none: ['Log a few more days and your atmosphere will appear here.'],
     Thriving: [
       'Connection is running strong right now.',
       'You\'re in a real high point — worth savouring.',
@@ -1465,8 +1598,8 @@ function buildHomePage() {
   }
   const _capFor = (date) => _dayCapByDate[date] ?? bankDayCap(null);
   const _hasPoints = (e) => {
-    const { rel, per } = expEntryScores(e, _capFor(e.date));
-    return rel !== 0 || per !== 0;
+    const { rel, per, soc } = expEntryScores(e, _capFor(e.date));
+    return rel !== 0 || per !== 0 || (soc || 0) !== 0;
   };
   const datesWithCatScored = (cat) => {
     const s = new Set();
@@ -1560,12 +1693,8 @@ function buildHomePage() {
     return out;
   };
 
-  // ── Storm identifier — matrix of (event combo × zone) → storm reading. ─────────────────
-  // The matrix is the source of truth. The today-card lookup picks the row matching the
-  // active negative event combo, then the column matching the zone band of the relevant
-  // balance — computed WITHOUT today's logged entries. This keeps the storm picture stable
-  // through today: only past-day logging shifts the forecast/storm, so the user can read the
-  // gap between (locked) forecast and (live) NOW value to see what today's logging did.
+  // Storm metaphor constants live at file scope (STORM_MATRIX, STORM_COMBO_META, STORM_PRIORITY).
+  // ZONE_BANDS stays local since only the home page's storm matrix debug uses it.
   const ZONE_BANDS = [
     { key: 'thriving',    label: 'Thriving',    icon: '☀️' },
     { key: 'healthy',     label: 'Healthy',     icon: '🌤️' },
@@ -1574,54 +1703,6 @@ function buildHomePage() {
     { key: 'difficult',   label: 'Difficult',   icon: '🌧️' },
     { key: 'hurting',     label: 'Hurting',     icon: '⛈️' },
   ];
-  const STORM_MATRIX = {
-    conflict: {
-      // One family — rain-storm escalating into thunderstorm. Lower tiers stay in the rain
-      // family (no thunder); thunder/lightning kicks in at Unsettled and escalates from there.
-      thriving:    { icon: '🌦️',   label: 'Light rain' },
-      healthy:     { icon: '🌧️',   label: 'Rain' },
-      progressing: { icon: '🌧️',   label: 'Heavy rain' },
-      unsettled:   { icon: '🌩️',   label: 'Thunderstorm' },
-      difficult:   { icon: '⛈️',   label: 'Severe thunderstorm' },
-      hurting:     { icon: '⛈️⚡', label: 'Severe thunderstorm warning' },
-    },
-    wobble: {
-      // Visibility-focused naming — wobble shows up as reduced clarity, escalating into severe
-      // visibility loss. Fog is the implied cause (via the 🌫️ icon); the label leads with the
-      // effect on visibility so it reads as "stormy with low visibility due to fog."
-      thriving:    { icon: '🌫️',   label: 'Slight haze' },
-      healthy:     { icon: '🌫️',   label: 'Misty conditions' },
-      progressing: { icon: '🌫️',   label: 'Reduced visibility' },
-      unsettled:   { icon: '🌫️',   label: 'Low visibility' },
-      difficult:   { icon: '🌫️',   label: 'Very low visibility' },
-      hurting:     { icon: '🌫️⚠️', label: 'Whiteout warning' },
-    },
-    steadying: {
-      thriving:    { icon: '💨',    label: 'Breezy' },
-      healthy:     { icon: '💨',    label: 'Gusty' },
-      progressing: { icon: '💨',    label: 'Wind advisory' },
-      unsettled:   { icon: '💨',    label: 'Strong winds' },
-      difficult:   { icon: '💨',    label: 'Gale warning' },
-      hurting:     { icon: '💨⚠️',  label: 'High wind warning' },
-    },
-    turndown: {
-      thriving:    { icon: '❄️',   label: 'Chilly' },
-      healthy:     { icon: '❄️',   label: 'Cold' },
-      progressing: { icon: '❄️',   label: 'Frost advisory' },
-      unsettled:   { icon: '❄️',   label: 'Frost warning' },
-      difficult:   { icon: '❄️',   label: 'Freezing rain' },
-      hurting:     { icon: '❄️⚠️', label: 'Ice storm warning' },
-    },
-    // Future: compound combos (conflict+wobble, etc.)
-  };
-  // Each event type tracks the zone of the balance it lives in (conflict/turndown = relational;
-  // wobble/steadying = personal). Today's lookup uses that event's zone, not a shared one.
-  const STORM_COMBO_META = {
-    conflict:  { balance: 'rel', cat: 'conflict' },
-    turndown:  { balance: 'rel', cat: 'turndown' },
-    wobble:    { balance: 'per', cat: 'regulation' },
-    steadying: { balance: 'per', cat: 'burnout' },
-  };
   const _stormZoneKey = (v) => {
     if (v >= zones7.thriving)   return 'thriving';
     if (v >= zones7.stable)     return 'healthy';
@@ -1634,7 +1715,10 @@ function buildHomePage() {
   // Storm zone scores = live current values (include today's logging). Option-C reactive:
   // logging today shifts the storm zone immediately, matching how real weather updates as
   // observations come in.
-  const _stormRelScore = (expNow.rel ?? 0);
+  // In Individual mode, the "rel" balance slot is filled by Social entries.
+  // Storm icons gated on the rel zone need to read the social score so
+  // friction icons size correctly against the user's actual Social balance.
+  const _stormRelScore = ((S.relationshipMode === 'individual') ? (expNow.soc ?? 0) : (expNow.rel ?? 0));
   const _stormPerScore = (expNow.per ?? 0);
   // Per-combo state (probability today's DOW, zone for that balance excluding today's logging).
   // windowCount = total occurrences within PCT_WINDOW (used as first tiebreaker when two
@@ -1664,8 +1748,7 @@ function buildHomePage() {
       reading: STORM_MATRIX[combo][zoneKey],
     };
   }
-  // Tie-break order when DOW prob and window count are also equal: fixed priority list below.
-  const STORM_PRIORITY = { conflict: 0, wobble: 1, steadying: 2, turndown: 3 };
+  // Tie-break order — uses file-scope STORM_PRIORITY.
   // Compare two combos for a given DOW; returns negative if a wins, positive if b wins.
   // Order: DOW prob desc → window count desc → STORM_PRIORITY asc.
   const _stormCompareForDow = (dow) => (a, b) => {
@@ -1697,14 +1780,18 @@ function buildHomePage() {
 
     // Day's contribution = sum of expRemaining(score, 0) per series for entries dated d.
     // Returns null for an empty day so dow averaging can skip it.
+    // In Individual mode, the "rel" slot is fed by Social — the rest of the
+    // forecast pipeline uses .rel as its positive non-personal axis and just
+    // works when we substitute soc here.
     const contributionOnDate = (date) => {
       const dayEs = byDate[date] || [];
       if (dayEs.length === 0) return null;
       const cap = bankDayCap(dayEs.find(le => le.category === 'libido'));
       let r = 0, p = 0;
       for (const e of dayEs) {
-        const { rel, per } = expEntryScores(e, cap);
-        if (rel !== 0) r += expRemaining(rel, 0);
+        const { rel, per, soc } = expEntryScores(e, cap);
+        const primary = isIndHome ? (soc || 0) : rel;
+        if (primary !== 0) r += expRemaining(primary, 0);
         if (per !== 0) p += expRemaining(per, 0);
       }
       if (r === 0 && p === 0) return null;
@@ -1743,6 +1830,8 @@ function buildHomePage() {
       // Past/today: computeExperimentalScores(d) − d's_actual_contribution.
       // Future: decay-only at d + expected logging from days strictly between today and d.
       const decayOnly = computeExperimentalScores(date);
+      // In Individual mode the positive-non-personal axis is Social, not Relational.
+      const decayPrim = isIndHome ? (decayOnly.soc || 0) : decayOnly.rel;
       let mornRel, mornPer;
       let gainRel, gainPer;
 
@@ -1751,14 +1840,14 @@ function buildHomePage() {
         const dayContrib = contributionOnDate(date) || { rel: 0, per: 0 };
         gainRel = dayContrib.rel;
         gainPer = dayContrib.per;
-        mornRel = decayOnly.rel - gainRel;
+        mornRel = decayPrim - gainRel;
         mornPer = decayOnly.per - gainPer;
       } else if (off === 0) {
         // Today — REACTIVE. Morning still represents the pre-today state; the afternoon uses
         // today's actual logged contribution if any (so the line flexes with what you've done),
         // and falls back to the DOW projection when nothing has been logged yet today.
         const todayContrib = contributionOnDate(date) || { rel: 0, per: 0 };
-        mornRel = decayOnly.rel - todayContrib.rel;
+        mornRel = decayPrim - todayContrib.rel;
         mornPer = decayOnly.per - todayContrib.per;
         gainRel = Math.abs(todayContrib.rel) >= 1 ? todayContrib.rel : dowAvgs[dow].rel;
         gainPer = Math.abs(todayContrib.per) >= 1 ? todayContrib.per : dowAvgs[dow].per;
@@ -1776,7 +1865,7 @@ function buildHomePage() {
           if (Math.abs(fRel) >= 1) intermediateRel += expRemaining(fRel, ageAtTarget);
           if (Math.abs(fPer) >= 1) intermediatePer += expRemaining(fPer, ageAtTarget);
         }
-        mornRel = decayOnly.rel + intermediateRel;
+        mornRel = decayPrim + intermediateRel;
         mornPer = decayOnly.per + intermediatePer;
         gainRel = dowAvgs[dow].rel;
         gainPer = dowAvgs[dow].per;
@@ -1806,6 +1895,7 @@ function buildHomePage() {
     const _extraOff = END_OFFSET + 1;
     const _extraDate = addDays(S.today, _extraOff);
     const _extraDecay = computeExperimentalScores(_extraDate);
+    const _extraDecayPrim = isIndHome ? (_extraDecay.soc || 0) : _extraDecay.rel;
     let _extraInterRel = 0, _extraInterPer = 0;
     for (let f = 1; f < _extraOff; f++) {
       const fDate = addDays(S.today, f);
@@ -1815,7 +1905,7 @@ function buildHomePage() {
       if (Math.abs(dowAvgs[fDow].per) >= 1) _extraInterPer += expRemaining(dowAvgs[fDow].per, ageAtTarget);
     }
     const extraMorning = {
-      rel: _extraDecay.rel + _extraInterRel,
+      rel: _extraDecayPrim + _extraInterRel,
       per: _extraDecay.per + _extraInterPer,
     };
     return { days: out, dowAvgs, extraMorning };
@@ -1982,11 +2072,11 @@ function buildHomePage() {
   // ── Conflict ──
   if (hasEnoughData) {
     if (conflictToday && week7Bonding === 0)
-      nudges.push(card('⚡', 'Conflict logged today', 'No '+bondingLabel().toLowerCase()+' entries this week to balance it.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      nudges.push(card('⛈️', 'Conflict logged today', 'No '+bondingLabel().toLowerCase()+' entries this week to balance it.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (conflictYest && !conflictToday && !conflictYestResolved)
       nudges.push(card('💬', 'Yesterday had conflict', 'Yesterday\'s conflict isn\'t marked resolved — the loop is still open.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (week7Conflict >= 3)
-      nudges.push(card('⚡', week7Conflict+' conflicts this week', 'A heavy week for conflict.', 'var(--c-conflict)', 'rgba(224,53,53,0.18)', 'rgba(224,53,53,0.05)', goInsights));
+      nudges.push(card('⛈️', week7Conflict+' conflicts this week', 'A heavy week for conflict.', 'var(--c-conflict)', 'rgba(224,53,53,0.18)', 'rgba(224,53,53,0.05)', goInsights));
     else if (week7Conflict === 0 && last14.filter(e=>e.category==='conflict').length === 0 && allEntries.filter(e=>e.category==='conflict').length > 0)
       kudos.push(card('✨', 'Two weeks conflict-free', 'No conflict logged in 14 days.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', goInsights));
   }
@@ -1998,9 +2088,9 @@ function buildHomePage() {
   // ── Overall balance ──
   if (hasEnoughData) {
     if (relBal7 >= relThresh)
-      kudos.push(card('💚', 'Relational balance positive', 'Balance at +'+relBal7+'. Deposits are outpacing withdrawals.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', ()=>goInsightsMode('relational')));
+      kudos.push(card('💚', (isIndHome ? 'Social' : 'Relational')+' balance positive', 'Balance at +'+relBal7+'. Deposits are outpacing withdrawals.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', ()=>goInsightsMode('relational')));
     else if (relBal7 < -relThresh)
-      nudges.push(card('📉', 'Balance running low', 'Relational balance at '+relBal7+'. More withdrawals than deposits recently.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>goInsightsMode('relational')));
+      nudges.push(card('📉', 'Balance running low', (isIndHome ? 'Social' : 'Relational')+' balance at '+relBal7+'. More withdrawals than deposits recently.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>goInsightsMode('relational')));
 
     if (perBal7 >= perThresh)
       kudos.push(card('🌿', 'Personal tank healthy', 'Restore is outpacing drain this week.', 'var(--c-restore)', 'rgba(90,184,212,0.25)', 'rgba(90,184,212,0.06)', ()=>goInsightsMode('personal')));
@@ -2011,9 +2101,9 @@ function buildHomePage() {
   // ── Steady / wellbeing ──
   if (S.showCaretaker && hasEnoughData) {
     if (week7Burnout >= 4 && week7Restore === 0)
-      nudges.push(card('🕯️', 'Heavy steadying load', week7Burnout+' steadying entries this week with no restorative activity logged.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+      nudges.push(card('💨', 'Heavy steadying load', week7Burnout+' steadying entries this week with no restorative activity logged.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (week7Burnout >= 2 && week7Restore >= 1)
-      kudos.push(card('🕯️', 'Caretaking with self-care', 'Steadying for others and restoring yourself this week.', 'var(--c-restore)', 'rgba(90,184,212,0.20)', 'rgba(90,184,212,0.04)', goInsights));
+      kudos.push(card('💨', 'Caretaking with self-care', 'Steadying for others and restoring yourself this week.', 'var(--c-restore)', 'rgba(90,184,212,0.20)', 'rgba(90,184,212,0.04)', goInsights));
   }
 
   // ── New user ──
@@ -2029,21 +2119,23 @@ function buildHomePage() {
     [
       { icon:'🌡️', label:'Check-In',     key:'libido',    show: true },
       { icon:'🌿', label:'Notes',         key:'notes',     show: true },
-      { icon:'🩷', label:bondingLabel(),  key:'affection', show: true },
+      { icon:'🩷', label:bondingLabel(),  key:'affection', show: S.showBonding },
+      { icon:'🫂', label:'Social',         key:'social',    show: S.relationshipMode === 'individual' },
+      { icon:'🌧️', label:'Friction',       key:'friction',  show: S.relationshipMode === 'individual' },
     ],
     [
-      { icon:'🌒', label:'Turn Down', key:'turndown', show: S.showPhysical },
+      { icon:'❄️', label:'Turn Down', key:'turndown', show: S.showPhysical },
       { icon:'🌹', label:'Intimacy',  key:'physical', show: S.showPhysical },
       { icon:'🌊', label:'Restore',   key:'restore',  show: true },
     ],
     [
-      { icon:'🫧', label:'Wobble', key:'regulation', show: S.showRegulation },
-      { icon:'🕯️', label:'Steady', key:'burnout',   show: S.showCaretaker },
-      { icon:'⚡', label:'Conflict', key:'conflict', show: true },
+      { icon:'🌪️', label:'Wobble', key:'regulation', show: S.showRegulation },
+      { icon:'💨', label:'Steady', key:'burnout',   show: S.showCaretaker },
+      { icon:'⛈️', label:'Conflict', key:'conflict', show: S.showConflict },
     ],
     [
       { icon:'🤝', label:'Repair',   key:'repair',   show: S.showRepair },
-      { icon:'🔀', label:'Combined', key:'combined', show: true },
+      { icon:'🔀', label:'Combined', key:'combined', show: S.showBonding },
     ],
   ].map(row => row.filter(c => c.show)).filter(row => row.length > 0);
 
@@ -2059,7 +2151,7 @@ function buildHomePage() {
         borderRadius:'14px', padding:'14px 16px', marginBottom:'14px',
       }},
         h('div',{style:{fontSize:'10px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)',marginBottom:'4px'}},
-          'Your Tenor is currently'),
+          'Your Atmosphere is currently'),
         h('div',{style:{display:'flex',alignItems:'center',gap:'10px',marginBottom:'6px'}},
           tenorScore7 !== null ? h('span',{style:{fontSize:'30px',lineHeight:'1'}}, _zoneIcon(tenorScore7).icon) : null,
           h('span',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'28px',fontWeight:'400',color:zoneBand7?.color ?? 'var(--muted)',lineHeight:'1'}},
@@ -2083,8 +2175,10 @@ function buildHomePage() {
           const todayCap = bankDayCap(todayEs.find(le => le.category === 'libido'));
           let todayLogRel = 0, todayLogPer = 0;
           for (const e of todayEs) {
-            const { rel, per } = expEntryScores(e, todayCap);
-            if (rel !== 0) todayLogRel += expRemaining(rel, 0);
+            const { rel, per, soc } = expEntryScores(e, todayCap);
+            // In Individual mode, social entries fill the "rel" slot.
+            const primary = isIndHome ? (soc || 0) : rel;
+            if (primary !== 0) todayLogRel += expRemaining(primary, 0);
             if (per !== 0) todayLogPer += expRemaining(per, 0);
           }
           const hasLoggedRel   = Math.abs(todayLogRel) >= 1;
@@ -2100,9 +2194,9 @@ function buildHomePage() {
           const rPer = rng(todayDay.morning.per,   todayDay.lockedAfternoon.per);
           const rTen = rng(todayDay.morning.tenor, todayDay.lockedAfternoon.tenor);
           const rows = [
-            { name:'Relational', key:'rel',   low:rRel.low, high:rRel.high, actual:relBal7,     hasLogged:hasLoggedRel   },
-            { name:'Personal',   key:'per',   low:rPer.low, high:rPer.high, actual:perBal7,     hasLogged:hasLoggedPer   },
-            { name:'Tenor',      key:'tenor', low:rTen.low, high:rTen.high, actual:tenorScore7, hasLogged:hasLoggedTenor },
+            { name:'Atmosphere',                         key:'tenor', low:rTen.low, high:rTen.high, actual:tenorScore7, hasLogged:hasLoggedTenor },
+            { name: isIndHome ? 'Social' : 'Relational', key:'rel',   low:rRel.low, high:rRel.high, actual:relBal7,     hasLogged:hasLoggedRel   },
+            { name:'Personal',                           key:'per',   low:rPer.low, high:rPer.high, actual:perBal7,     hasLogged:hasLoggedPer   },
           ];
           // Stash data the Details modal will consume (today's chart day index, per-row breakdowns).
           const _todayChartIdx = wxDays.findIndex(d => d.isToday);
@@ -2131,7 +2225,12 @@ function buildHomePage() {
             dowHalfLife: DOW_HALFLIFE,
             // Three balance summaries — one per row of the today card.
             values: [
-              { name:'Relational', balance:'rel',
+              { name:'Atmosphere', balance:'tenor',
+                now: tenorScore7, morning: todayDay.morning.tenor,
+                lockedAfternoon: todayDay.lockedAfternoon.tenor,
+                zone: null, hasLogged: hasLoggedTenor,
+                loggedAmount: (todayLogRel + todayLogPer) / 2 },
+              { name: isIndHome ? 'Social' : 'Relational', balance:'rel',
                 now: relBal7, morning: todayDay.morning.rel,
                 lockedAfternoon: todayDay.lockedAfternoon.rel,
                 zone: _relZoneKey, hasLogged: hasLoggedRel, loggedAmount: todayLogRel },
@@ -2139,11 +2238,6 @@ function buildHomePage() {
                 now: perBal7, morning: todayDay.morning.per,
                 lockedAfternoon: todayDay.lockedAfternoon.per,
                 zone: _perZoneKey, hasLogged: hasLoggedPer, loggedAmount: todayLogPer },
-              { name:'Tenor',      balance:'tenor',
-                now: tenorScore7, morning: todayDay.morning.tenor,
-                lockedAfternoon: todayDay.lockedAfternoon.tenor,
-                zone: null, hasLogged: hasLoggedTenor,
-                loggedAmount: (todayLogRel + todayLogPer) / 2 },
             ],
             combos: ['conflict', 'turndown', 'wobble', 'steadying'].map(_comboInfo),
           };
@@ -2204,8 +2298,12 @@ function buildHomePage() {
             ...rows.flatMap(r => {
               // Now always shows the current actual value with weather icon for that score.
               const zi = _zoneIcon(r.actual);
-              // Column 2 is a 1fr spacer pushing the values to the right side of the card.
-              const statusCell = h('div', {});
+              // Column 2 holds the row's current zone label (Thriving / Healthy / etc.)
+              // in the zone's color, so the user can read each balance's state at a glance.
+              const statusCell = h('div', {style:{
+                fontFamily:"'Libre Baskerville', serif", fontSize:'12px',
+                fontStyle:'italic', color: zi.color, padding:'6px 6px 6px 4px',
+              }}, zi.label);
               const nowValCell = h('div',{style:{
                 fontFamily:"'Libre Baskerville', serif", fontSize:'18px',
                 color:'var(--text-strong)', letterSpacing:'0.01em',
@@ -2281,8 +2379,8 @@ function buildHomePage() {
           const perTicks = sharedTicks;
 
           // Layout
-          const DAY_W = 85;
-          const ROW1_H = 72;   // day label + icon (30px) + tenor high/low
+          const DAY_W = 92;
+          const ROW1_H = 96;   // day label + date + icon (32px) + tenor high/low
           const ROW2_H = 140;  // main Rel/Per line chart
           const ROW3_H = ROW2_H; // percentage line chart (0-100%) — match score chart height
           const SVG1_H  = ROW1_H + ROW2_H;   // first SVG height (rows 1+2)
@@ -2306,7 +2404,7 @@ function buildHomePage() {
           // Each date is weighted by the MAX resolution-recurrence weight across its negative
           // events — a fully-resolved day contributes 0 (won't predict recurrence), a heavier
           // day contributes 1. Turndown has no resolution, so any turndown contributes 1.
-          const NEG_CATS = new Set(['conflict', 'turndown', 'regulation', 'burnout']);
+          const NEG_CATS = new Set(['conflict', 'turndown', 'regulation', 'burnout', 'friction']);
           const negCatsByDate = new Map();
           const negWeightByDate = new Map();
           for (const e of allEntries) {
@@ -2337,8 +2435,10 @@ function buildHomePage() {
           const precipFillC  = _isFreezing ? '#a440b8' : '#3b7dd8';        // fill color — deeper purply-pink when freezing
           // Positive lines stay individual; negative load is summarized by Cloudcover/Precipitation (filled).
           const PCT_SERIES = [
-            { cat: 'affection',  color: CAT_COLORS.affection,  label: bondingLabel(),  show: true,
+            { cat: 'affection',  color: CAT_COLORS.affection,  label: bondingLabel(),  show: S.showBonding,
               dateSet: datesWithCatScored('affection') },
+            { cat: 'social',     color: CAT_COLORS.social,     label: 'Social',        show: S.relationshipMode === 'individual',
+              dateSet: datesWithCatScored('social') },
             { cat: 'physical',   color: CAT_COLORS.physical,   label: 'Intimacy',      show: S.showPhysical,
               dateSet: datesWithCatScored('physical') },
             { cat: 'restore',    color: CAT_COLORS.restore,    label: 'Restore',       show: true,
@@ -2388,6 +2488,10 @@ function buildHomePage() {
           svgEl.setAttribute('viewBox', `0 0 ${TOTAL_W} ${SVG1_H}`);
           svgEl.setAttribute('preserveAspectRatio', 'none');
           svgEl.style.cssText = `display:block;width:${TOTAL_W}px;height:${SVG1_H}px;`;
+          // Tapping the chart background closes any open storm popup (consistent with svgEl2).
+          svgEl.addEventListener('click', () => {
+            if (S._stormPopup) { S._stormPopup = null; render(); }
+          });
 
           // Horizontal gridlines from Per ticks (rendered subtly)
           for (const t of perTicks) {
@@ -2434,36 +2538,43 @@ function buildHomePage() {
             }
           }
 
-          // Row 1: day label + weather icon + high/low (high = afternoon, low = morning)
+          // Row 1: day label + date + weather icon + high/low
           for (let i = 0; i < wxDays.length; i++) {
             const d  = wxDays[i];
             const cx = i * DAY_W + DAY_W / 2;
             const zi = _zoneIcon(d.afternoon.tenor);
             const lblText = d.isToday ? 'Today' : DAY_NAMES[d.dow];
+            const dateObj = new Date(d.date + 'T00:00:00');
+            const dateStr = dateObj.toLocaleDateString('en-US', { month:'short', day:'numeric' });
             const hi = Math.round(Math.max(d.morning.tenor, d.afternoon.tenor));
             const lo = Math.round(Math.min(d.morning.tenor, d.afternoon.tenor));
             // Day label — past and future render identically; only today gets the bold accent.
             svgEl.appendChild(mk('text', {
-              x: cx.toFixed(1), y: '12', 'text-anchor':'middle',
-              'font-size':'9', 'font-family':"'DM Sans', sans-serif",
+              x: cx.toFixed(1), y: '14', 'text-anchor':'middle',
+              'font-size':'10', 'font-family':"'DM Sans', sans-serif",
               fill: d.isToday ? 'var(--text-strong)' : 'var(--muted)',
               'font-weight': d.isToday ? '700' : '500',
               'letter-spacing': '0.04em',
             }, lblText.toUpperCase()));
-            // Weather icon — matches the "Your Tenor is currently" headline icon size (30px),
-            // rendered at full opacity regardless of past/future. Centered via dominant-baseline
-            // so it stays between the day label above and the hi/lo numbers below.
+            // Date (e.g., "Mar 4")
             svgEl.appendChild(mk('text', {
-              x: cx.toFixed(1), y: '37', 'text-anchor':'middle',
+              x: cx.toFixed(1), y: '28', 'text-anchor':'middle',
+              'font-size':'10', 'font-family':"'DM Sans', sans-serif",
+              fill: 'var(--muted-2)',
+            }, dateStr));
+            // Weather icon — slightly larger than the climate chart's icons since this is the
+            // primary daily glance. Centered via dominant-baseline.
+            svgEl.appendChild(mk('text', {
+              x: cx.toFixed(1), y: '54', 'text-anchor':'middle',
               'dominant-baseline':'central',
-              'font-size':'30',
+              'font-size':'32',
             }, zi.icon));
             // Tenor high / low (afternoon peak / morning low) — single combined line
             const hiStr = (hi >= 0 ? '+' : '') + hi;
             const loStr = (lo >= 0 ? '+' : '') + lo;
             svgEl.appendChild(mk('text', {
-              x: cx.toFixed(1), y: '65', 'text-anchor':'middle',
-              'font-size':'10', 'font-family':"'Libre Baskerville', serif",
+              x: cx.toFixed(1), y: '85', 'text-anchor':'middle',
+              'font-size':'12', 'font-family':"'Libre Baskerville', serif",
               fill: 'var(--text-strong)',
             }, loStr + ' / ' + hiStr));
           }
@@ -2525,8 +2636,190 @@ function buildHomePage() {
               'stroke-width': String(width), 'stroke-linecap':'round', 'stroke-linejoin':'round',
             }));
           };
+          // Tenor reference line — visual midpoint between rel and per at each
+          // sample point. Rel/per use different axes, so we average their PIXEL
+          // positions (not their raw values) to read as the literal midline.
+          // Dashed muted so it stays a reference, not a primary series.
+          if (relPts.length === perPts.length && relPts.length >= 2) {
+            const tenorPxPts = relPts.map((r, i) => ({
+              x: r.x,
+              yPx: (yOfRel(r.y) + yOfPer(perPts[i].y)) / 2,
+            }));
+            // Build the same monotonic Hermite path but using pre-computed yPx.
+            const tenorPath = (() => {
+              const n = tenorPxPts.length;
+              const px = tenorPxPts.map(p => xOf(p.x));
+              const py = tenorPxPts.map(p => p.yPx);
+              if (n === 1) return 'M' + px[0].toFixed(1) + ',' + py[0].toFixed(1);
+              const dx = [], m = [];
+              for (let i = 0; i < n - 1; i++) {
+                dx[i] = px[i + 1] - px[i];
+                m[i]  = (py[i + 1] - py[i]) / (dx[i] || 1);
+              }
+              const tt = new Array(n);
+              tt[0]     = m[0];
+              tt[n - 1] = m[n - 2];
+              for (let i = 1; i < n - 1; i++) {
+                if (m[i - 1] * m[i] <= 0) { tt[i] = 0; continue; }
+                const w1 = 2 * dx[i] + dx[i - 1];
+                const w2 = dx[i] + 2 * dx[i - 1];
+                tt[i] = (w1 + w2) / (w1 / m[i - 1] + w2 / m[i]);
+              }
+              let d = 'M' + px[0].toFixed(1) + ',' + py[0].toFixed(1);
+              for (let i = 0; i < n - 1; i++) {
+                const hh  = dx[i] / 3;
+                const c1x = px[i] + hh,     c1y = py[i]     + tt[i]     * hh;
+                const c2x = px[i + 1] - hh, c2y = py[i + 1] - tt[i + 1] * hh;
+                d += ' C' + c1x.toFixed(1) + ',' + c1y.toFixed(1)
+                   + ' '  + c2x.toFixed(1) + ',' + c2y.toFixed(1)
+                   + ' '  + px[i + 1].toFixed(1) + ',' + py[i + 1].toFixed(1);
+              }
+              return d;
+            })();
+            svgEl.appendChild(mk('path', {
+              d: tenorPath, fill:'none', stroke:'var(--muted)',
+              'stroke-width':'1.2', 'stroke-dasharray':'3,3',
+              'stroke-linecap':'round', opacity:'0.7',
+            }));
+          }
           drawSeries(perPts, yOfPer, 'var(--c-restore)', 1.9);
-          drawSeries(relPts, yOfRel, 'var(--c-affection)', 1.9);
+          // In Individual mode, wxDays' .rel slot is populated with Social
+          // values upstream — recolor the line so it reads as Social.
+          drawSeries(relPts, yOfRel, isIndHome ? 'var(--c-social)' : 'var(--c-affection)', 1.9);
+
+          // Past-day storm icons — for any prior day where a storm-class event was logged,
+          // render ONE icon per balance line (max two icons per day). When multiple combos
+          // hit the same line (e.g. conflict + turndown both on rel), pick the combo whose
+          // summed impact on that balance is the most negative. Icon glyph reflects THAT
+          // DAY'S rel or per zone. Tap-to-popup matches the prediction chart's behavior.
+          (() => {
+            const _stormCatToCombo = {};
+            for (const [combo, meta] of Object.entries(STORM_COMBO_META)) {
+              _stormCatToCombo[meta.cat] = combo;
+            }
+            // Collect signed impact per (date, balance, combo) by summing scored entries.
+            const _stormImpactByDate = {}; // date -> { rel:{combo:impact,...}, per:{...} }
+            for (const e of allEntries) {
+              const combo = _stormCatToCombo[e.category];
+              if (!combo) continue;
+              if (!_hasPoints(e)) continue;
+              const scores = expEntryScores(e, _capFor(e.date));
+              const meta = STORM_COMBO_META[combo];
+              // In Individual mode the "rel" slot is fed by social entries
+              // (so friction's score actually lives on scores.soc, not scores.rel).
+              const impact = meta.balance === 'rel'
+                ? (S.relationshipMode === 'individual' ? (scores.soc || 0) : scores.rel)
+                : scores.per;
+              const day = (_stormImpactByDate[e.date] ||= { rel:{}, per:{} });
+              day[meta.balance][combo] = (day[meta.balance][combo] || 0) + impact;
+            }
+            const buildFcstIconNode = (iconStr, x, y, popupKey, popupText, size) => {
+              const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+              group.style.cursor = 'pointer';
+              group.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); });
+              group.addEventListener('click', (ev) => {
+                ev.stopPropagation();
+                S._stormPopup = (S._stormPopup === popupKey) ? null : popupKey;
+                render();
+              });
+              const baseSize = size || 22;
+              const hasShield = iconStr.indexOf('⚠️') >= 0;
+              if (hasShield) {
+                const baseIcon = iconStr.replace('⚠️', '').trim();
+                group.appendChild(mk('text', {
+                  x: x.toFixed(1), y: y.toFixed(1),
+                  'text-anchor':'middle', 'dominant-baseline':'central',
+                  'font-size': String(baseSize),
+                }, baseIcon));
+                const overlaySize = Math.round(baseSize * 0.5);
+                group.appendChild(mk('text', {
+                  x: (x + baseSize * 0.32).toFixed(1),
+                  y: (y - baseSize * 0.32).toFixed(1),
+                  'text-anchor':'middle', 'dominant-baseline':'central',
+                  'font-size': String(overlaySize),
+                }, '⚠️'));
+              } else {
+                group.appendChild(mk('text', {
+                  x: x.toFixed(1), y: y.toFixed(1),
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'central',
+                  'font-size': String(baseSize),
+                }, iconStr));
+              }
+              if (S._stormPopup === popupKey) {
+                const measuredW = measureTextWidth(popupText, 12, "'DM Sans', sans-serif");
+                const popupW = Math.min(Math.max(measuredW + 20, 100), Math.min(320, TOTAL_W - 10));
+                const popupH = 26;
+                const aboveY = y - 18 - popupH;
+                const belowY = y + 18;
+                const py = (aboveY >= 2) ? aboveY : belowY;
+                const px = Math.max(2, Math.min(x - popupW / 2, TOTAL_W - popupW - 2));
+                group.appendChild(mk('rect', {
+                  x: px.toFixed(1), y: py.toFixed(1),
+                  width: popupW.toFixed(1), height: String(popupH),
+                  rx: '6', ry: '6',
+                  fill: 'var(--bg2)', stroke: 'var(--border-mid)', 'stroke-width': '1',
+                }));
+                group.appendChild(mk('text', {
+                  x: (px + popupW / 2).toFixed(1),
+                  y: (py + popupH / 2 + 1).toFixed(1),
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'central',
+                  'font-size': '12',
+                  'font-family': "'DM Sans', sans-serif",
+                  fill: 'var(--text-strong)',
+                }, popupText));
+              }
+              svgEl.appendChild(group);
+            };
+            // Pick the combo with the most negative summed impact. Ties break by
+            // STORM_PRIORITY — so on rel, conflict (0) beats turndown (3); on per,
+            // wobble (1) beats steadying (2).
+            const pickMostNegative = (combosMap) => {
+              let best = null;
+              for (const [combo, impact] of Object.entries(combosMap)) {
+                if (best === null) { best = { combo, impact }; continue; }
+                if (impact < best.impact) { best = { combo, impact }; continue; }
+                if (impact === best.impact &&
+                    (STORM_PRIORITY[combo] ?? 99) < (STORM_PRIORITY[best.combo] ?? 99)) {
+                  best = { combo, impact };
+                }
+              }
+              return best;
+            };
+            // Point-tier sizing (matches Climate / Weather / Storm matrix):
+            // ≤10pt = tier 1, ≤20 = 2, ≤30 = 3, ≤40 = 4, ≤50 = 5, >50 = 6.
+            const POINT_TIER_SIZES = [0.5, 0.7, 0.9, 1.1, 1.4, 1.7];
+            const pointTierFor = (absImpact) => {
+              if (absImpact > 50) return 6;
+              if (absImpact > 40) return 5;
+              if (absImpact > 30) return 4;
+              if (absImpact > 20) return 3;
+              if (absImpact > 10) return 2;
+              return 1;
+            };
+            for (let i = 0; i < wxDays.length; i++) {
+              const d = wxDays[i];
+              if (d.offset >= 0) continue; // past days only
+              const day = _stormImpactByDate[d.date];
+              if (!day) continue;
+              for (const balance of ['rel', 'per']) {
+                const pick = pickMostNegative(day[balance]);
+                if (!pick) continue;
+                const balVal = balance === 'rel' ? d.afternoon.rel : d.afternoon.per;
+                const zoneKey = _stormZoneKey(balVal);
+                const cell = STORM_MATRIX[pick.combo] && STORM_MATRIX[pick.combo][zoneKey];
+                if (!cell || !cell.icon) continue;
+                // Size by the day's summed |impact| for that combo — matches
+                // the rule used on Climate / Weather / Storm matrix charts.
+                const iconSize = Math.round(22 * POINT_TIER_SIZES[pointTierFor(Math.abs(pick.impact)) - 1]);
+                const cx = i * DAY_W + DAY_W / 2;
+                const cy = (balance === 'rel' ? yOfRel(balVal) : yOfPer(balVal)) - Math.round(iconSize * 0.6);
+                buildFcstIconNode(cell.icon, cx, cy,
+                  'fcst' + i + '_' + pick.combo, cell.label + ' · ' + pick.combo + ' logged', iconSize);
+              }
+            }
+          })();
 
           // Today's locked forecast — dotted overlay from today's morning to its locked
           // afternoon (the DOW projection, before any of today's logging). Shown only when the
@@ -2691,6 +2984,10 @@ function buildHomePage() {
           const _capProb = (v) => Math.max(0, Math.min(1, v));
           for (let i = 0; i < wxDays.length; i++) {
             const dow = wxDays[i].dow;
+            // Past days surface their actual logged storm icons on the forecast chart
+            // above — skip them here so the prediction chart stays focused on what's
+            // ahead (today + next 7).
+            if (wxDays[i].offset < 0) continue;
             // Cloud/precip heights include the shock layer so the icon-band geometry matches
             // the fill area drawn above.
             const cloudProb  = _capProb((_cloudsDowPct[dow] || 0) + _aggregateShockByDay[i]);
@@ -2722,7 +3019,7 @@ function buildHomePage() {
             // Build a tap-target group around each icon so tapping reveals a small popup
             // explaining what the icon means. Tap again to close. Tapping another icon
             // swaps the popup to that one.
-            const buildIconNode = (iconStr, x, y, combo, popupKey) => {
+            const buildIconNode = (iconStr, x, y, combo, popupKey, size) => {
               const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
               group.style.cursor = 'pointer';
               // Stop pointerdown from reaching the scroll container so its drag-to-scroll
@@ -2733,18 +3030,37 @@ function buildHomePage() {
                 S._stormPopup = (S._stormPopup === popupKey) ? null : popupKey;
                 render();
               });
-              group.appendChild(mk('text', {
-                x: x.toFixed(1), y: y.toFixed(1),
-                'text-anchor': 'middle',
-                'dominant-baseline': 'central',
-                'font-size': '30',
-              }, iconStr));
+              const baseSize = size || 30;
+              const hasShield = iconStr.indexOf('⚠️') >= 0;
+              if (hasShield) {
+                const baseIcon = iconStr.replace('⚠️', '').trim();
+                group.appendChild(mk('text', {
+                  x: x.toFixed(1), y: y.toFixed(1),
+                  'text-anchor':'middle', 'dominant-baseline':'central',
+                  'font-size': String(baseSize),
+                }, baseIcon));
+                const overlaySize = Math.round(baseSize * 0.5);
+                group.appendChild(mk('text', {
+                  x: (x + baseSize * 0.32).toFixed(1),
+                  y: (y - baseSize * 0.32).toFixed(1),
+                  'text-anchor':'middle', 'dominant-baseline':'central',
+                  'font-size': String(overlaySize),
+                }, '⚠️'));
+              } else {
+                group.appendChild(mk('text', {
+                  x: x.toFixed(1), y: y.toFixed(1),
+                  'text-anchor': 'middle',
+                  'dominant-baseline': 'central',
+                  'font-size': String(baseSize),
+                }, iconStr));
+              }
               if (S._stormPopup === popupKey) {
                 const probPct = Math.round(dayProb(combo) * 100);
                 const label = _stormCombos[combo].reading.label;
                 const txt = label + ' · ' + probPct + '% ' + combo;
-                const popupW = Math.min(Math.max(txt.length * 5.5 + 18, 80), DAY_W * 2.4);
-                const popupH = 24;
+                const measuredW = measureTextWidth(txt, 12, "'DM Sans', sans-serif");
+                const popupW = Math.min(Math.max(measuredW + 20, 100), Math.min(320, TOTAL_W - 10));
+                const popupH = 26;
                 // Place above icon if room; otherwise below.
                 const aboveY = y - 26 - popupH;
                 const belowY = y + 22;
@@ -2761,31 +3077,34 @@ function buildHomePage() {
                   y: (py + popupH / 2 + 1).toFixed(1),
                   'text-anchor': 'middle',
                   'dominant-baseline': 'central',
-                  'font-size': '11',
+                  'font-size': '12',
                   'font-family': "'DM Sans', sans-serif",
                   fill: 'var(--text-strong)',
                 }, txt));
               }
               svgEl2.appendChild(group);
             };
-            // Top icon — dominant event, in the clouds-only band.
+            // Top icon — dominant event, in the clouds-only band. Size scales
+            // with severity (zoneKey) so all combos communicate intensity visually.
             const topY = precipProb >= ICON_MIN_PROB ? (cloudTopY + precipTopY) / 2 : (cloudTopY + _bottomY) / 2;
+            const topSize = Math.round(30 * (STORM_ZONE_SIZE[_stormCombos[ordered[0]].zoneKey] || 1));
             buildIconNode(
               _stormCombos[ordered[0]].reading.icon,
-              cx, topY, ordered[0], 'day' + i + '_top'
+              cx, topY, ordered[0], 'day' + i + '_top', topSize
             );
             // Second icon — next-most-common event, centered in the precipitation band.
             if (precipProb >= ICON_MIN_PROB && ordered.length >= 2) {
               const bottomY = (precipTopY + _bottomY) / 2;
+              const bottomSize = Math.round(30 * (STORM_ZONE_SIZE[_stormCombos[ordered[1]].zoneKey] || 1));
               buildIconNode(
                 _stormCombos[ordered[1]].reading.icon,
-                cx, bottomY, ordered[1], 'day' + i + '_bottom'
+                cx, bottomY, ordered[1], 'day' + i + '_bottom', bottomSize
               );
             }
           }
 
           // ── Y-axis SVGs — fixed outside the scroll containers ──
-          const AXIS_W = 32;
+          const AXIS_W = 38;
           // Score axis for SVG1 (rows 1+2). Tick labels are score values.
           const buildScoreAxis = (ticks, yOf, side) => {
             const ax = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -2806,9 +3125,9 @@ function buildHomePage() {
                 stroke:'var(--muted-3)', 'stroke-width':'0.8',
               }));
               ax.appendChild(mk('text', {
-                x: side === 'left' ? (AXIS_W - 6) : 6, y: (y + 3).toFixed(1),
+                x: side === 'left' ? (AXIS_W - 6) : 6, y: (y + 4).toFixed(1),
                 'text-anchor': side === 'left' ? 'end' : 'start',
-                'font-size':'9', 'font-family':"'DM Sans', sans-serif",
+                'font-size':'11', 'font-family':"'DM Sans', sans-serif",
                 fill:'var(--muted)',
               }, (t >= 0 ? '+' : '') + Math.round(t)));
             }
@@ -2834,11 +3153,11 @@ function buildHomePage() {
               }));
               // Keep the label inside the SVG: 0% sits above the bottom line, 100% sits below
               // the top line, 50% centers on its tick.
-              const labelY = pct === 0 ? y - 2 : (pct === 1 ? y + 8 : y + 3);
+              const labelY = pct === 0 ? y - 2 : (pct === 1 ? y + 9 : y + 4);
               ax.appendChild(mk('text', {
                 x: side === 'left' ? (AXIS_W - 6) : 6, y: labelY.toFixed(1),
                 'text-anchor': side === 'left' ? 'end' : 'start',
-                'font-size':'9', 'font-family':"'DM Sans', sans-serif",
+                'font-size':'11', 'font-family':"'DM Sans', sans-serif",
                 fill:'var(--muted)',
               }, Math.round(pct * 100) + '%'));
             }
@@ -2855,7 +3174,7 @@ function buildHomePage() {
             h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, label)
           );
 
-          const expanded = S.homeForecastExpanded !== false;
+          const expanded = !!S.homeForecastExpanded;
           return h('div',{style:{
             marginTop:'12px', paddingTop:'10px',
             borderTop:'1px solid var(--surface-2)',
@@ -2867,7 +3186,6 @@ function buildHomePage() {
               },
               onclick: () => {
                 S.homeForecastExpanded = !expanded;
-                saveSettings();
                 render();
               },
             },
@@ -2876,7 +3194,7 @@ function buildHomePage() {
                 transition:'transform 0.15s',
                 transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)',
               }}, '▶'),
-              h('span',{style:{fontSize:'10px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)'}}, '7-day forecast (tenor)'),
+              h('span',{style:{fontSize:'10px',fontWeight:'600',letterSpacing:'0.07em',textTransform:'uppercase',color:'var(--muted)'}}, '7-day forecast (atmosphere)'),
             ),
             expanded ? (() => {
               // Build the two scroll containers + sync their scroll positions.
@@ -2922,9 +3240,12 @@ function buildHomePage() {
               };
               scroll1.addEventListener('scroll', onScroll(scroll1, scroll2));
               scroll2.addEventListener('scroll', onScroll(scroll2, scroll1));
-              // Always scroll to today on render — leaving and returning to the page (or expanding
+              // Scroll to today on render — leaving and returning to the page (or expanding
               // a collapsed forecast) snaps back to today rather than preserving the last scroll.
+              // Skip the reset when a storm popup is open: the popup re-renders the chart, and
+              // jumping back to today during a popup interaction is jarring.
               requestAnimationFrame(() => {
+                if (S._stormPopup) return;
                 const todayCol = wxDays.findIndex(d => d.isToday);
                 if (todayCol >= 0) {
                   const initial = todayCol * DAY_W;
@@ -2937,10 +3258,16 @@ function buildHomePage() {
                 h('div', { style: { display:'flex', alignItems:'stretch' } },
                   leftAxis, scroll1, rightAxis,
                 ),
-                // Legend below chart 1
+                // Legend below chart 1 — app-wide order: Atmosphere → Relational → Personal.
                 h('div',{style:{display:'flex',gap:'14px',justifyContent:'flex-end',marginTop:'0',marginBottom:'10px'}},
+                  h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+                    h('div',{style:{width:'12px',height:'0',borderTop:'1.5px dashed var(--muted)',opacity:'0.8'}}),
+                    h('span',{style:{fontSize:'10px',color:'var(--muted)'}},'Atmosphere'),
+                  ),
+                  S.relationshipMode === 'individual'
+                    ? legendItem('var(--c-social)', 'Social')
+                    : legendItem('var(--c-affection)', 'Relational'),
                   legendItem('var(--c-restore)', 'Personal'),
-                  legendItem('var(--c-affection)', 'Relational'),
                 ),
                 // Chart 2: percentage line chart
                 h('div', { style: { display:'flex', alignItems:'stretch' } },
@@ -3102,6 +3429,9 @@ function buildHomePage() {
                             ...ZONE_BANDS.map(z => {
                               const cell = STORM_MATRIX[combo][z.key];
                               const isCurrent = isActiveTotal && z.key === _stormCombos[combo].zoneKey;
+                              // Mirror the chart-icon size scaling so the matrix
+                              // shows the same visual severity progression.
+                              const iconSize = Math.round(16 * (STORM_ZONE_SIZE[z.key] || 1));
                               return h('div',{
                                 style:{
                                   textAlign:'center', padding:'3px 4px',
@@ -3113,7 +3443,7 @@ function buildHomePage() {
                                 },
                                 title: cell.icon + ' ' + cell.label,
                               },
-                                h('div',{style:{fontSize:'16px', lineHeight:'1'}}, cell.icon),
+                                h('div',{style:{fontSize: iconSize + 'px', lineHeight:'1'}}, cell.icon),
                                 h('div',{style:{
                                   fontSize:'9px', lineHeight:'1.2',
                                   fontWeight: isCurrent ? '600' : '400',
@@ -3148,6 +3478,104 @@ function buildHomePage() {
                       'Each combo maps (its balance\'s zone) → storm type. Live — today\'s entries update score, zone, and icon.'),
                     stormDayTable,
                     stormMatrix,
+                    h('div',{style:dividerStyle}),
+                    // Forecast accuracy — predicted vs actual for the past 14 days
+                    (() => {
+                      const LOOKBACK = 14;
+                      // Sum of scored entry contributions on `date` (no decay; daysAgo=0).
+                      const contribOn = (date) => {
+                        let r = 0, p = 0;
+                        for (const e of allEntries) {
+                          if (e.date !== date) continue;
+                          if (!_hasPoints(e)) continue;
+                          const s = expEntryScores(e, _capFor(e.date));
+                          r += s.rel; p += s.per;
+                        }
+                        return { rel: r, per: p };
+                      };
+                      // Symmetric % accuracy: 1 − |pred−actual| / max(|pred|, |actual|, 1).
+                      // Returns 0 if signs diverge enough to drive the ratio above 100%.
+                      const pctAccuracy = (pred, act) => {
+                        const denom = Math.max(Math.abs(pred), Math.abs(act), 1);
+                        return Math.max(0, 1 - Math.abs(pred - act) / denom);
+                      };
+                      const rows = [];
+                      let sumR = 0, sumP = 0, sumT = 0, cnt = 0;
+                      for (let i = 1; i <= LOOKBACK; i++) {
+                        const date = addDays(S.today, -i);
+                        const dow  = new Date(date + 'T00:00:00').getDay();
+                        const actualEnd = computeExperimentalScores(date);
+                        const contrib   = contribOn(date);
+                        const mornR = actualEnd.rel - contrib.rel;
+                        const mornP = actualEnd.per - contrib.per;
+                        const predR = mornR + (wxDowAvgs[dow]?.rel || 0);
+                        const predP = mornP + (wxDowAvgs[dow]?.per || 0);
+                        const predT = (predR + predP) / 2;
+                        const actR = actualEnd.rel;
+                        const actP = actualEnd.per;
+                        const actT = (actR + actP) / 2;
+                        const accR = pctAccuracy(predR, actR);
+                        const accP = pctAccuracy(predP, actP);
+                        const accT = pctAccuracy(predT, actT);
+                        sumR += accR; sumP += accP; sumT += accT; cnt++;
+                        rows.push({ date, dow, predR, predP, predT, actR, actP, actT, accR, accP, accT });
+                      }
+                      const fmtN   = (v) => (v == null ? '—' : (v >= 0 ? '+' : '') + (Math.round(v * 10) / 10).toFixed(1));
+                      const fmtPctAcc = (v) => Math.round(v * 100) + '%';
+                      // Color by accuracy: ≥90% dark green, ≥70% amber, <70% red.
+                      const accColor = (v) => {
+                        if (v >= 0.90) return '#2f7a3a';
+                        if (v >= 0.70) return '#d2a028';
+                        return 'var(--c-conflict)';
+                      };
+                      const accCell = (v) => h('span',{style:{
+                        textAlign:'right', fontFamily:"'Libre Baskerville', serif",
+                        color: accColor(v),
+                      }}, fmtPctAcc(v));
+                      const accuracyTable = h('div',{},
+                        h('div',{style:{...headerStyle, marginBottom:'4px'}}, 'Forecast accuracy — past ' + LOOKBACK + ' days'),
+                        h('div',{style:{
+                          display:'grid',
+                          gridTemplateColumns: 'auto repeat(9, minmax(0,1fr))',
+                          gap:'2px 6px', fontSize:'10px', color:'var(--muted)', alignItems:'center',
+                        }},
+                          // Header row
+                          h('span',{}, ''),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, 'rel pred'),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, 'rel act'),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, '%'),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, 'per pred'),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, 'per act'),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, '%'),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, 'ten pred'),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, 'ten act'),
+                          h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontWeight:'600'}}, '%'),
+                          // Data rows
+                          ...rows.flatMap((r, idx) => {
+                            const label = DAY_NAMES[r.dow] + ' −' + (idx + 1);
+                            const num = (v) => h('span',{style:{textAlign:'right',fontFamily:"'Libre Baskerville', serif"}}, fmtN(v));
+                            return [
+                              h('span',{}, label),
+                              num(r.predR), num(r.actR), accCell(r.accR),
+                              num(r.predP), num(r.actP), accCell(r.accP),
+                              num(r.predT), num(r.actT), accCell(r.accT),
+                            ];
+                          }),
+                        ),
+                        h('div',{style:{fontSize:'10px',color:'var(--muted-2)',marginTop:'8px',display:'flex',gap:'14px'}},
+                          h('span',{}, 'Avg accuracy:'),
+                          h('span',{style:{fontFamily:"'Libre Baskerville', serif",color:accColor(sumR / Math.max(1,cnt))}}, 'rel ' + fmtPctAcc(sumR / Math.max(1, cnt))),
+                          h('span',{style:{fontFamily:"'Libre Baskerville', serif",color:accColor(sumP / Math.max(1,cnt))}}, 'per ' + fmtPctAcc(sumP / Math.max(1, cnt))),
+                          h('span',{style:{fontFamily:"'Libre Baskerville', serif",color:accColor(sumT / Math.max(1,cnt))}}, 'tenor ' + fmtPctAcc(sumT / Math.max(1, cnt))),
+                        ),
+                      );
+                      return h('div',{},
+                        h('div',{style:sectionHeader}, 'Forecast accuracy'),
+                        h('div',{style:blurbStyle},
+                          'Predicted = morning + DOW gain · Actual = end-of-day score · % = 1 − |pred − actual| / max(|pred|, |actual|). Green ≥90%, amber ≥70%, red below.'),
+                        accuracyTable,
+                      );
+                    })(),
                   );
                 })() : null,
               );
@@ -3234,6 +3662,1273 @@ function buildHomePage() {
   );
 }
 
+// Base Tenor chart — the slow EMA baseline on its own. Sits between Weather
+// and Observations on the Insights page. Lookback caps at the same PCT_WINDOW
+// the Climate / Weather charts use (max-event lifespan, scaled by data
+// availability) rather than the old hard-coded 60-day window.
+function buildBaseTenorChart() {
+  const allEntries = calcEntries();
+  if (allEntries.length === 0) return null;
+
+  // Compute LOOKBACK using the same logic as buildHistoricalChart.
+  const DOW_WINDOW = Math.max(7, Math.round(expLifespan(100)));
+  const _dayCapByDate = {};
+  for (const e of allEntries) {
+    if (e.category === 'libido' && _dayCapByDate[e.date] === undefined) {
+      _dayCapByDate[e.date] = bankDayCap(e);
+    }
+  }
+  const _capFor = (date) => _dayCapByDate[date] ?? bankDayCap(null);
+  const _hasPoints = (e) => {
+    const { rel, per, soc } = expEntryScores(e, _capFor(e.date));
+    return rel !== 0 || per !== 0 || (soc || 0) !== 0;
+  };
+  let firstScored = null;
+  for (const e of allEntries) {
+    if (e.date > S.today) continue;
+    if (!_hasPoints(e)) continue;
+    if (firstScored === null || e.date < firstScored) firstScored = e.date;
+  }
+  if (firstScored === null) return null;
+  const daysSinceFirst = Math.max(1, daysBetween(firstScored, S.today));
+  const daysSinceCalc = S.calcStartDate ? Math.max(1, daysBetween(S.calcStartDate, S.today)) : Infinity;
+  const LOOKBACK = Math.min(DOW_WINDOW, daysSinceFirst, daysSinceCalc);
+  if (LOOKBACK <= 0) return null;
+
+  const btd = computeBaseTenorData(LOOKBACK);
+  if (!btd) return null;
+  const { baseTenor, series } = btd;
+  // Single neutral color — value-neutral (not green = good or red = bad), but
+  // cheerful enough to read as a baseline rather than a warning. Soft teal sits
+  // apart from rel pink, per blue, green/red zone bands, and the muted gray
+  // tenor reference line.
+  const baseColor = '#4eb8b0';
+
+  // Mini SVG line chart — fixed pixel width that scales via viewBox to the container.
+  const W = 280, H = 96;
+  const padL = 32, padR = 6, padT = 6, padB = 18;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const chartStart = addDays(S.today, -(LOOKBACK - 1));
+
+  const allVals = [...series.map(p => p.tenor), ...series.map(p => p.base), 0];
+  const rawMin = Math.min(...allVals);
+  const rawMax = Math.max(...allVals);
+  const rawRange = rawMax - rawMin || 1;
+  const roughStep = rawRange / 3;
+  const mag = Math.pow(10, Math.floor(Math.log10(roughStep || 1)));
+  const yStep = Math.max(Math.ceil(roughStep / mag) * mag, 1);
+  const tickMin = Math.floor(rawMin / yStep) * yStep;
+  const tickMax = Math.ceil(rawMax / yStep) * yStep;
+  const yTicks = [];
+  for (let t = tickMin; t <= tickMax + 0.01; t += yStep) yTicks.push(Math.round(t));
+  const domMin = tickMin - yStep * 0.2;
+  const domMax = tickMax + yStep * 0.2;
+  const rangeV = domMax - domMin || 1;
+
+  const xOf = d => padL + (daysBetween(chartStart, d) / Math.max(1, LOOKBACK - 1)) * plotW;
+  const yOf = v => padT + plotH - ((v - domMin) / rangeV) * plotH;
+  const ptsTenor = series.map(p => xOf(p.date).toFixed(1) + ',' + yOf(p.tenor).toFixed(1)).join(' ');
+  const ptsBase  = series.map(p => xOf(p.date).toFixed(1) + ',' + yOf(p.base).toFixed(1)).join(' ');
+
+  const mkSvg  = (tag, attrs) => { const el = document.createElementNS('http://www.w3.org/2000/svg', tag); Object.entries(attrs).forEach(([k,v])=>el.setAttribute(k,v)); return el; };
+  const txt = (content, attrs) => { const el = mkSvg('text', attrs); el.textContent = content; return el; };
+
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svgEl.style.cssText = 'display:block;width:100%;height:auto;overflow:visible;';
+
+  // Axes
+  svgEl.appendChild(mkSvg('line', {x1:padL, y1:padT, x2:padL, y2:padT+plotH, stroke:'var(--border)', 'stroke-width':'0.8'}));
+  const zeroY = yOf(0);
+  const xAxisY = (zeroY >= padT && zeroY <= padT + plotH) ? zeroY : padT + plotH;
+  svgEl.appendChild(mkSvg('line', {x1:padL, y1:xAxisY.toFixed(1), x2:padL+plotW, y2:xAxisY.toFixed(1), stroke:'var(--border)', 'stroke-width':'0.8'}));
+
+  // Y ticks + labels
+  for (const t of yTicks) {
+    const ty = yOf(t);
+    if (ty < padT - 2 || ty > padT + plotH + 2) continue;
+    svgEl.appendChild(mkSvg('line', {x1:padL-3, y1:ty.toFixed(1), x2:padL, y2:ty.toFixed(1), stroke:'var(--border)', 'stroke-width':'0.8'}));
+    svgEl.appendChild(txt(t === 0 ? '0' : (t > 0 ? '+' : '') + t, {x:String(padL - 5), y:ty.toFixed(1), 'text-anchor':'end', 'dominant-baseline':'middle', 'font-size':'8', fill:'var(--text-strong)', 'font-family':"'DM Sans',sans-serif"}));
+  }
+
+  // X labels
+  svgEl.appendChild(txt(fmtS(chartStart), {x:String(padL), y:String(padT + plotH + 12), 'text-anchor':'start', 'font-size':'8', fill:'var(--muted)', 'font-family':"'DM Sans',sans-serif"}));
+  svgEl.appendChild(txt('Today', {x:String(padL + plotW), y:String(padT + plotH + 12), 'text-anchor':'end', 'font-size':'8', fill:'var(--muted)', 'font-family':"'DM Sans',sans-serif"}));
+
+  // Data lines — Tenor (thin/muted), Base Tenor (bold EMA).
+  svgEl.appendChild(mkSvg('polyline', {points:ptsTenor, fill:'none', stroke:'var(--muted-3)', 'stroke-width':'1', 'stroke-linecap':'round', 'stroke-linejoin':'round', opacity:'0.55'}));
+  svgEl.appendChild(mkSvg('polyline', {points:ptsBase,  fill:'none', stroke:baseColor, 'stroke-width':'2', 'stroke-linecap':'round', 'stroke-linejoin':'round'}));
+  if (series.length) {
+    const last = series[series.length - 1];
+    svgEl.appendChild(mkSvg('circle', {cx:xOf(last.date).toFixed(1), cy:yOf(last.base).toFixed(1), r:'3.5', fill:baseColor}));
+  }
+
+  return h('div', { style:{ marginBottom:'14px' } },
+    h('div', { class:'ins-section' },
+      h('div', { class:'ins-section-title', style:{ fontWeight:'600' } }, 'Base Atmosphere'),
+    ),
+    h('div', { style:{ fontSize:'11px', color:'var(--muted)', marginBottom:'10px', lineHeight:'1.6' } },
+      'Your emotional baseline — where your relationship and inner life have typically been sitting over the last ' + LOOKBACK + ' days. It moves slowly, so when it shifts, something has genuinely changed.'),
+    h('div',{style:{padding:'12px 14px', background:'var(--bg2)', border:'1px solid var(--border)', borderRadius:'14px'}},
+      h('div',{style:{textAlign:'right', marginBottom:'8px'}},
+        h('div',{style:{fontSize:'10px', fontWeight:'600', letterSpacing:'0.07em', textTransform:'uppercase', color:'var(--muted)', marginBottom:'2px'}}, 'Base Atmosphere'),
+        h('div',{style:{fontFamily:"'Libre Baskerville',serif", fontSize:'26px', fontWeight:'400', color:baseColor, lineHeight:'1'}},
+          (baseTenor >= 0 ? '+' : '') + baseTenor.toFixed(1)),
+      ),
+      svgEl,
+      h('div',{style:{display:'flex', gap:'14px', marginTop:'8px'}},
+        h('div',{style:{display:'flex', alignItems:'center', gap:'5px'}},
+          h('div',{style:{width:'20px', height:'2px', borderRadius:'1px', background:'var(--muted-3)', opacity:'0.7'}}),
+          h('span',{style:{fontSize:'10px', color:'var(--muted)'}}, 'Atmosphere'),
+        ),
+        h('div',{style:{display:'flex', alignItems:'center', gap:'5px'}},
+          h('div',{style:{width:'20px', height:'2.5px', borderRadius:'1px', background:baseColor}}),
+          h('span',{style:{fontSize:'10px', color:'var(--muted)'}}, 'Base Atmosphere'),
+        ),
+      ),
+    ),
+  );
+}
+
+// Positivity ratio (Gottman-style) — for each window we compute positive vs
+// negative for two flavors:
+//   - Points (summed scored impact)
+//   - Events (logged event counts)
+// for both Relational and Personal balances. Bands: ≥5 green, 3–5 amber,
+// below red, matching the Gottman 5:1 framing.
+function buildPositivityRatioCard() {
+  const allEntries = calcEntries();
+  if (allEntries.length === 0) return null;
+
+  // Day-cap cache so libido entries influence the right day's caps.
+  const _dayCapByDate = {};
+  for (const e of allEntries) {
+    if (e.category === 'libido' && _dayCapByDate[e.date] === undefined) {
+      _dayCapByDate[e.date] = bankDayCap(e);
+    }
+  }
+  const capFor = (date) => _dayCapByDate[date] ?? bankDayCap(null);
+
+  const WINDOWS = [
+    { days: 7,  label: '7 day' },
+    { days: 30, label: '30 day' },
+    { days: 60, label: '60 day' },
+  ];
+
+  const REL_POS_CATS = new Set(['affection']);          // bonding
+  const REL_POS_PHYS = true;                             // physical w/ partner counts as bonding/intimacy
+  const REL_NEG_CATS = new Set(['conflict', 'turndown']);
+  const PER_POS_CATS = new Set(['restore']);
+  const PER_NEG_CATS = new Set(['regulation', 'burnout']);
+
+  const compute = (days) => {
+    let start = addDays(S.today, -(days - 1));
+    // Clip the window so it never reaches back further than the debug
+    // calcStartDate (if set) — otherwise the "60 day" ratio would lean on
+    // data that's being deliberately ignored by every other calculation.
+    if (S.calcStartDate && S.calcStartDate > start) start = S.calcStartDate;
+    let relPos = 0, relNeg = 0, perPos = 0, perNeg = 0;
+    let bondCount = 0, conflictCount = 0;
+    let restoreCount = 0, wobbleCount = 0;
+    // In Individual mode, Social fills the relational positivity slot.
+    const isIndPos = S.relationshipMode === 'individual';
+    for (const e of allEntries) {
+      if (e.date < start || e.date > S.today) continue;
+      const { rel, per, soc } = expEntryScores(e, capFor(e.date));
+      const primary = isIndPos ? (soc || 0) : rel;
+      if (primary > 0) relPos += primary;
+      if (primary < 0) relNeg += -primary;
+      if (per > 0) perPos += per;
+      if (per < 0) perNeg += -per;
+      // Relational counts (or Social in Individual mode)
+      if (isIndPos) {
+        if (e.category === 'social')   bondCount++;
+        if (e.category === 'friction') conflictCount++;
+      } else {
+        if (REL_POS_CATS.has(e.category)) bondCount++;
+        else if (REL_POS_PHYS && e.category === 'physical' && !e.solo) bondCount++;
+        else if (REL_NEG_CATS.has(e.category)) conflictCount++;
+      }
+      // Personal counts
+      if (PER_POS_CATS.has(e.category)) restoreCount++;
+      else if (PER_NEG_CATS.has(e.category)) wobbleCount++;
+    }
+    return {
+      relPoints: { pos: Math.round(relPos), neg: Math.round(relNeg) },
+      perPoints: { pos: Math.round(perPos), neg: Math.round(perNeg) },
+      relCounts: { pos: bondCount, neg: conflictCount },
+      perCounts: { pos: restoreCount, neg: wobbleCount },
+    };
+  };
+
+  const data = WINDOWS.map(w => ({ ...w, vals: compute(w.days) }));
+
+  const fmtRatio = (pos, neg) => {
+    if (pos === 0 && neg === 0) return '—';
+    if (neg === 0) return pos + ':0';
+    return (pos / neg).toFixed(1) + ':1';
+  };
+  // Six bands matching the app's zone system (Thriving → Hurting). Colors are
+  // lighter tints so black text reads cleanly across every band.
+  const ratioBand = (pos, neg) => {
+    if (pos === 0 && neg === 0) return { color:'transparent',          label:'No data' };
+    if (neg === 0) return                { color:'rgba(77,196,120,0.55)', label:'Thriving' };
+    const r = pos / neg;
+    if (r >= 5) return                   { color:'rgba(77,196,120,0.55)', label:'Thriving' };
+    if (r >= 4) return                   { color:'rgba(168,196,140,0.55)', label:'Healthy' };
+    if (r >= 3) return                   { color:'rgba(210,200,120,0.55)', label:'Progressing' };
+    if (r >= 2) return                   { color:'rgba(224,160,80,0.55)',  label:'Unsettled' };
+    if (r >= 1) return                   { color:'rgba(224,100,80,0.55)',  label:'Difficult' };
+    return                                { color:'rgba(224,53,53,0.55)',   label:'Hurting' };
+  };
+  const ratioColor = (pos, neg) => ratioBand(pos, neg).color;
+
+  const cellLabel = (txt) => h('div',{style:{
+    color:'var(--muted)', fontSize:'12px', lineHeight:'1.3',
+  }}, txt);
+  const cellRatio = (pos, neg) => {
+    const band = ratioBand(pos, neg);
+    const noData = pos === 0 && neg === 0;
+    return h('div',{style:{
+      textAlign:'center', fontFamily:"'Libre Baskerville', serif",
+      fontSize:'13px', fontWeight:'400',
+      color: noData ? 'var(--muted-2)' : 'var(--text-strong)',
+      background: noData ? 'transparent' : band.color,
+      padding:'3px 6px', borderRadius:'4px', lineHeight:'1.2',
+    }}, fmtRatio(pos, neg));
+  };
+  const sectionRow = (txt) => h('div',{style:{
+    gridColumn:'1/-1', fontSize:'10px', fontWeight:'400',
+    color:'var(--muted)', letterSpacing:'0.05em',
+    textTransform:'uppercase', marginTop:'8px', paddingBottom:'2px',
+    borderBottom:'1px solid var(--surface-2)',
+  }}, txt);
+  const swatch = (color) => h('span',{style:{
+    display:'inline-block', width:'8px', height:'8px',
+    background:color, borderRadius:'50%', marginRight:'4px',
+    verticalAlign:'middle',
+  }});
+
+  return h('div', { style:{ marginBottom:'14px' } },
+    h('div', { class:'ins-section' },
+      h('div', { class:'ins-section-title', style:{ fontWeight:'600' } }, 'Positivity ratio'),
+    ),
+    // Band legend — uses the app's zone names so the meaning carries.
+    h('div',{style:{
+      display:'flex', flexWrap:'wrap', gap:'8px 12px',
+      fontSize:'10px', color:'var(--muted)', marginBottom:'10px',
+    }},
+      h('span',{}, swatch('rgba(77,196,120,0.55)'),  '≥ 5:1 Thriving'),
+      h('span',{}, swatch('rgba(168,196,140,0.55)'), '≥ 4:1 Healthy'),
+      h('span',{}, swatch('rgba(210,200,120,0.55)'), '≥ 3:1 Progressing'),
+      h('span',{}, swatch('rgba(224,160,80,0.55)'),  '≥ 2:1 Unsettled'),
+      h('span',{}, swatch('rgba(224,100,80,0.55)'),  '≥ 1:1 Difficult'),
+      h('span',{}, swatch('rgba(224,53,53,0.55)'),   '< 1:1 Hurting'),
+    ),
+    h('div', { style:{
+      padding:'12px 14px', background:'var(--bg2)',
+      border:'1px solid var(--border)', borderRadius:'14px',
+      display:'grid',
+      gridTemplateColumns:'auto repeat(3, minmax(0,1fr))',
+      gap:'8px 8px', alignItems:'baseline',
+    }},
+      // Window header
+      h('div', {}),
+      ...WINDOWS.map(w => h('div',{style:{
+        textAlign:'right', color:'var(--muted-2)', fontSize:'11px',
+        fontWeight:'600', textTransform:'uppercase', letterSpacing:'0.05em',
+      }}, w.label)),
+
+      // POINTS section — positive vs negative scored impact.
+      sectionRow('Points — positive : negative impact'),
+      cellLabel(S.relationshipMode === 'individual' ? 'Social' : 'Relational'),
+      ...data.map(d => cellRatio(d.vals.relPoints.pos, d.vals.relPoints.neg)),
+      cellLabel('Personal'),
+      ...data.map(d => cellRatio(d.vals.perPoints.pos, d.vals.perPoints.neg)),
+
+      // EVENTS section — count of positive vs negative logged events.
+      sectionRow('Events — positive : negative count'),
+      cellLabel(S.relationshipMode === 'individual' ? 'Social' : 'Relational'),
+      ...data.map(d => cellRatio(d.vals.relCounts.pos, d.vals.relCounts.neg)),
+      cellLabel('Personal'),
+      ...data.map(d => cellRatio(d.vals.perCounts.pos, d.vals.perCounts.neg)),
+    ),
+  );
+}
+
+// Storm matrix definitions — a static reference table. Columns are the 6
+// impact-tier % cutoffs we use to size storm icons; rows are the four storm
+// combos. Each cell shows the combo's icon at the size that tier represents,
+// so users can see the storm progression as a legend. No live data, no
+// current-state highlighting.
+function buildStormMatrixDebug() {
+  // Per-tier icon size multiplier (applied to the matrix's base 16px).
+  const IMPACT_SIZES = [0.5, 0.7, 0.9, 1.1, 1.4, 1.7]; // tiers 1..6
+  // Top header row shows the 6 impact-tier % cutoffs. Point values use a
+  // uniform max of 100 across every combo — if a combo's actual max is lower
+  // (e.g. steadying with light caretaker types), the upper tiers simply won't
+  // be hit, but the labels stay consistent across the whole matrix.
+  const ZONE_BANDS_LOCAL = [
+    { key: 'thriving',    label: 'Thriving',    threshold: '≤ 10%',  points: '≤ 10 pt' },
+    { key: 'healthy',     label: 'Healthy',     threshold: '≤ 20%',  points: '≤ 20 pt' },
+    { key: 'progressing', label: 'Progressing', threshold: '≤ 30%',  points: '≤ 30 pt' },
+    { key: 'unsettled',   label: 'Unsettled',   threshold: '≤ 40%',  points: '≤ 40 pt' },
+    { key: 'difficult',   label: 'Difficult',   threshold: '≤ 50%',  points: '≤ 50 pt' },
+    { key: 'hurting',     label: 'Hurting',     threshold: '> 50%',  points: '> 50 pt' },
+  ];
+  const headerStyle = {
+    fontSize:'10px', fontWeight:'600', color:'var(--text-strong)',
+    letterSpacing:'0.05em', textTransform:'uppercase',
+  };
+  const hiBg = 'rgba(210,160,40,0.20)';
+  const hiBorder = '1px solid rgba(210,160,40,0.5)';
+  // Only include combos whose category is currently enabled — disabled
+  // categories can't produce events, so their rows are noise here.
+  const isComboEnabled = (combo) => {
+    if (combo === 'conflict')  return S.showConflict;
+    if (combo === 'turndown')  return S.showPhysical;
+    if (combo === 'wobble')    return S.showRegulation;
+    if (combo === 'steadying') return S.showCaretaker;
+    if (combo === 'friction')  return S.relationshipMode === 'individual';
+    return true;
+  };
+  const combos = Object.keys(STORM_MATRIX).filter(isComboEnabled);
+  if (combos.length === 0) return null;
+  return h('div', {style:{
+    marginTop:'10px', marginBottom:'14px',
+    padding:'10px 12px', borderRadius:'10px',
+    background:'var(--surface-1)', border:'1px solid var(--surface-2)',
+    fontFamily:"'DM Sans', sans-serif",
+  }},
+    // Title rendered inside the panel so it reads as a debug card, matching
+    // the home page debug panels' visual convention.
+    h('div',{style:{...headerStyle, marginBottom:'10px'}}, 'Storm matrix debug'),
+    h('div',{},
+      h('div',{style:{
+        display:'grid',
+        gridTemplateColumns: '100px repeat(' + ZONE_BANDS_LOCAL.length + ', minmax(0,1fr))',
+        gap:'2px 4px', fontSize:'10px', alignItems:'center',
+      }},
+        // Header row: tier % thresholds across the columns.
+        h('span',{}, ''),
+        ...ZONE_BANDS_LOCAL.map(z => h('span',{style:{
+          textAlign:'center', fontSize:'10px', fontFamily:"'Libre Baskerville', serif",
+          color:'var(--text-strong)',
+        }}, z.threshold)),
+        // Data rows — one per storm combo. Icon size in each column comes from
+        // the column's own tier multiplier (column 1 = smallest, column 6 = biggest).
+        ...combos.flatMap(combo => {
+          const meta = STORM_COMBO_META[combo] || {};
+          return [
+            h('span',{style:{
+              color:'var(--text-strong)', fontWeight:'600',
+              fontSize:'10px',
+            }}, combo + ' (' + (meta.balance || '?') + ')'),
+            ...ZONE_BANDS_LOCAL.map((z, colIdx) => {
+              const cell = STORM_MATRIX[combo][z.key];
+              const iconSize = Math.round(16 * IMPACT_SIZES[colIdx]);
+              // Most-severe tier: render the base storm icon with a warning
+              // badge (⚠️) overlaid at 50% size, instead of relying on the
+              // bang/lightning glyph baked into the cell string.
+              const isSevere = z.key === 'hurting';
+              const baseIcon = isSevere
+                ? cell.icon.replace('⚠️','').trim()
+                : cell.icon;
+              const overlaySize = Math.round(iconSize * 0.5);
+              return h('div',{
+                style:{
+                  textAlign:'center', padding:'3px 4px',
+                  color:'var(--muted)',
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:'2px',
+                },
+                title: cell.icon + ' ' + cell.label,
+              },
+                h('div',{style:{position:'relative', display:'inline-block', lineHeight:'1'}},
+                  h('div',{style:{fontSize: iconSize + 'px', lineHeight:'1'}}, baseIcon),
+                  isSevere ? h('div',{style:{
+                    position:'absolute',
+                    top:'-2px', right:'-' + Math.round(overlaySize * 0.3) + 'px',
+                    fontSize: overlaySize + 'px', lineHeight:'1',
+                    pointerEvents:'none',
+                  }}, '⚠️') : null,
+                ),
+                h('div',{style:{fontSize:'9px', lineHeight:'1.2'}}, cell.label),
+                h('div',{style:{
+                  fontSize:'9px', lineHeight:'1.2',
+                  fontFamily:"'Libre Baskerville', serif",
+                  color:'var(--text-strong)',
+                }}, z.points),
+              );
+            }),
+          ];
+        }),
+      ),
+    ),
+  );
+}
+
+// Climate (cumulative end-of-day scores, lifetime zones). Storm icons size
+// by actual point impact of the day's events (sum across multiple events of
+// the same combo).
+function buildClimateChart() {
+  return buildHistoricalChart({
+    mode: 'cumulative',
+    title: 'Climate',
+    blurb: 'See how your atmosphere, relational, and personal scores have changed and developed over the last N days.',
+    iconSizing: 'points',
+  });
+}
+
+// Weather (per-day contribution, daily zones). What each day actually was —
+// sharp, immediate, using the Log calendar's daily-change thresholds. Storm
+// icons size by actual point impact of the day's events.
+// Blurb is a function so it adapts to the active Tenor/Combined mode.
+function buildWeatherChart() {
+  return buildHistoricalChart({
+    mode: 'velocity',
+    title: 'Weather',
+    blurb: () => {
+      const isSplit = S._weatherBarMode === 'split';
+      if (isSplit) {
+        return 'How much each day moved your relational (pink) and personal (blue) balance.';
+      }
+      return 'How much each day moved your overall atmosphere.';
+    },
+    iconSizing: 'points',
+  });
+}
+
+// ── Historical chart core — horizontally-scrollable backward view. Compact
+// (day label + zone icon header, rel/per lines, storm icons on logged days).
+// Lookback caps at the same PCT_WINDOW the home page uses (min of max-event
+// lifespan, days since first scored entry, days since calcStartDate).
+function buildHistoricalChart(opts) {
+  const isVelocity = opts.mode === 'velocity';
+  // Icon sizing mode: 'zone' (default) = current zone's STORM_ZONE_SIZE
+  // multiplier; 'points' = tiered by that day's actual summed |impact| for
+  // the combo (mirrors the storm-matrix point tiers: ≤10 / ≤20 / ≤30 / ≤40
+  // / ≤50 / >50 pt).
+  const iconSizingMode = opts.iconSizing || 'zone';
+  const POINT_TIER_SIZES = [0.5, 0.7, 0.9, 1.1, 1.4, 1.7];
+  const pointTierFor = (absImpact) => {
+    if (absImpact > 50) return 6;
+    if (absImpact > 40) return 5;
+    if (absImpact > 30) return 4;
+    if (absImpact > 20) return 3;
+    if (absImpact > 10) return 2;
+    return 1;
+  };
+  const stormIconSize = (zoneKey, summedImpact) => {
+    if (iconSizingMode === 'points') {
+      return Math.round(30 * POINT_TIER_SIZES[pointTierFor(Math.abs(summedImpact)) - 1]);
+    }
+    return Math.round(30 * (STORM_ZONE_SIZE[zoneKey] || 1));
+  };
+  const allEntries = calcEntries();
+  if (allEntries.length === 0) return null;
+  const zones7 = getBounds();
+  const dailyZones = _dailyZoneBounds();
+  // Helpers that pick the right zone scale per chart mode.
+  const headerZoneIcon = (v) => isVelocity
+    ? _dailyZoneIconFor(v, dailyZones)
+    : _zoneIconFor(v, zones7);
+  const stormZoneKey = (v) => isVelocity
+    ? _dailyStormZoneKeyFor(v, dailyZones)
+    : _stormZoneKeyFor(v, zones7);
+
+  // Lookback window. expLifespan(100) ≈ 63 days with default weights.
+  const DOW_WINDOW = Math.max(7, Math.round(expLifespan(100)));
+  const _dayCapByDate = {};
+  for (const e of allEntries) {
+    if (e.category === 'libido' && _dayCapByDate[e.date] === undefined) {
+      _dayCapByDate[e.date] = bankDayCap(e);
+    }
+  }
+  const _capFor = (date) => _dayCapByDate[date] ?? bankDayCap(null);
+  const _hasPoints = (e) => {
+    const { rel, per, soc } = expEntryScores(e, _capFor(e.date));
+    return rel !== 0 || per !== 0 || (soc || 0) !== 0;
+  };
+  let firstScored = null;
+  for (const e of allEntries) {
+    if (e.date > S.today) continue;
+    if (!_hasPoints(e)) continue;
+    if (firstScored === null || e.date < firstScored) firstScored = e.date;
+  }
+  if (firstScored === null) return null;
+  const daysSinceFirst = Math.max(1, daysBetween(firstScored, S.today));
+  const daysSinceCalc = S.calcStartDate ? Math.max(1, daysBetween(S.calcStartDate, S.today)) : Infinity;
+  const LOOKBACK = Math.min(DOW_WINDOW, daysSinceFirst, daysSinceCalc);
+  if (LOOKBACK <= 0) return null;
+
+  // Per-day morning + afternoon scores
+  const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const contributionOnDate = (date) => {
+    let r = 0, p = 0, s = 0;
+    for (const e of allEntries) {
+      if (e.date !== date) continue;
+      if (!_hasPoints(e)) continue;
+      const { rel, per, soc } = expEntryScores(e, _capFor(e.date));
+      r += rel; p += per; s += (soc || 0);
+    }
+    return { rel: r, per: p, soc: s };
+  };
+  const days = [];
+  for (let off = -LOOKBACK; off <= 0; off++) {
+    const date = addDays(S.today, off);
+    const dow = new Date(date + 'T00:00:00').getDay();
+    const decayOnly = computeExperimentalScores(date);
+    const contrib = contributionOnDate(date);
+    days.push({
+      offset: off, date, dow, isToday: off === 0,
+      morning:      { rel: decayOnly.rel - contrib.rel, per: decayOnly.per - contrib.per, soc: (decayOnly.soc || 0) - contrib.soc },
+      afternoon:    { rel: decayOnly.rel, per: decayOnly.per, soc: decayOnly.soc || 0 },
+      contribution: { rel: contrib.rel, per: contrib.per, soc: contrib.soc },
+    });
+  }
+  // Per-day value picker: cumulative chart plots end-of-day score; velocity
+  // chart plots the day's own contribution (its rel/per delta).
+  const valFor = (d) => isVelocity ? d.contribution : d.afternoon;
+
+  // Storm impact per (date, balance, combo) for icon picking
+  const _stormCatToCombo = {};
+  for (const [combo, meta] of Object.entries(STORM_COMBO_META)) _stormCatToCombo[meta.cat] = combo;
+  const _stormImpactByDate = {};
+  for (const e of allEntries) {
+    const combo = _stormCatToCombo[e.category];
+    if (!combo) continue;
+    if (!_hasPoints(e)) continue;
+    const scores = expEntryScores(e, _capFor(e.date));
+    const meta = STORM_COMBO_META[combo];
+    // In Individual mode the "rel" slot is fed by social entries
+    // (so friction's score actually lives on scores.soc, not scores.rel).
+    const impact = meta.balance === 'rel'
+      ? (S.relationshipMode === 'individual' ? (scores.soc || 0) : scores.rel)
+      : scores.per;
+    const day = (_stormImpactByDate[e.date] ||= { rel:{}, per:{} });
+    day[meta.balance][combo] = (day[meta.balance][combo] || 0) + impact;
+  }
+  const pickMostNegative = (combosMap) => {
+    let best = null;
+    for (const [combo, impact] of Object.entries(combosMap)) {
+      if (best === null) { best = { combo, impact }; continue; }
+      if (impact < best.impact) { best = { combo, impact }; continue; }
+      if (impact === best.impact && (STORM_PRIORITY[combo] ?? 99) < (STORM_PRIORITY[best.combo] ?? 99)) {
+        best = { combo, impact };
+      }
+    }
+    return best;
+  };
+
+  // Y-axis range — shared by rel and per so the two series are directly
+  // comparable (one rel-spike vs. a same-magnitude per-spike read at the
+  // same height).
+  let lo = 0, hi = 0;
+  for (const d of days) {
+    const v = valFor(d);
+    // Include soc in the y-axis range so the Social line/bar fits the scale
+    // in Individual mode (it's 0 in other modes, no effect).
+    lo = Math.min(lo, v.rel, v.per, v.soc || 0);
+    hi = Math.max(hi, v.rel, v.per, v.soc || 0);
+  }
+  // Pad range; keep zero visible
+  const padRange = (a, b) => {
+    if (a === b) { a -= 10; b += 10; }
+    const span = b - a;
+    const pad = Math.max(5, span * 0.1);
+    return [a - pad, b + pad];
+  };
+  const [relLo, relHi] = padRange(lo, hi);
+  const [perLo, perHi] = [relLo, relHi];
+
+  // Layout — header holds: day label, date, zone icon, tenor score.
+  // Font sizes bumped up for legibility — header is taller, columns wider.
+  // DAY_W scales with the user's pinch-zoom level (transient, shared across
+  // Climate & Weather so both stay visually consistent). Max zoom (2.6x)
+  // targets roughly 4-5 days visible on a typical phone viewport; min zoom
+  // (0.5x) targets ~10 days for a quick overview.
+  const BASE_DAY_W = 68;
+  const ZOOM_MIN = 0.5;
+  const ZOOM_MAX = 2.6;
+  const zoomLevel = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, S._historicalZoom || 1));
+  const DAY_W = Math.round(BASE_DAY_W * zoomLevel);
+  const HEAD_H = 90;
+  const maxSpan = Math.max(relHi - relLo, perHi - perLo, 50);
+  const LINE_H = Math.min(280, Math.max(90, Math.round(80 + maxSpan * 0.55)));
+  const SVG_H = HEAD_H + LINE_H;
+  const AXIS_W = 36;
+  const TOTAL_W = days.length * DAY_W;
+  const chartTop = HEAD_H + 6;
+  const chartBot = SVG_H - 6;
+  const yOfRel = v => chartBot - ((v - relLo) / (relHi - relLo)) * (chartBot - chartTop);
+  const yOfPer = v => chartBot - ((v - perLo) / (perHi - perLo)) * (chartBot - chartTop);
+  const xOf = i => i * DAY_W + DAY_W / 2;
+
+  const mk = (tag, attrs, txt) => {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    if (txt != null) el.textContent = txt;
+    return el;
+  };
+
+  // Build main SVG
+  const svgEl = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgEl.setAttribute('viewBox', `0 0 ${TOTAL_W} ${SVG_H}`);
+  svgEl.setAttribute('preserveAspectRatio', 'none');
+  svgEl.style.cssText = `display:block;width:${TOTAL_W}px;height:${SVG_H}px;`;
+  svgEl.addEventListener('click', () => {
+    if (S._stormPopup) { S._stormPopup = null; render(); }
+  });
+
+  // Horizontal zero line
+  const zeroYRel = yOfRel(0);
+  svgEl.appendChild(mk('line', {
+    x1:'0', y1: zeroYRel.toFixed(1), x2: String(TOTAL_W), y2: zeroYRel.toFixed(1),
+    stroke:'var(--surface-2)', 'stroke-width':'0.5',
+  }));
+  // Vertical column dividers
+  for (let i = 1; i < days.length; i++) {
+    const x = i * DAY_W;
+    svgEl.appendChild(mk('line', {
+      x1: x.toFixed(1), y1: '0', x2: x.toFixed(1), y2: String(SVG_H),
+      stroke:'var(--surface-2)', 'stroke-width':'0.5',
+    }));
+  }
+
+  // Row 1: day label + date + zone icon + tenor score
+  for (let i = 0; i < days.length; i++) {
+    const d = days[i];
+    const cx = xOf(i);
+    const v = valFor(d);
+    const tenorVal = Math.round((v.rel + v.per) / 2);
+    const zi = headerZoneIcon((v.rel + v.per) / 2);
+    const dateObj = new Date(d.date + 'T00:00:00');
+    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    // Day label
+    svgEl.appendChild(mk('text', {
+      x: cx.toFixed(1), y: '13', 'text-anchor':'middle',
+      'font-size':'10', 'font-family':"'DM Sans', sans-serif",
+      fill: d.isToday ? 'var(--text-strong)' : 'var(--muted)',
+      'font-weight': d.isToday ? '700' : '500',
+      'letter-spacing':'0.04em',
+    }, d.isToday ? 'TODAY' : DAY_NAMES[d.dow].toUpperCase()));
+    // Date (Mar 4 etc.)
+    svgEl.appendChild(mk('text', {
+      x: cx.toFixed(1), y: '27', 'text-anchor':'middle',
+      'font-size':'10', 'font-family':"'DM Sans', sans-serif",
+      fill: 'var(--muted-2)',
+    }, dateStr));
+    // Zone icon
+    svgEl.appendChild(mk('text', {
+      x: cx.toFixed(1), y: '54', 'text-anchor':'middle',
+      'dominant-baseline':'central', 'font-size':'26',
+    }, zi.icon));
+    // Tenor score
+    svgEl.appendChild(mk('text', {
+      x: cx.toFixed(1), y: '80', 'text-anchor':'middle',
+      'font-size':'12', 'font-family':"'Libre Baskerville', serif",
+      fill: 'var(--text-strong)',
+      'font-weight': d.isToday ? '600' : '400',
+    }, (tenorVal >= 0 ? '+' : '') + tenorVal));
+  }
+
+  // Row 2 lines + storm icons are drawn by the dynamic-scale code below — they
+  // re-render on scroll so the rel/per axes ease toward the visible window's range.
+
+  // Scrollable container — SVG directly inside, drag-to-scroll for desktop.
+  const scrollWrap = h('div', {
+    style: {
+      flex:'1', overflowX:'auto', overflowY:'hidden',
+      WebkitOverflowScrolling:'touch', minWidth:'0',
+      cursor:'grab', userSelect:'none', touchAction:'pan-x',
+    },
+  }, svgEl);
+  // Pointer handling — single-pointer = drag-to-scroll, two-pointer = pinch-zoom.
+  // During a pinch we apply a CSS scaleX transform to the SVG for live visual
+  // feedback (no re-render — that would flash the whole page). Only on pinch
+  // end do we commit the new zoom to S._historicalZoom and re-render once.
+  const pointers = new Map();
+  let dragging = false, dragX = 0, dragScroll = 0;
+  let pinching = false, pinchStartDist = 0, pinchStartZoom = 1, pinchLastRatio = 1;
+  scrollWrap.addEventListener('pointerdown', (e) => {
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size >= 2) {
+      // Switch from drag to pinch.
+      dragging = false;
+      pinching = true;
+      scrollWrap.style.cursor = 'grab';
+      const [p1, p2] = [...pointers.values()];
+      pinchStartDist = Math.hypot(p1.x - p2.x, p1.y - p2.y) || 1;
+      pinchStartZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, S._historicalZoom || 1));
+      pinchLastRatio = 1;
+      svgEl.style.transformOrigin = '0 50%';
+    } else {
+      dragging = true;
+      dragX = e.clientX;
+      dragScroll = scrollWrap.scrollLeft;
+      scrollWrap.style.cursor = 'grabbing';
+      try { scrollWrap.setPointerCapture(e.pointerId); } catch(_) {}
+    }
+  });
+  scrollWrap.addEventListener('pointermove', (e) => {
+    if (pointers.has(e.pointerId)) {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    }
+    if (pinching && pointers.size >= 2) {
+      const [p1, p2] = [...pointers.values()];
+      const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y) || 1;
+      const proposed = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom * (dist / pinchStartDist)));
+      // Live preview only — scale the SVG visually relative to its starting state.
+      pinchLastRatio = proposed / pinchStartZoom;
+      svgEl.style.transform = 'scaleX(' + pinchLastRatio + ')';
+    } else if (dragging) {
+      scrollWrap.scrollLeft = dragScroll - (e.clientX - dragX);
+    }
+  });
+  const endPointer = (e) => {
+    pointers.delete(e.pointerId);
+    if (pinching && pointers.size < 2) {
+      // Pinch ended — commit zoom and re-render.
+      pinching = false;
+      svgEl.style.transform = '';
+      const finalZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, pinchStartZoom * pinchLastRatio));
+      if (Math.abs(finalZoom - (S._historicalZoom || 1)) > 0.01) {
+        S._historicalZoom = finalZoom;
+        render();
+      }
+    }
+    if (pointers.size === 0) { dragging = false; scrollWrap.style.cursor = 'grab'; }
+  };
+  scrollWrap.addEventListener('pointerup',     endPointer);
+  scrollWrap.addEventListener('pointercancel', endPointer);
+  scrollWrap.addEventListener('pointerleave',  endPointer);
+
+  // Y-axes — fixed range computed once from the full dataset. When a single
+  // outlier blows up the range, LINE_H (above) compensates by growing the
+  // chart vertically so ordinary days still have pixel space to vary in.
+  const buildAxis = (lo, hi, color, side) => {
+    const ax = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    ax.setAttribute('viewBox', `0 0 ${AXIS_W} ${SVG_H}`);
+    ax.setAttribute('preserveAspectRatio', 'none');
+    ax.style.cssText = `display:block;width:${AXIS_W}px;height:${SVG_H}px;flex-shrink:0;`;
+    // Velocity uses smaller ticks since one-day deltas are bounded.
+    const baseTicks = isVelocity
+      ? [-100, -50, -dailyZones.thriving, -dailyZones.stable, 0, dailyZones.stable, dailyZones.thriving, 50, 100]
+      : [-100, -75, -50, -25, 0, 25, 50, 75, 100];
+    // Deduplicate (handles cases where calStable/calThriving collide with stock values),
+    // then filter to the visible range, then sort.
+    const ticks = Array.from(new Set(baseTicks))
+      .filter(t => t >= lo && t <= hi)
+      .sort((a, b) => a - b);
+    // Drop ticks that would render too close together in pixel space (labels stack).
+    const filtered = [];
+    const minPx = 12;
+    for (const t of ticks) {
+      const y = chartBot - ((t - lo) / (hi - lo)) * (chartBot - chartTop);
+      if (filtered.length === 0 || Math.abs(filtered[filtered.length - 1].y - y) >= minPx) {
+        filtered.push({ t, y });
+      }
+    }
+    for (const { t, y } of filtered) {
+      ax.appendChild(mk('text', {
+        x: side === 'left' ? (AXIS_W - 3) : 3,
+        y: y.toFixed(1),
+        'text-anchor': side === 'left' ? 'end' : 'start',
+        'dominant-baseline':'central',
+        'font-size':'10', 'font-family':"'Libre Baskerville', serif",
+        fill: color,
+      }, String(t)));
+    }
+    return ax;
+  };
+  // Single Y-axis only — rel and per share a unified scale now, so a second
+  // axis would just duplicate the numbers. Right side (where "today" lives)
+  // is the natural place to keep it.
+  const relAxisSvg = buildAxis(relLo, relHi, 'var(--text-strong)', 'right');
+
+  // Lines (per + rel) — drawn once at the static scale.
+  const drawLine = (vals, yOf, color) => {
+    if (vals.length < 2) return;
+    let d = 'M' + xOf(0).toFixed(1) + ',' + yOf(vals[0]).toFixed(1);
+    for (let i = 1; i < vals.length; i++) {
+      d += ' L' + xOf(i).toFixed(1) + ',' + yOf(vals[i]).toFixed(1);
+    }
+    svgEl.appendChild(mk('path', {
+      d, fill:'none', stroke: color, 'stroke-width':'1.6',
+      'stroke-linecap':'round', 'stroke-linejoin':'round',
+    }));
+  };
+  // In Individual mode, the "rel" slot is occupied by Social — atmosphere
+  // averages soc + per instead of rel + per.
+  const isIndChartMain = S.relationshipMode === 'individual';
+  const tenorVals = days.map(d => {
+    const v = valFor(d);
+    const r = isIndChartMain ? (v.soc || 0) : v.rel;
+    return (r + v.per) / 2;
+  });
+
+  if (isVelocity) {
+    // Weather chart: one bar per day (or two in 'split' mode). Color depends on mode:
+    //   'tenor' — Log-calendar band tints (cumulative aggregate, sign + magnitude)
+    //   'split' — side-by-side rel + per bars, each colored per its own value/balance
+    // Sign reads from above/below the zero line; magnitude from bar height.
+    const mode = S._weatherBarMode || 'tenor';
+    const calS = S.weights.calStable   || 11;
+    const calT = S.weights.calThriving || 25;
+    const tenorBandColor = (v) => {
+      if (v >= calT)   return 'var(--c-partner)';
+      if (v >= calS)   return 'rgba(30,160,80,0.65)';
+      if (v > 0)       return 'rgba(30,160,80,0.35)';
+      if (v > -calS)   return 'rgba(224,130,40,0.65)';
+      if (v > -calT)   return 'rgba(220,80,40,0.70)';
+      return                  'var(--c-conflict)';
+    };
+    // Positive: type color intensity tracks the band (full / 0.65 / 0.35).
+    // Negative: shared standard negative bands across both balances so a bad
+    // day reads the same regardless of which balance produced it.
+    // In Individual mode, the "rel" slot is occupied by Social — so use the
+    // social color and the per-day soc value instead of rel.
+    const isIndChart = S.relationshipMode === 'individual';
+    const REL_POS_RGB = isIndChart ? '217,152,117' : '224,133,184'; // --c-social vs --c-affection
+    const PER_POS_RGB = '90,184,212';                                // --c-restore
+    const PRIM_POS_VAR = isIndChart ? 'var(--c-social)' : 'var(--c-affection)';
+    // Pull the "positive relational-slot" value off the day record — soc in
+    // Individual mode, rel otherwise. Used by the bar drawing below.
+    const primOf = (v) => isIndChart ? (v.soc || 0) : v.rel;
+    const typeBarColor = (v, balance) => {
+      if (v < 0) {
+        if (v > -calS) return 'rgba(224,130,40,0.65)';
+        if (v > -calT) return 'rgba(220,80,40,0.70)';
+        return                'var(--c-conflict)';
+      }
+      const rgb = balance === 'rel' ? REL_POS_RGB : PER_POS_RGB;
+      const base = balance === 'rel' ? PRIM_POS_VAR : 'var(--c-restore)';
+      if (v >= calT) return base;                          // Thriving — full type color
+      if (v >= calS) return 'rgba(' + rgb + ',0.65)';       // Healthy
+      return                'rgba(' + rgb + ',0.35)';       // Progressing
+    };
+    const zeroY = yOfRel(0);
+    const drawBar = (xLeft, w, v, color) => {
+      if (v === 0 || !isFinite(v)) return;
+      const y1 = yOfRel(v);
+      const top = Math.min(zeroY, y1);
+      const ht  = Math.abs(zeroY - y1);
+      svgEl.appendChild(mk('rect', {
+        x: xLeft.toFixed(1), y: top.toFixed(1),
+        width: w.toFixed(1), height: Math.max(1, ht).toFixed(1),
+        fill: color, rx: '2', ry: '2',
+      }));
+    };
+    // Rounded integer value drawn just above the bar's top edge — for positive
+    // bars that's above the value's tip; for negative bars that's above the
+    // zero line (so the label never clashes with the storm-icon row below).
+    const drawValueLabel = (cx, v) => {
+      if (!isFinite(v)) return;
+      const rounded = Math.round(v);
+      const label = (rounded > 0 ? '+' : '') + rounded;
+      const topY = v >= 0 ? yOfRel(v) : zeroY;
+      const y = Math.max(chartTop + 6, topY - 7);
+      svgEl.appendChild(mk('text', {
+        x: cx.toFixed(1), y: y.toFixed(1),
+        'text-anchor': 'middle',
+        'dominant-baseline': 'central',
+        'font-size': '11',
+        'font-family': "'Libre Baskerville', serif",
+        fill: 'var(--text-strong)',
+      }, label));
+    };
+    if (mode === 'split') {
+      // Total width (both bars + gap) matches the single-bar width so the
+      // column footprint stays consistent across modes.
+      const TOTAL_W = Math.max(8, DAY_W * 0.55);
+      const GAP   = 2;
+      const BAR_W = Math.max(3, (TOTAL_W - GAP) / 2);
+      // Zero-value stub: when the day has activity on the OTHER balance but
+      // this one came out at 0, render a small marker at the zero line in the
+      // lightest positive type color (rather than showing nothing).
+      const drawZeroStub = (xLeft, w, balance) => {
+        const rgb = balance === 'rel' ? REL_POS_RGB : PER_POS_RGB;
+        const stubH = 3;
+        svgEl.appendChild(mk('rect', {
+          x: xLeft.toFixed(1),
+          y: (zeroY - stubH / 2).toFixed(1),
+          width: w.toFixed(1),
+          height: String(stubH),
+          fill: 'rgba(' + rgb + ',0.35)',
+          rx: '1.5', ry: '1.5',
+        }));
+      };
+      // Every day in the window renders bars — 0-value sides show the stub at
+      // the zero line so the user can see "this day was logged but balanced /
+      // had no impact" rather than a missing column.
+      for (let i = 0; i < days.length; i++) {
+        const v = valFor(days[i]);
+        const cx = xOf(i);
+        const xRel = cx - GAP / 2 - BAR_W;
+        const xPer = cx + GAP / 2;
+        const cxRel = xRel + BAR_W / 2;
+        const cxPer = xPer + BAR_W / 2;
+        const primVal = primOf(v);
+        if (primVal === 0) drawZeroStub(xRel, BAR_W, 'rel');
+        else               drawBar(xRel, BAR_W, primVal, typeBarColor(primVal, 'rel'));
+        if (v.per === 0) drawZeroStub(xPer, BAR_W, 'per');
+        else             drawBar(xPer, BAR_W, v.per, typeBarColor(v.per, 'per'));
+        drawValueLabel(cxRel, primVal);
+        drawValueLabel(cxPer, v.per);
+      }
+    } else {
+      // Tenor mode — single atmosphere bar per day = avg of the two positive
+      // axes for the active mode (rel+per in partner/dating, soc+per in
+      // Individual). Zero days render a thin stub.
+      const BAR_W = Math.max(8, DAY_W * 0.55);
+      const drawTenorStub = (xLeft, w) => {
+        const stubH = 3;
+        svgEl.appendChild(mk('rect', {
+          x: xLeft.toFixed(1),
+          y: (zeroY - stubH / 2).toFixed(1),
+          width: w.toFixed(1),
+          height: String(stubH),
+          fill: 'rgba(30,160,80,0.35)',
+          rx: '1.5', ry: '1.5',
+        }));
+      };
+      for (let i = 0; i < days.length; i++) {
+        const v = valFor(days[i]);
+        const cx = xOf(i);
+        const dayVal = (primOf(v) + v.per) / 2;
+        if (dayVal === 0) {
+          drawTenorStub(cx - BAR_W / 2, BAR_W);
+        } else {
+          drawBar(cx - BAR_W / 2, BAR_W, dayVal, tenorBandColor(dayVal));
+          drawValueLabel(cx, dayVal);
+        }
+      }
+    }
+  } else {
+    // Climate chart: tenor line first (under rel/per) — the midpoint, as a soft
+    // dashed reference. Same yOf since rel/per share a scale.
+    if (tenorVals.length >= 2) {
+      let d = 'M' + xOf(0).toFixed(1) + ',' + yOfRel(tenorVals[0]).toFixed(1);
+      for (let i = 1; i < tenorVals.length; i++) {
+        d += ' L' + xOf(i).toFixed(1) + ',' + yOfRel(tenorVals[i]).toFixed(1);
+      }
+      svgEl.appendChild(mk('path', {
+        d, fill:'none', stroke:'var(--muted)', 'stroke-width':'1.2',
+        'stroke-dasharray':'3,3', 'stroke-linecap':'round',
+        opacity:'0.7',
+      }));
+    }
+    drawLine(days.map(d => valFor(d).per), yOfPer, 'var(--c-restore)');
+    // In Individual mode, Social takes the slot Relational normally occupies —
+    // it scores against the same atmosphere axis the user reads off the chart.
+    if (S.relationshipMode === 'individual') {
+      drawLine(days.map(d => valFor(d).soc || 0), yOfRel, 'var(--c-social)');
+    } else {
+      drawLine(days.map(d => valFor(d).rel), yOfRel, 'var(--c-affection)');
+    }
+  }
+
+  // Base Tenor — EMA of the daily tenor, matching the love-bank widget's
+  // 4-week smoothing (alpha eases toward 2/29 ≈ 28-day half-life). Climate
+  // mode only; on the velocity chart a moving-average of deltas is noisy
+  // and less meaningful. Drawn on top so it reads as the trend line.
+  let baseTenorEnd = null;
+  if (!isVelocity && tenorVals.length >= 2) {
+    const SMOOTHING_TARGET = 2 / 29;
+    const baseVals = [];
+    let b = null;
+    for (let i = 0; i < tenorVals.length; i++) {
+      const alpha = Math.max(SMOOTHING_TARGET, 2 / (i + 2));
+      b = b === null ? tenorVals[i] : b * (1 - alpha) + tenorVals[i] * alpha;
+      baseVals.push(b);
+    }
+    baseTenorEnd = b;
+    // Neutral baseline color — see buildBaseTenorChart for the rationale.
+    const baseColor = '#4eb8b0';
+    let d = 'M' + xOf(0).toFixed(1) + ',' + yOfRel(baseVals[0]).toFixed(1);
+    for (let i = 1; i < baseVals.length; i++) {
+      d += ' L' + xOf(i).toFixed(1) + ',' + yOfRel(baseVals[i]).toFixed(1);
+    }
+    svgEl.appendChild(mk('path', {
+      d, fill:'none', stroke: baseColor, 'stroke-width':'2.2',
+      'stroke-linecap':'round', 'stroke-linejoin':'round',
+    }));
+  }
+
+  // Storm icons on event days (max 1 per balance line per day; tie-break by STORM_PRIORITY).
+  const buildIconNode = (iconStr, x, y, popupKey, popupText, size) => {
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.style.cursor = 'pointer';
+    group.addEventListener('pointerdown', (ev) => { ev.stopPropagation(); });
+    group.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      S._stormPopup = (S._stormPopup === popupKey) ? null : popupKey;
+      render();
+    });
+    const baseSize = size || 30;
+    // Most-severe tier convention: glyph ends with ⚠️. Render the base icon
+    // alone and overlay a half-size warning shield at the top-right, matching
+    // the storm matrix's debug rendering.
+    const hasShield = iconStr.indexOf('⚠️') >= 0;
+    if (hasShield) {
+      const baseIcon = iconStr.replace('⚠️', '').trim();
+      group.appendChild(mk('text', {
+        x: x.toFixed(1), y: y.toFixed(1),
+        'text-anchor':'middle', 'dominant-baseline':'central',
+        'font-size': String(baseSize),
+      }, baseIcon));
+      const overlaySize = Math.round(baseSize * 0.5);
+      group.appendChild(mk('text', {
+        x: (x + baseSize * 0.32).toFixed(1),
+        y: (y - baseSize * 0.32).toFixed(1),
+        'text-anchor':'middle', 'dominant-baseline':'central',
+        'font-size': String(overlaySize),
+      }, '⚠️'));
+    } else {
+      group.appendChild(mk('text', {
+        x: x.toFixed(1), y: y.toFixed(1),
+        'text-anchor':'middle', 'dominant-baseline':'central',
+        'font-size': String(baseSize),
+      }, iconStr));
+    }
+    if (S._stormPopup === popupKey) {
+      // Width measured from the actual rendered text so the box always fits.
+      const measuredW = measureTextWidth(popupText, 12, "'DM Sans', sans-serif");
+      const popupW = Math.min(Math.max(measuredW + 20, 100), Math.min(320, TOTAL_W - 10));
+      const popupH = 26;
+      const aboveY = y - 16 - popupH;
+      const belowY = y + 16;
+      const py = (aboveY >= 2) ? aboveY : belowY;
+      const px = Math.max(2, Math.min(x - popupW / 2, TOTAL_W - popupW - 2));
+      group.appendChild(mk('rect', {
+        x: px.toFixed(1), y: py.toFixed(1),
+        width: popupW.toFixed(1), height: String(popupH),
+        rx:'6', ry:'6',
+        fill:'var(--bg2)', stroke:'var(--border-mid)', 'stroke-width':'1',
+      }));
+      group.appendChild(mk('text', {
+        x: (px + popupW / 2).toFixed(1),
+        y: (py + popupH / 2 + 1).toFixed(1),
+        'text-anchor':'middle', 'dominant-baseline':'central',
+        'font-size':'12', 'font-family':"'DM Sans', sans-serif",
+        fill:'var(--text-strong)',
+      }, popupText));
+    }
+    svgEl.appendChild(group);
+  };
+  for (let i = 0; i < days.length; i++) {
+    const d = days[i];
+    const dayImp = _stormImpactByDate[d.date];
+    if (!dayImp) continue;
+    const dv = valFor(d);
+    // Order combos rel-first so the rel icon sits left of the per icon when both render.
+    const balanceOrder = ['rel', 'per'];
+    const picks = balanceOrder.map(b => ({ balance: b, pick: pickMostNegative(dayImp[b]) })).filter(x => x.pick);
+    if (picks.length === 0) continue;
+    if (isVelocity) {
+      // Both balances always render — only Tenor and Combined modes remain.
+      // Tenor mode: icons under the single bar, offset ±11 when both rel and
+      // per events fired, centered otherwise.
+      // Combined mode: each icon sits on its bar's side of the column divide,
+      // y anchored to that bar's bottom.
+      const mode = S._weatherBarMode || 'tenor';
+      const zeroY = yOfRel(0);
+      const cx = xOf(i);
+      // 30px icons need ~17px half-offset so two glyphs don't overlap, and
+      // ~18px clearance from the bar's edge so they read as below the bar.
+      const ICON_HALF_OFFSET = 17;
+      const ICON_GAP_FROM_BAR = 18;
+      const ICON_BOTTOM_MARGIN = 16;
+      for (const { balance, pick } of picks) {
+        const balVal = balance === 'rel' ? dv.rel : dv.per;
+        const zoneKey = stormZoneKey(balVal);
+        const cell = STORM_MATRIX[pick.combo] && STORM_MATRIX[pick.combo][zoneKey];
+        if (!cell || !cell.icon) continue;
+        const iconSize = stormIconSize(zoneKey, pick.impact);
+        let ix, cy;
+        if (mode === 'split') {
+          ix = balance === 'rel' ? cx - ICON_HALF_OFFSET : cx + ICON_HALF_OFFSET;
+          const barBottom = balVal < 0 ? yOfRel(balVal) : zeroY;
+          cy = Math.min(chartBot - ICON_BOTTOM_MARGIN, barBottom + ICON_GAP_FROM_BAR);
+        } else {
+          // Tenor mode — y from the tenor bar.
+          const tenorVal = (dv.rel + dv.per) / 2;
+          const barBottom = tenorVal < 0 ? yOfRel(tenorVal) : zeroY;
+          cy = Math.min(chartBot - ICON_BOTTOM_MARGIN, barBottom + ICON_GAP_FROM_BAR);
+          ix = picks.length === 1
+            ? cx
+            : (balance === 'rel' ? cx - ICON_HALF_OFFSET : cx + ICON_HALF_OFFSET);
+        }
+        buildIconNode(cell.icon, ix, cy,
+          'hist_v' + i + '_' + pick.combo,
+          cell.label + ' · ' + pick.combo + ' logged',
+          iconSize);
+      }
+    } else {
+      // Climate: anchor each icon to its balance line so the user sees where the
+      // event lived in score-space. Icon size respects the chart's iconSizing
+      // option (zone-based by default, points-based for the test variant); the
+      // gap above the line scales with icon size so the bottom edge clears it.
+      for (const { balance, pick } of picks) {
+        const balVal = balance === 'rel' ? dv.rel : dv.per;
+        const zoneKey = stormZoneKey(balVal);
+        const cell = STORM_MATRIX[pick.combo] && STORM_MATRIX[pick.combo][zoneKey];
+        if (!cell || !cell.icon) continue;
+        const iconSize = stormIconSize(zoneKey, pick.impact);
+        const cx = xOf(i);
+        const cy = (balance === 'rel' ? yOfRel(balVal) : yOfPer(balVal)) - Math.round(iconSize * 0.6);
+        buildIconNode(cell.icon, cx, cy,
+          'hist_c' + i + '_' + pick.combo,
+          cell.label + ' · ' + pick.combo + ' logged',
+          iconSize);
+      }
+    }
+  }
+
+  // Scroll position persists across renders so clicking a storm icon or
+  // toggling a mode doesn't snap you back to "today". S._historicalScrollFrac
+  // = scrollLeft / (scrollWidth - clientWidth), so zoom changes preserve the
+  // approximate viewport position rather than the exact pixel offset.
+  // Also: Climate and Weather scroll together — when one scrolls, the other
+  // follows so the same date stays under the user's eye across both charts.
+  _historicalScrollWraps.add(scrollWrap);
+  scrollWrap.addEventListener('scroll', () => {
+    const maxScroll = scrollWrap.scrollWidth - scrollWrap.clientWidth;
+    if (maxScroll <= 0) return;
+    S._historicalScrollFrac = scrollWrap.scrollLeft / maxScroll;
+    // Sync sibling charts to the same fraction. Skip self and any disconnected
+    // wraps (stale from previous renders).
+    for (const peer of _historicalScrollWraps) {
+      if (peer === scrollWrap) continue;
+      if (!peer.isConnected) { _historicalScrollWraps.delete(peer); continue; }
+      const peerMax = peer.scrollWidth - peer.clientWidth;
+      if (peerMax <= 0) continue;
+      const target = Math.round(S._historicalScrollFrac * peerMax);
+      if (Math.abs(peer.scrollLeft - target) > 1) peer.scrollLeft = target;
+    }
+  });
+  requestAnimationFrame(() => {
+    const maxScroll = scrollWrap.scrollWidth - scrollWrap.clientWidth;
+    if (S._historicalScrollFrac != null && maxScroll > 0) {
+      scrollWrap.scrollLeft = Math.round(S._historicalScrollFrac * maxScroll);
+    } else {
+      // First render — default to far right (today).
+      scrollWrap.scrollLeft = scrollWrap.scrollWidth;
+      S._historicalScrollFrac = 1;
+    }
+  });
+
+  // Blurb — wrappers pass a generic line; we inject the actual lookback here so the
+  // chart-day count is self-documenting without each wrapper having to compute it.
+  // Blurb may be a string OR a function returning a string (Weather uses a
+  // function so the copy can change with the active Tenor/Combined mode).
+  const rawBlurb = typeof opts.blurb === 'function' ? opts.blurb() : (opts.blurb || '');
+  const blurbText = rawBlurb.replace('N days', LOOKBACK + ' days');
+  // Weather-only: toggle between tenor and combined (rel + per side-by-side).
+  // State lives on S._weatherBarMode (transient).
+  if (isVelocity && !['tenor', 'split'].includes(S._weatherBarMode)) {
+    S._weatherBarMode = 'tenor';
+  }
+  const toggleBtn = (label, mode) => h('button', {
+    style: {
+      padding: '3px 9px', fontSize: '10px',
+      fontFamily: "'DM Sans', sans-serif",
+      letterSpacing: '0.04em', textTransform: 'uppercase',
+      border: '1px solid ' + (S._weatherBarMode === mode ? 'var(--border-mid)' : 'var(--border)'),
+      background: S._weatherBarMode === mode ? 'var(--bg3)' : 'var(--bg2)',
+      color: S._weatherBarMode === mode ? 'var(--text-strong)' : 'var(--muted)',
+      cursor: 'pointer', borderRadius: '4px',
+    },
+    onclick: () => { S._weatherBarMode = mode; render(); },
+  }, label);
+  return h('div', { style:{ marginBottom:'14px' } },
+    h('div', { class:'ins-section', style:{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:'10px' } },
+      h('div', { class:'ins-section-title', style:{ fontWeight:'600' } }, opts.title || 'Past weather'),
+      // Weather-only toggle — two modes.
+      isVelocity ? h('div', { style:{ display:'flex', gap:'4px' } },
+        toggleBtn('Atmosphere', 'tenor'),
+        toggleBtn('Combined', 'split'),
+      ) : null,
+    ),
+    h('div', { style:{ fontSize:'11px', color:'var(--muted)', marginBottom:'10px', lineHeight:'1.6' } },
+      blurbText),
+    h('div', { style:{ display:'flex', alignItems:'stretch', width:'100%' } },
+      scrollWrap,
+      relAxisSvg,
+    ),
+    h('div', {style:{display:'flex',gap:'14px',justifyContent:'flex-end',marginTop:'4px',flexWrap:'wrap'}},
+      isVelocity
+        ? (() => {
+            const mode = S._weatherBarMode || 'tenor';
+            // Shared negative strip used by both rel and per.
+            const negStrip = () => h('div',{style:{display:'flex',gap:'1px'}},
+              h('div',{style:{width:'4px',height:'8px',background:'var(--c-conflict)',borderRadius:'1px'}}),
+              h('div',{style:{width:'4px',height:'8px',background:'rgba(220,80,40,0.70)',borderRadius:'1px'}}),
+              h('div',{style:{width:'4px',height:'8px',background:'rgba(224,130,40,0.65)',borderRadius:'1px'}}),
+            );
+            // Positive 3-step strip for a type color (lightest → full).
+            const posStrip = (rgb, base) => h('div',{style:{display:'flex',gap:'1px'}},
+              h('div',{style:{width:'4px',height:'8px',background:'rgba(' + rgb + ',0.35)',borderRadius:'1px'}}),
+              h('div',{style:{width:'4px',height:'8px',background:'rgba(' + rgb + ',0.65)',borderRadius:'1px'}}),
+              h('div',{style:{width:'4px',height:'8px',background:base,borderRadius:'1px'}}),
+            );
+            if (mode === 'split') {
+              const isIndLegend = S.relationshipMode === 'individual';
+              const primRgb   = isIndLegend ? '217,152,117' : '224,133,184';
+              const primVar   = isIndLegend ? 'var(--c-social)' : 'var(--c-affection)';
+              const primLabel = isIndLegend ? 'Social' : 'Relational';
+              return [
+                h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+                  negStrip(),
+                  posStrip(primRgb, primVar),
+                  h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, primLabel),
+                ),
+                h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+                  negStrip(),
+                  posStrip('90,184,212', 'var(--c-restore)'),
+                  h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, 'Personal'),
+                ),
+              ];
+            }
+            // Tenor mode — six Log calendar bands.
+            return [h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              h('div',{style:{display:'flex',gap:'1px'}},
+                h('div',{style:{width:'4px',height:'8px',background:'var(--c-partner)',borderRadius:'1px'}}),
+                h('div',{style:{width:'4px',height:'8px',background:'rgba(30,160,80,0.65)',borderRadius:'1px'}}),
+                h('div',{style:{width:'4px',height:'8px',background:'rgba(30,160,80,0.35)',borderRadius:'1px'}}),
+                h('div',{style:{width:'4px',height:'8px',background:'rgba(224,130,40,0.65)',borderRadius:'1px'}}),
+                h('div',{style:{width:'4px',height:'8px',background:'rgba(220,80,40,0.70)',borderRadius:'1px'}}),
+                h('div',{style:{width:'4px',height:'8px',background:'var(--c-conflict)',borderRadius:'1px'}}),
+              ),
+              h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, 'Daily atmosphere (calendar bands)'),
+            )];
+          })()
+        : [
+            // Climate: Atmosphere → Relational → Personal → Base Atmosphere
+            // (matches the app-wide Atmosphere/Relational/Personal order;
+            // Base Atmosphere is its own thing, sits last as a related trend).
+            h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              h('div',{style:{width:'12px',height:'0',borderTop:'1.5px dashed var(--muted)',opacity:'0.8'}}),
+              h('span',{style:{fontSize:'10px',color:'var(--muted)'}},'Atmosphere'),
+            ),
+            h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              h('div',{style:{width:'12px',height:'2px',background: S.relationshipMode === 'individual' ? 'var(--c-social)' : 'var(--c-affection)',borderRadius:'1px'}}),
+              h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, S.relationshipMode === 'individual' ? 'Social' : 'Relational'),
+            ),
+            h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              h('div',{style:{width:'12px',height:'2px',background:'var(--c-restore)',borderRadius:'1px'}}),
+              h('span',{style:{fontSize:'10px',color:'var(--muted)'}},'Personal'),
+            ),
+            h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
+              h('div',{style:{width:'12px',height:'2.5px',background:'#4eb8b0',borderRadius:'1px'}}),
+              h('span',{style:{fontSize:'10px',color:'var(--muted)'}},'Base Atmosphere'),
+            ),
+          ]
+    ),
+  );
+}
+
 function buildInsightsPanel() {
   const winEntries = getWindowEntries();
   const prevEntries = getPrevWindowEntries();
@@ -3248,6 +4943,16 @@ function buildInsightsPanel() {
 
   return h('div',{class:'insights-panel'},
     (() => { try { return buildLoveBankPanel(); } catch(e) { console.error('Balance widget error:', e); return null; } })(),
+    // ── Climate — cumulative tenor (the conditions you've been living in), uses lifetime zones ──
+    (() => { try { return buildClimateChart(); } catch(e) { console.error('Climate chart error:', e); return null; } })(),
+    // ── Weather — per-day deltas (what each day actually was), uses the Log calendar's daily-change zones ──
+    (() => { try { return buildWeatherChart(); } catch(e) { console.error('Weather chart error:', e); return null; } })(),
+    // ── Base Tenor — slow EMA baseline (moved out of the Love Bank widget) ──
+    (() => { try { return buildBaseTenorChart(); } catch(e) { console.error('Base Tenor chart error:', e); return null; } })(),
+    // ── Positivity ratio — Gottman-style 5:1 adapted to your data ──
+    (() => { try { return buildPositivityRatioCard(); } catch(e) { console.error('Positivity ratio error:', e); return null; } })(),
+    // ── Storm matrix debug — only when debug panels are enabled ──
+    S.showDebug ? (() => { try { return buildStormMatrixDebug(); } catch(e) { console.error('Storm matrix debug error:', e); return null; } })() : null,
     // ── Observations (always visible — threshold-based weekly observations) ──
     // Threshold alerts surfaced as cards, mirroring the visual style of
     // Correlations below but without strength badges (these aren't statistical).
@@ -3259,7 +4964,7 @@ function buildInsightsPanel() {
       const wLabel  = 'Active right now';
       const pRef    = 'in your active stretch';
       const pRefCap = 'Active stretch';
-      const hint    = 'Notable signals from events still contributing to your tenor — thresholds crossed, conditions aligned.';
+      const hint    = 'Signals from events still shaping your current tenor — thresholds crossed or conditions aligned right now.';
       return h('div',{style:{marginBottom:'14px'}},
         h('div',{class:'ins-section'},h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'Observations')),
         h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'10px',lineHeight:'1.6'}}, hint),
@@ -3273,14 +4978,14 @@ function buildInsightsPanel() {
 
       /* ── Correlations (cross-event statistical patterns) ── */
       (() => {
-        const physicalIcons = ['🌹','🌒'];
+        const physicalIcons = ['🌹','❄️'];
         const strengthRank = {strong:0, moderate:1, weak:2};
         const allCards = (S.showPhysical
           ? correlations
           : correlations.filter(c => !physicalIcons.some(icon => c.icon.includes(icon))))
           .filter(c => c.strength !== 'weak')
           .slice().sort((a, b) => (strengthRank[a.strength] ?? 2) - (strengthRank[b.strength] ?? 2));
-        const positiveIcons = ['🩷→🌹','🌹→🩷','🩷→🌹★','🌿✓→🕯️','🕯️💬→🌡️','🌊→🌡️','🌊→🕯️','🌸→🩷','🧭→🩷','🌸🧭→🌹','🩷🌹↔','🧭🩺→🩷','🌸→🌹+1','🧭🛡→🧭❤','🌸🩺→🌹','🌸🧭→🩷★'];
+        const positiveIcons = ['🩷→🌹','🌹→🩷','🩷→🌹★','🌿✓→💨','💨💬→🌡️','🌊→🌡️','🌊→💨','🌸→🩷','🧭→🩷','🌸🧭→🌹','🩷🌹↔','🧭🩺→🩷','🌸→🌹+1','🧭🛡→🧭❤','🌸🩺→🌹','🌸🧭→🩷★'];
         const isPositive = c => positiveIcons.some(icon => c.icon.startsWith(icon));
         if (allCards.length === 0) return h('div',{style:{marginBottom:'14px'}},
           h('div',{class:'ins-section'},h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'Correlations')),
@@ -3473,7 +5178,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       text: `Relational balance is at ${weekBal>=0?'+':''}${weekBal?.toFixed(0)} ${periodRef} — in the depleted or critical range. The numbers reflect accumulated strain; restoration takes time.`
     },
     {
-      icon:'⚡🌒', title:'Conflict and turn-downs', tone:'critical',
+      icon:'⛈️❄️', title:'Conflict and turn-downs', tone:'critical',
       test: S.showPhysical && conflictLoad >= 60 && herTurndownLoad >= 40,
       text: `Conflict and significant turn-downs both ${periodRef} — a double withdrawal. Worth checking if they fell on the same days.`
     },
@@ -3483,7 +5188,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       text: `Heavy steadying ${periodRef} (${burnoutLoad} pts) with no restorative activity logged — your resource tank needs attention.`
     },
     {
-      icon:'🫧', title:'Wobble drain without restore', tone:'critical',
+      icon:'🌪️', title:'Wobble drain without restore', tone:'critical',
       test: S.showRegulation && wobbleLoad >= 60 && restore.length === 0,
       text: `Heavy wobble load ${periodRef} (${wobbleLoad} pts) with no restorative activity — personal tank draining without being refilled.`
     },
@@ -3493,7 +5198,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       text: `Wobble drain outpaced restore ${periodRef} (${wobbleLoad} pts out vs ${restorePts} pts in) — restore activity isn't keeping up with the personal load.`
     },
     {
-      icon:'🌀⚡', title:'Wobble and conflict together', tone:'concern',
+      icon:'🌪️⛈️', title:'Wobble and conflict together', tone:'concern',
       test: S.showRegulation && (() => {
         const relWobble = regulation.filter(e=>e.regulationTrigger==='relational');
         if (relWobble.length === 0 || conflict.length === 0) return false;
@@ -3503,12 +5208,12 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       text: `Relational wobble and conflict logged on the same day ${periodRef} — a double load. Worth noting if they were connected.`
     },
     {
-      icon:'🌒', title:'Heavy turn-down weight', tone:'concern',
+      icon:'❄️', title:'Heavy turn-down weight', tone:'concern',
       test: S.showPhysical && herTurndownLoad >= 120,
       text: `High turn-down weight ${periodRef} (${herTurndownLoad} pts) — significant anticipated investment went unmet.`
     },
     {
-      icon:'🌒🌒', title:'Mutual withdrawal', tone:'concern',
+      icon:'❄️❄️', title:'Mutual withdrawal', tone:'concern',
       test: (() => {
         if (!S.showPhysical) return false;
         const myTDs  = turndown.filter(e => e.initiatedBy === 'me').length;
@@ -3522,7 +5227,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       })()
     },
     {
-      icon:'⚡', title:'Heavy conflict load', tone:'concern',
+      icon:'⛈️', title:'Heavy conflict load', tone:'concern',
       test: conflictLoad >= 60,
       text: (() => {
         const withRes = conflict.filter(e=>e.resolution);
@@ -3589,7 +5294,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
 
     // ── Mixed signals ────────────────────────────────────────────────────
     {
-      icon:'🩺⚡', title:'Steadying alongside conflict', tone:'mixed',
+      icon:'🩺⛈️', title:'Steadying alongside conflict', tone:'mixed',
       test: S.showCaretaker && (() => {
         const relBurnout = burnout.filter(e=>e.ctContext==='relationship');
         return relBurnout.length > 0 && conflict.length > 0;
@@ -3607,7 +5312,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       text: `Heavy steadying alongside ${restore.length} restorative event${restore.length!==1?'s':''} ${periodRef} — good instinct to protect your resources.`
     },
     {
-      icon:'⚡🌒', title:'Turn-downs followed conflict', tone:'concern',
+      icon:'⛈️❄️', title:'Turn-downs followed conflict', tone:'concern',
       test: S.showPhysical && (() => {
         const conflictDates = new Set(conflict.map(e=>e.date));
         return turndown.filter(e=>e.initiatedBy==='her').some(e =>
@@ -3617,7 +5322,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
       text: `Turn-downs followed conflict on the same or next day ${periodRef} — the two events overlapped.`
     },
     {
-      icon:'⚡🤝', title:'Recent conflict, no repair logged', tone:'concern',
+      icon:'⛈️🤝', title:'Recent conflict, no repair logged', tone:'concern',
       test: S.showRepair && openConflicts.length > 0,
       text: (() => {
         const n = openConflicts.length;
@@ -3868,7 +5573,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
               vsLabel(affection.length, prevAffection.length))
           ),
           S.showPhysical && turndown.length > 0 ? h('div',{class:'week-row'},
-            h('span',{class:'week-row-label'},'🌒 Turn downs'),
+            h('span',{class:'week-row-label'},'❄️ Turn downs'),
             h('span',{class:'week-row-value',style:{color:CAT_COLORS.turndown}},
               turndown.length,
               h('span',{class:'week-vs'},
@@ -3891,7 +5596,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
         (mode === 'full' || mode === 'cardsOnly') ? h('div',{class:'week-summary-card'},
           h('div',{class:'week-summary-title'},'Load'),
           h('div',{class:'week-row'},
-            h('span',{class:'week-row-label'},'⚡ Conflicts'),
+            h('span',{class:'week-row-label'},'⛈️ Conflicts'),
             conflict.length === 0
               ? h('span',{class:'week-row-value',style:{color:'var(--muted)'}},'—')
               : h('span',{class:'week-row-value'},
@@ -3947,7 +5652,7 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
             )
           ) : null,
           S.showCaretaker ? h('div',{class:'week-row'},
-            h('span',{class:'week-row-label'},'🕯️ Steadying'),
+            h('span',{class:'week-row-label'},'💨 Steadying'),
             burnout.length === 0
               ? h('span',{class:'week-row-value',style:{color:'var(--muted)'}},'—')
               : h('span',{class:'week-row-value'},
@@ -3980,9 +5685,9 @@ function buildWindowSummary(weekEntries, prevEntries, label, periodRef, periodRe
               })()
             )
           ) : null,
-          // Life Wobble
+          // Wobble
           S.showRegulation && regulation.length > 0 ? h('div',{class:'week-row'},
-            h('span',{class:'week-row-label'},'🫧 Life Wobble'),
+            h('span',{class:'week-row-label'},'🌪️ Wobble'),
             h('span',{class:'week-row-value'},
               h('span',{style:{color:CAT_COLORS.regulation}},' '+regulation.length),
               h('span',{style:{color:'var(--muted)',fontSize:'12px'}}, ' events'),

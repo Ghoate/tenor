@@ -814,11 +814,43 @@ const CAT_COLORS = {
   conflict:'#e03535', turndown:'#7a9ec4',  partner:'#4dc478', burnout:'#d4a030',
   restore:'#5ab8d4', regulation:'#a07fd4', repair:'#4dc478',
   notes:'#88a892', combined:'#5fb89a',
+  social:'#d99875', friction:'#b86f60',
 };
 const CAT_LABELS = {
   physical:'Intimacy',
   get affection(){ return S.relationshipMode === 'dating' ? 'Dating' : 'Bonding'; },
   get libido(){ return S.showPhysical ? 'Mood, Energy & Desire' : 'Mood & Energy'; },
   conflict:'Conflict', turndown:'Turn Down', notes:'Notes', burnout:'Steadying',
-  restore:'Restorative', regulation:'Life Wobble', repair:'Repair',
+  restore:'Restorative', regulation:'Wobble', repair:'Repair', social:'Social',
+  friction:'Friction',
 };
+const CAT_ICONS = {
+  affection:'🩷', physical:'🌹', libido:'🌡️',
+  conflict:'⛈️', turndown:'❄️', burnout:'💨', regulation:'🌪️',
+  restore:'🌊', repair:'🤝', notes:'🌿', combined:'🔀',
+  social:'🫂', friction:'🌧️',
+};
+
+// ── Friction constants (Social negative — Individual mode) ──
+const FRICTION_IMPACT = [
+  {val:1, label:'Brushed off',    sub:'Barely registered'},
+  {val:2, label:'Annoying',       sub:'Mild residue, moved on quickly'},
+  {val:3, label:'Stuck with me',  sub:'Replayed it, took a while to settle'},
+  {val:4, label:'Hit hard',       sub:'Real hurt, lingered'},
+  {val:5, label:'Cut deep',       sub:'Lasting damage to how you see this person/group'},
+];
+const FRICTION_INTENSITY = [
+  {val:1, label:'Mild',    sub:'Felt it, kept moving'},
+  {val:2, label:'Notable', sub:'Pulled focus for a bit'},
+  {val:3, label:'Heavy',   sub:'Felt the weight throughout'},
+  {val:4, label:'Hot',     sub:'Charged, hard to disengage'},
+  {val:5, label:'Severe',  sub:'Overwhelming in the moment'},
+];
+const FRICTION_INTENSITY_M = {1:0.20, 2:0.40, 3:0.60, 4:0.80, 5:1.00};
+const FRICTION_RESOLUTION = [
+  {val:'cleared',     label:'Cleared',     sub:'Talked through, fully resolved',     m:0.20},
+  {val:'softening',   label:'Softening',   sub:'Easing, but not finished',           m:0.40},
+  {val:'still-rough', label:'Still rough', sub:'Open, unresolved, lingering',        m:0.60},
+  {val:'distance',    label:'Distance',    sub:'Pulled away, gap remains',           m:0.80},
+  {val:'deepened',    label:'Deepened',    sub:'Got worse, real damage',             m:1.00},
+];

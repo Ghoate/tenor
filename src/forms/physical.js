@@ -18,14 +18,33 @@ function buildPhysicalForm() {
       title: physTypeNames.includes(f.eventType) ? 'This type is hidden — unhide it in Library to re-select' : 'This type was removed from your library'
     }, '⚠️ '+f.eventType) : null,
     ...S.physicalTypes.filter(t=>!t.hidden).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(t=>h('div',{
-      class:'chip'+(f.eventType===t.name?' selected':''),
+      class:'chip'+(f.eventType===t.name?' selected sel-physical':''),
       onclick:()=>{
         f.eventType=t.name;
         f.solo = !!t.defaultSolo;
         render();
       }
     }, t.name + (t.defaultSolo ? ' · solo' : ''))),
-    h('div',{class:'chip add-new',onclick:()=>{S.activeTab='library';S.libIntimacyExpanded=true;S.libBondingExpanded=false;S.libBondingForm={};S.libRestoreExpanded=false;S.libRestoreForm={};S.libSteadyingExpanded=false;S.libSteadyingForm={};S.libWobbleExpanded=false;S.libIntimacyForm={};closeModalSilent();render();}},'+ Manage types'),
+    h('div',{class:'chip add-new',onclick:()=>{
+      // Save intimacy-form state so we can resume here after the add-activity
+      // popup closes (Save → pre-select the new type, Cancel → return as-is).
+      S._resetSheetScroll = true;
+      S._returnAfterAdd = {
+        tab: S.activeTab,
+        modal: 'physical',
+        formSnapshot: { ...S.form },
+        targetField: 'eventType',
+      };
+      S.activeTab='library';
+      S.libIntimacyExpanded=true;
+      S.libBondingExpanded=false;   S.libBondingForm={};
+      S.libRestoreExpanded=false;   S.libRestoreForm={};
+      S.libSteadyingExpanded=false; S.libSteadyingForm={};
+      S.libWobbleExpanded=false;
+      S.libIntimacyForm = { addingNew: true };
+      closeModalSilent();
+      render();
+    }},'+ Add new'),
   ];
   return overlay(h('div',{},
     h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'🌹 Intimacy'),

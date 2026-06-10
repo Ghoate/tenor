@@ -34,13 +34,19 @@ function expRemaining(score, daysAgo) {
   return r;
 }
 
-// Raw per-entry scores grouped into relational and personal buckets,
+// Raw per-entry scores grouped into relational, personal, and social buckets,
 // using the shared scoring primitives (bankScoreEntry / restoreScore /
 // wobbleRestoreScore / caretakerPersonalScore).
+// Social is a third axis kept distinct from rel/per. In Individual mode it
+// replaces Relational in the atmosphere calculation; in other modes it just
+// doesn't get populated (no `social` entries exist).
 function expEntryScores(e, cap) {
-  let rel = 0, per = 0;
+  let rel = 0, per = 0, soc = 0;
   if (e.category === 'affection' || e.category === 'physical' || e.category === 'conflict' || e.category === 'turndown') {
     rel = bankScoreEntry(e, cap).score;
+  }
+  if (e.category === 'social' || e.category === 'friction') {
+    soc = bankScoreEntry(e, cap).score;
   }
   if (e.category === 'restore') {
     const t = S.restoreTypes.find(x => (typeof x === 'string' ? x : x.name) === e.eventType);
@@ -50,12 +56,13 @@ function expEntryScores(e, cap) {
   } else if (e.category === 'burnout') {
     per = caretakerPersonalScore(e, cap);
   }
-  return { rel, per };
+  return { rel, per, soc };
 }
 
 // Sum every event's surviving contribution as of the reference date (defaults to today).
 // Entries dated after refDate are excluded — they're "future" relative to that snapshot.
-// Returns { rel, per, tenor }.
+// Returns { rel, per, soc, tenor }. In Individual mode, tenor = avg(soc, per);
+// otherwise tenor = avg(rel, per).
 function computeExperimentalScores(refDate) {
   const ref = refDate || S.today;
   const src = calcEntries();
@@ -64,18 +71,21 @@ function computeExperimentalScores(refDate) {
     if (!byDate[e.date]) byDate[e.date] = [];
     byDate[e.date].push(e);
   }
-  let rel = 0, per = 0;
+  let rel = 0, per = 0, soc = 0;
   for (const e of src) {
     if (e.date > ref) continue;
     const dayEs = byDate[e.date];
     const cap   = bankDayCap(dayEs.find(le => le.category === 'libido'));
     const daysAgo = daysBetween(e.date, ref);
-    const { rel: r, per: p } = expEntryScores(e, cap);
+    const { rel: r, per: p, soc: s } = expEntryScores(e, cap);
     if (r !== 0) rel += expRemaining(r, daysAgo);
     if (p !== 0) per += expRemaining(p, daysAgo);
+    if (s !== 0) soc += expRemaining(s, daysAgo);
   }
   rel = Math.round(rel * 10) / 10;
   per = Math.round(per * 10) / 10;
-  const tenor = Math.round((rel + per) / 2 * 10) / 10;
-  return { rel, per, tenor };
+  soc = Math.round(soc * 10) / 10;
+  const isIndividual = S.relationshipMode === 'individual';
+  const tenor = Math.round((isIndividual ? (soc + per) : (rel + per)) / 2 * 10) / 10;
+  return { rel, per, soc, tenor };
 }

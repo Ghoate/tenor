@@ -2,6 +2,8 @@
 
 function switchTab(tab) {
   const leavingLog = S.activeTab === 'log' && tab !== 'log';
+  // 7-day forecast on the home page is transient — collapsed on every visit.
+  if (S.activeTab !== 'home' && tab === 'home') S.homeForecastExpanded = false;
   S.activeTab = tab;
   if (leavingLog && S.selectedDate !== S.today) {
     S.selectedDate = S.today;
@@ -37,14 +39,14 @@ function render() {
   // Portal-attached overlays live on document.body — clear any stale ones so
   // a tab switch doesn't leave them orphaned. The current tab's panel re-adds
   // them if still relevant.
-  for (const _id of ['needs-calibration-modal', 'needs-pn-calibration-modal']) {
+  for (const _id of ['needs-calibration-modal', 'needs-pn-calibration-modal', 'lib-popup-overlay']) {
     const _stale = document.getElementById(_id);
     if (_stale) _stale.remove();
   }
 
   app.appendChild(h('div',{class:'header'},
     h('div',{},
-      h('div',{class:'header-title'},'Tenor'),
+      h('div',{class:'header-title'},'Atmos'),
       h('div',{class:'header-sub'},new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})
         + (useLocalStorage ? ' · localStorage' : ''))
     ),
@@ -76,7 +78,7 @@ function render() {
     h('button',{class:'tab-btn'+(S.activeTab==='insights'?' active':''), onclick:()=>switchTab('insights')}, 'Insight'),
     S.showAttachment ? h('button',{class:'tab-btn'+(S.activeTab==='attachment'?' active':''), onclick:()=>switchTab('attachment')}, 'Lens') : null,
     h('button',{class:'tab-btn'+(S.activeTab==='needs'?' active':''), onclick:()=>switchTab('needs')}, 'Needs'),
-    h('button',{class:'tab-btn'+(S.activeTab==='library'?' active':''), onclick:()=>switchTab('library')}, 'Library')
+    h('button',{class:'tab-btn'+(S.activeTab==='library'?' active':''), onclick:()=>switchTab('library')}, 'Activities')
   ));
 
   const buildTab = (fn, name) => {
@@ -112,6 +114,8 @@ function render() {
     picker:           buildPicker,
     physical:         buildPhysicalForm,
     affection:        buildBondingForm,
+    social:           buildSocialForm,
+    friction:         buildFrictionForm,
     combined:         buildCombinedForm,
     libido:           buildMedForm,
     conflict:         buildConflictForm,
@@ -138,15 +142,21 @@ function render() {
   }
 
   // Restore scroll positions and form input values
+  const forceSheetTop = S._resetSheetScroll;
   requestAnimationFrame(() => {
     const newSheet = document.querySelector('.sheet');
     const newPanel = document.querySelector('.insights-panel, .day-panel');
-    if (tabChanged) {
+    if (tabChanged || forceSheetTop) {
       // First-load of a tab — start at the top of every scrollable surface
       if (newSheet) newSheet.scrollTop = 0;
       if (newPanel) newPanel.scrollTop = 0;
       // Also reset window scroll for tabs whose content lives at the page level
       window.scrollTo(0, 0);
+      // iOS Safari sometimes re-scrolls the sheet after layout settles (dvh
+      // stabilizes, address bar collapses). Force scrollTop=0 again on the
+      // next frame and once more after a short delay to cover the late case.
+      requestAnimationFrame(() => { if (newSheet) newSheet.scrollTop = 0; });
+      setTimeout(() => { if (newSheet) newSheet.scrollTop = 0; }, 60);
     } else {
       if (newSheet && sheetScroll && !S._resetSheetScroll) newSheet.scrollTop = sheetScroll;
       if (newPanel && panelScroll) newPanel.scrollTop = panelScroll;

@@ -34,6 +34,21 @@ function bankScoreEntry(e, cap) {
     const score = (raw * cap * R / SCORE_MAX_RAW) * 100 * (e.scoreScale ?? 1);
     return { score, color: CAT_COLORS.affection, label: '🩷 ' + (e.eventType || bondingLabel()) };
   }
+  if (e.category === 'social') {
+    const typeObj = S.socialTypes.find(t => t.name === e.eventType);
+    const raw = typeObj ? deriveSocialActivityWeight(typeObj) : 1.0;
+    const R   = BANK_OUTCOME_M[e.connectionQuality || 3] || 0.60;
+    const score = (raw * cap * R / SCORE_MAX_RAW) * 100 * (e.scoreScale ?? 1);
+    return { score, color: CAT_COLORS.social, label: '🫂 ' + (e.eventType || 'Social') };
+  }
+  if (e.category === 'friction') {
+    const impact = e.impact || 3;
+    const intM   = FRICTION_INTENSITY_M[e.intensity || 3] || 0.60;
+    const resObj = FRICTION_RESOLUTION.find(r => r.val === e.resolution);
+    const resM   = resObj ? resObj.m : 0.60;
+    const score  = -(impact * intM * resM * invCap / SCORE_MAX_RAW) * 100;
+    return { score, color: CAT_COLORS.friction, label: '🌧️ Friction' };
+  }
   if (e.category === 'physical' && !e.solo) {
     const typeObj = S.physicalTypes.find(t => t.name === e.eventType);
     const raw = typeObj ? deriveActivityWeight(typeObj) : 1.0;
@@ -57,15 +72,15 @@ function bankScoreEntry(e, cap) {
       const LEGACY_CONF_S = {1:30, 2:45, 3:65, 4:90, 5:120};
       score = -(LEGACY_CONF_S[e.intensity || 1] || 30) * resM * invCap;
     }
-    return { score, color: CAT_COLORS.conflict, label: '⚡ Conflict' };
+    return { score, color: CAT_COLORS.conflict, label: '⛈️ Conflict' };
   }
   if (e.category === 'turndown') {
-    if (e.initiatedBy !== 'her') return { score: 0, color: CAT_COLORS.turndown, label: '🌒 Turn down (by me)' };
+    if (e.initiatedBy !== 'her') return { score: 0, color: CAT_COLORS.turndown, label: '❄️ Turn down (by me)' };
     const W    = e.tdImpact || 3;
     const sigM = TD_SIG_M[e.tdSignificance || 3] || 0.60;
     const howM = TD_HOW_M[e.turndownType] || 0.60;
     const score = -(W * sigM * howM * invCap / 5) * 100;
-    return { score, color: CAT_COLORS.turndown, label: '🌒 Turn down' };
+    return { score, color: CAT_COLORS.turndown, label: '❄️ Turn down' };
   }
   if (e.category === 'burnout') {
     const typeNames = Array.isArray(e.caretakerTypes) && e.caretakerTypes.length ? e.caretakerTypes : (e.caretakerType ? [e.caretakerType] : []);
@@ -85,12 +100,12 @@ function bankScoreEntry(e, cap) {
 
     // Steadying always scores personal only — it's a personal resource cost.
     // The relational impact of difficult situations shows through conflict entries.
-    return { score: 0, color: CAT_COLORS.burnout, label: '🕯️ Steadying' };
+    return { score: 0, color: CAT_COLORS.burnout, label: '💨 Steadying' };
   }
   if (e.category === 'regulation') {
     // Wobble always scores personal only — it's an internal emotional state, not a relational event.
     // If the wobble leads to a conflict, log a separate conflict entry for the relational impact.
-    return { score: 0, color: CAT_COLORS.regulation, label: '🫧 Life Wobble' };
+    return { score: 0, color: CAT_COLORS.regulation, label: '🌪️ Wobble' };
   }
   return { score: 0, color: '', label: '' };
 }
@@ -267,6 +282,29 @@ function derivePersonalNeedsWeight(needsMap) {
     score += rating * rankWeight;
   });
   return score / 220;                                    // max = 4 × 55 = 220
+}
+
+// Social activity weight — mirrors deriveActivityWeight but uses
+// socialNeedsRanking + SOCIAL_NEEDS keys instead of EN. Used for Social
+// activities in Individual mode, which score against the Social balance
+// (a third axis separate from Relational and Personal).
+function deriveSocialActivityWeight(type) {
+  // Same 5 profile dimensions as bonding (effort/time/depth-via-descFinancial/significance/presence)
+  const product = (type.descEffort||1) * (type.descTime||1) * (type.descFinancial||1) *
+                  (type.descRarity||1) * (type.descPresence||1);
+  const geoMean = Math.pow(product, 1/5);
+
+  // SN weight from social needs ranking
+  const needsMap = type.needsMap || {};
+  let needsScore = 0;
+  (S.socialNeedsRanking || []).forEach((val, idx) => {
+    const rankWeight = 10 - idx;
+    const rating = Math.max(0, (needsMap[val] || 1) - 1);
+    needsScore += rating * rankWeight;
+  });
+  const needsWeight = needsScore / 220;
+
+  return geoMean * needsWeight;
 }
 
 

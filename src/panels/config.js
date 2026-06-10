@@ -90,18 +90,18 @@ function buildConfigPanel() {
 
     section('Features'),
     h('div',{style:{
-      display:'flex',alignItems:'center',justifyContent:'space-between',
-      padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'
+      display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',
+      padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px',flexWrap:'wrap'
     }},
-      h('div',{},
+      h('div',{style:{flex:'1',minWidth:'180px'}},
         h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Relationship mode'),
-        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},
-          'Committed mode tracks one ongoing relationship. Dating mode renames Bonding to Dating and tags each entry with whom (from your Whom library).')
+        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px',lineHeight:'1.5'}},
+          'Individual hides every relational category for personal-only tracking. Committed tracks one ongoing relationship. Dating renames Bonding to Dating and tags each entry with whom (from your Whom library).')
       ),
-      h('div',{style:{display:'flex',gap:'6px',flexShrink:'0'}},
-        ...['partner','dating'].map(mode => {
+      h('div',{style:{display:'flex',gap:'6px',flexShrink:'0',flexWrap:'wrap'}},
+        ...['individual','partner','dating'].map(mode => {
           const sel = S.relationshipMode === mode;
-          const label = mode === 'dating' ? 'Dating' : 'Committed';
+          const label = mode === 'dating' ? 'Dating' : mode === 'individual' ? 'Individual' : 'Committed';
           return h('button',{
             style:{
               padding:'6px 14px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
@@ -110,10 +110,82 @@ function buildConfigPanel() {
               background: sel ? 'var(--c-partner-tint)' : 'var(--bg3)',
               color: sel ? 'var(--c-partner)' : 'var(--muted)',
             },
-            onclick: sel ? null : () => { S.relationshipMode = mode; saveSettings(); render(); }
+            onclick: sel ? null : () => {
+              S.relationshipMode = mode;
+              // Flip the relational feature toggles so the picker, library,
+              // home chips, etc., match the chosen mode without making the
+              // user hunt for the matching switches below. Repair stays opt-in.
+              if (mode === 'individual') {
+                S.showBonding = false; S.showPhysical = false;
+                S.showConflict = false; S.showRepair = false;
+                // Seed socialTypes from affectionTypes if empty, so the user
+                // has a starting library to edit. The profile carries over;
+                // the needsMap is reset to SN defaults since the EN keys
+                // on bonding types don't map to Social Needs.
+                if ((!S.socialTypes || S.socialTypes.length === 0) && Array.isArray(S.affectionTypes) && S.affectionTypes.length > 0) {
+                  const snDefaults = Object.fromEntries(SOCIAL_NEEDS.map(n => [n.val, 1]));
+                  S.socialTypes = S.affectionTypes.map(t => ({
+                    name:          t.name,
+                    description:   t.description,
+                    descEffort:    t.descEffort    || 1,
+                    descTime:      t.descTime      || 1,
+                    descFinancial: t.descFinancial || 1,
+                    descRarity:    t.descRarity    || 1,
+                    descPresence:  t.descPresence  || 1,
+                    needsMap:      {...snDefaults},
+                  })).map(s => ({...s, weight: deriveActivityWeight(s)}));
+                  showToast('✓ Social activities seeded from Bonding library');
+                }
+              } else {
+                S.showBonding = true; S.showPhysical = true;
+                S.showConflict = true;
+              }
+              saveSettings();
+              render();
+            }
           }, label);
         })
       )
+    ),
+    h('div',{style:{
+      display:'flex',alignItems:'center',justifyContent:'space-between',
+      padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'
+    }},
+      h('div',{},
+        h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Bonding logging'),
+        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},
+          'Show '+bondingLabel()+' and Combined entry types in the log picker — turn off for personal-only tracking')
+      ),
+      h('button',{
+        style:{
+          padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
+          fontFamily:"'DM Sans',sans-serif",
+          border: S.showBonding ? '1px solid var(--c-partner)' : '1px solid var(--border)',
+          background: S.showBonding ? 'var(--c-partner-tint)' : 'var(--bg3)',
+          color: S.showBonding ? 'var(--c-partner)' : 'var(--muted)',
+        },
+        onclick:()=>{ S.showBonding=!S.showBonding; saveSettings(); render(); }
+      }, S.showBonding ? 'On' : 'Off')
+    ),
+    h('div',{style:{
+      display:'flex',alignItems:'center',justifyContent:'space-between',
+      padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'
+    }},
+      h('div',{},
+        h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Conflict logging'),
+        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},
+          'Show Conflict entry type in the log picker — turn off for non-relational tracking')
+      ),
+      h('button',{
+        style:{
+          padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
+          fontFamily:"'DM Sans',sans-serif",
+          border: S.showConflict ? '1px solid var(--c-partner)' : '1px solid var(--border)',
+          background: S.showConflict ? 'var(--c-partner-tint)' : 'var(--bg3)',
+          color: S.showConflict ? 'var(--c-partner)' : 'var(--muted)',
+        },
+        onclick:()=>{ S.showConflict=!S.showConflict; saveSettings(); render(); }
+      }, S.showConflict ? 'On' : 'Off')
     ),
     h('div',{style:{
       display:'flex',alignItems:'center',justifyContent:'space-between',
@@ -140,9 +212,9 @@ function buildConfigPanel() {
       padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'
     }},
       h('div',{},
-        h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Life Wobble logging'),
+        h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Wobble logging'),
         h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},
-          'Show the Life Wobble entry type in the log picker')
+          'Show the Wobble entry type in the log picker')
       ),
       h('button',{
         style:{
