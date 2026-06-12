@@ -37,62 +37,21 @@ function buildBondingForm() {
       render();
     }},'+ Add new'),
   ];
-  // Save gate: in partner mode, require initiatedBy. In dating mode, require whom.
-  const isDating = S.relationshipMode === 'dating';
-  const ok = !!f.eventType && !!f.connectionQuality && (isDating ? !!f.whom : !!f.initiatedBy);
-  // Whom chips drawn from the user-managed library list
-  const whomChips = (S.whomList || []).slice().sort((a,b)=>a.localeCompare(b)).map(name =>
-    h('div',{
-      class:'chip'+(f.whom===name?' selected':''),
-      onclick:()=>{ f.whom=name; render(); },
-    }, name)
-  );
-  whomChips.push(
-    h('div',{
-      class:'chip add-new',
-      onclick:()=>{
-        S.activeTab='library';
-        S.libWhomExpanded=true;
-        S.libBondingExpanded=false; S.libBondingForm={};
-        S.libIntimacyExpanded=false; S.libIntimacyForm={};
-        S.libRestoreExpanded=false; S.libRestoreForm={};
-        S.libSteadyingExpanded=false; S.libSteadyingForm={};
-        S.libWobbleExpanded=false; S.libWobbleForm={};
-        closeModalSilent(); render();
-      },
-    }, '+ Manage names')
-  );
+  const ok = !!f.eventType && !!f.connectionQuality && !!f.initiatedBy;
   return overlay(h('div',{},
     h('div',{class:'sheet-title'},(isEdit?'Edit: ':'')+'🩷 '+bondingLabel()),
     h('div',{class:'form-section'},
       h('label',{class:'form-label'},'Type of '+bondingLabel().toLowerCase()),
       h('div',{class:'chips'},...typeChips)
     ),
-    isDating
-      ? h('div',{class:'form-section'},
-          h('label',{class:'form-label'},'With whom'),
-          (S.whomList && S.whomList.length > 0)
-            ? h('div',{class:'chips'}, ...whomChips)
-            : h('div',{style:{fontSize:'12px',color:'var(--muted)',padding:'8px 0'}},
-                'No names in your Whom library yet. ',
-                h('span',{
-                  style:{color:'var(--interactive)',cursor:'pointer',textDecoration:'underline'},
-                  onclick:()=>{
-                    S.activeTab='library';
-                    S.libWhomExpanded=true;
-                    closeModalSilent(); render();
-                  },
-                }, 'Add some names →')
-              )
-        )
-      : h('div',{class:'form-section'},
-          h('label',{class:'form-label'},'Who initiated'),
-          h('div',{class:'btn-grid-3'},
-            h('button',{class:'sel-btn'+(f.initiatedBy==='me'?' sel-bonding':''),onclick:()=>{f.initiatedBy='me';render();}},'Me',h('span',{class:'sub'},'I initiated')),
-            h('button',{class:'sel-btn'+(f.initiatedBy==='her'?' sel-bonding':''),onclick:()=>{f.initiatedBy='her';render();}},P.Sub,h('span',{class:'sub'},`${P.Sub} initiated`)),
-            h('button',{class:'sel-btn'+(f.initiatedBy==='mutual'?' sel-bonding':''),onclick:()=>{f.initiatedBy='mutual';render();}},'Mutual',h('span',{class:'sub'},'Both'))
-          )
-        ),
+    h('div',{class:'form-section'},
+      h('label',{class:'form-label'},'Who initiated'),
+      h('div',{class:'btn-grid-3'},
+        h('button',{class:'sel-btn'+(f.initiatedBy==='me'?' sel-bonding':''),onclick:()=>{f.initiatedBy='me';render();}},'Me',h('span',{class:'sub'},'I initiated')),
+        h('button',{class:'sel-btn'+(f.initiatedBy==='her'?' sel-bonding':''),onclick:()=>{f.initiatedBy='her';render();}},P.Sub,h('span',{class:'sub'},`${P.Sub} initiated`)),
+        h('button',{class:'sel-btn'+(f.initiatedBy==='mutual'?' sel-bonding':''),onclick:()=>{f.initiatedBy='mutual';render();}},'Mutual',h('span',{class:'sub'},'Both'))
+      )
+    ),
     h('div',{class:'form-section'},
       h('label',{class:'form-label'},'Connection quality'),
       h('div',{class:'btn-grid-5'},
@@ -153,16 +112,12 @@ function buildBondingForm() {
 }
 function saveBonding(){
   const f=S.form;
-  const isDating = S.relationshipMode === 'dating';
   const validType = S.affectionTypes.find(t => t.name === f.eventType) ? f.eventType : null;
   const rec = {
     date:S.selectedDate,
     category:'affection',
     eventType:validType,
-    // In partner mode, default initiatedBy. In dating mode it may be empty.
-    initiatedBy: isDating ? (f.initiatedBy || null) : (f.initiatedBy||'mutual'),
-    // Whom is saved only when set (set in dating mode)
-    whom: f.whom || null,
+    initiatedBy: f.initiatedBy || 'mutual',
     connectionQuality:f.connectionQuality||3,
     attachmentTags: Array.isArray(f.attachmentTags) ? f.attachmentTags.slice() : [],
     notes:f.notes||''

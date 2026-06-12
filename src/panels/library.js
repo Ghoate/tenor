@@ -8,8 +8,8 @@ function buildLibraryPanel() {
   const steadyingCount = S.caretakerTypes.length;
   const socialCount    = (S.socialTypes || []).length;
   const wobbleCount    = (S.challengingEmotionTags || []).length;
-  const whomCount      = (S.whomList || []).length;
   const isIndividual   = S.relationshipMode === 'individual';
+  const showSocial     = isIndividual || S.trackSocialAxis;
 
   const collapseAll = (except) => {
     if (except !== 'bonding')   { S.libBondingExpanded=false;   S.libBondingForm={}; }
@@ -18,7 +18,6 @@ function buildLibraryPanel() {
     if (except !== 'restore')   { S.libRestoreExpanded=false;   S.libRestoreForm={}; }
     if (except !== 'steadying') { S.libSteadyingExpanded=false; S.libSteadyingForm={}; }
     if (except !== 'wobble')    { S.libWobbleExpanded=false;    S.libWobbleForm={}; }
-    if (except !== 'whom')      { S.libWhomExpanded=false;      S.libWhomForm={}; }
     if (except !== 'landscape') { S.libLandscapeExpanded=false; }
   };
   return h('div',{class:'insights-panel'},
@@ -39,8 +38,8 @@ function buildLibraryPanel() {
       buildManageTypes('affectionTypes', 'affection', bondingLabel()+' Activities', true, S.libBondingForm)
     ) : null,
 
-    // ── Social (Individual mode only — fills the slot Bonding usually does) ──
-    isIndividual ? h('div',{class:'ins-section',style:{cursor:'pointer'},
+    // ── Social (Individual mode, or Partner/Dating with trackSocialAxis) ──
+    showSocial ? h('div',{class:'ins-section',style:{cursor:'pointer',marginTop:'8px'},
       onclick:()=>{ const o=!S.libSocialExpanded; collapseAll('social'); S.libSocialExpanded=o; if(!o)S.libSocialForm={}; render(); }},
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
         h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'🫂 Social activities'),
@@ -50,7 +49,7 @@ function buildLibraryPanel() {
         )
       )
     ) : null,
-    isIndividual && S.libSocialExpanded ? h('div',{},
+    showSocial && S.libSocialExpanded ? h('div',{},
       h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Add and edit the social activities — time with friends, family, community — that you want to track. Profiles are scored against your Social Needs ranking.'),
       buildManageTypes('socialTypes', null, 'Social Activities', true, S.libSocialForm)
     ) : null,
@@ -316,25 +315,6 @@ function buildLibraryPanel() {
           )
         );
       })()
-    ) : null,
-
-    // ── Whom (people you log moments with) ──
-    // Only visible in dating mode with bonding on — committed mode and
-    // bonding-off both leave no surface that uses the Whom list.
-    S.showBonding && S.relationshipMode === 'dating' ? h('div',{class:'ins-section',style:{cursor:'pointer',marginTop:'8px'},
-      onclick:()=>{ const o=!S.libWhomExpanded; collapseAll('whom'); S.libWhomExpanded=o; if(!o)S.libWhomForm={}; render(); }},
-      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between'}},
-        h('div',{class:'ins-section-title',style:{fontWeight:'600'}},'👤 Whom'),
-        h('div',{style:{display:'flex',alignItems:'center',gap:'8px'}},
-          h('span',{style:{fontSize:'12px',color:'var(--muted)'}},(whomCount>0?whomCount+' name'+(whomCount===1?'':'s'):'none')),
-          h('span',{style:{color:'var(--muted)',fontSize:'13px'}},S.libWhomExpanded?'▲':'▼')
-        )
-      )
-    ) : null,
-    S.showBonding && S.relationshipMode === 'dating' && S.libWhomExpanded ? h('div',{},
-      h('div',{style:{fontSize:'12px',color:'var(--muted)',marginBottom:'12px',lineHeight:'1.5'}},'Names of people you log moments with — friends, family, dates, anyone close. Used by entry types that ask "with whom".'),
-      buildManageTagList('whomList', DEFAULT_WHOM_LIST, 'Whom', 'var(--interactive)', 'library', true, S.libWhomForm,
-        {field:'whom'})
     ) : null,
 
     // ── Scoring landscape ──

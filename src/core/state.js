@@ -89,7 +89,6 @@ const S = {
   libRestoreExpanded: false,
   libSteadyingExpanded: false,
   libWobbleExpanded: false,
-  libWhomExpanded: false,
   libLandscapeExpanded: false,
   libBondingForm: {},
   libSocialForm: {},
@@ -97,7 +96,6 @@ const S = {
   libRestoreForm: {},
   libSteadyingForm: {},
   libWobbleForm: {},
-  libWhomForm: {},
   expandedNotes:  new Set(), // entry IDs with notes expanded
   _confirmDeleteId: null,   // entry ID pending inline delete confirmation
   needsRanking:   ['sexual','attraction','recreation','admiration','domestic','conversation','honesty','financial','family','affection'], // male default
@@ -111,6 +109,7 @@ const S = {
   showPhysical:    true,  // show/hide Physical intimacy entry type in the picker
   showBonding:     true,  // show/hide Bonding entry type (and Combined) in the picker
   showConflict:    true,  // show/hide Conflict entry type in the picker
+  trackSocialAxis: false, // Partner/Dating mode: track Social as a 3rd axis (rel + soc + per). Off by default.
   showRepair:      false, // show/hide Repair entry type in the picker
   showAttachment:  false, // show/hide Attachment tab in the tab bar
   attachmentRefExpanded: false, // collapsible reference layer on Attachment tab
@@ -155,7 +154,6 @@ const S = {
   caretakerTypes: [],
   restoreTypes:  [],
   challengingEmotionTags: [],
-  whomList: [],
   form:          {},
 };
 

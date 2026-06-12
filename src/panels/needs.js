@@ -509,53 +509,63 @@ function buildNeedsPanel() {
   const SRC_COLOR = { physical:'var(--c-physical)', affection:'var(--c-affection)' };
 
   const isIndividual = S.relationshipMode === 'individual';
-  // In Individual mode, swap Love Needs for Social Needs. In other modes, the
-  // SN tab doesn't exist; in Individual mode the EN tab doesn't exist.
-  if (isIndividual && S.needsTab === 'en') S.needsTab = 'sn';
-  if (!isIndividual && S.needsTab === 'sn') S.needsTab = 'en';
-  if (!S.showBonding && !isIndividual && S.needsTab === 'en') S.needsTab = 'pn';
+  // Visibility of each needs domain:
+  //   EN (Love Needs)   — shown when Bonding is on AND not Individual mode
+  //   SN (Social Needs) — shown when Individual mode OR Partner/Dating with
+  //                       the trackSocialAxis toggle on
+  //   PN (Personal)     — always shown
+  const showEnTab = S.showBonding && !isIndividual;
+  const showSnTab = isIndividual || S.trackSocialAxis;
+  // Force the active tab onto a visible one if the current selection is hidden.
+  if (S.needsTab === 'en' && !showEnTab) S.needsTab = showSnTab ? 'sn' : 'pn';
+  if (S.needsTab === 'sn' && !showSnTab) S.needsTab = showEnTab ? 'en' : 'pn';
+
+  const enTabBtn = h('button',{
+    style:{
+      flex:'1', padding:'10px', borderRadius:'12px', fontSize:'13px',
+      fontWeight: S.needsTab==='en' ? '600' : '400',
+      border: S.needsTab==='en' ? '1px solid var(--c-affection)' : '1px solid var(--border)',
+      background: S.needsTab==='en' ? 'rgba(214,115,156,0.10)' : 'var(--bg2)',
+      color: S.needsTab==='en' ? 'var(--c-affection)' : 'var(--muted)',
+      cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
+    },
+    onclick:()=>{ S.needsTab='en'; saveSettings(); render(); }
+  }, '🩷 Love Needs');
+  const snTabBtn = h('button',{
+    style:{
+      flex:'1', padding:'10px', borderRadius:'12px', fontSize:'13px',
+      fontWeight: S.needsTab==='sn' ? '600' : '400',
+      border: S.needsTab==='sn' ? '1px solid var(--c-social)' : '1px solid var(--border)',
+      background: S.needsTab==='sn' ? 'rgba(224,164,104,0.10)' : 'var(--bg2)',
+      color: S.needsTab==='sn' ? 'var(--c-social)' : 'var(--muted)',
+      cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
+    },
+    onclick:()=>{ S.needsTab='sn'; saveSettings(); render(); }
+  }, '🫂 Social Needs');
+  const pnTabBtn = h('button',{
+    style:{
+      flex:'1', padding:'10px', borderRadius:'12px', fontSize:'13px',
+      fontWeight: S.needsTab==='pn' ? '600' : '400',
+      border: S.needsTab==='pn' ? '1px solid var(--c-restore)' : '1px solid var(--border)',
+      background: S.needsTab==='pn' ? 'rgba(79,168,196,0.10)' : 'var(--bg2)',
+      color: S.needsTab==='pn' ? 'var(--c-restore)' : 'var(--muted)',
+      cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
+    },
+    onclick:()=>{ S.needsTab='pn'; saveSettings(); render(); }
+  }, '🌊 Personal Needs');
 
   return h('div',{class:'insights-panel'},
 
     // ── Tab switcher ──────────────────────────────────
-    // Hidden when bonding's off and not in individual mode (PN is the only tab).
-    (S.showBonding || isIndividual) ? h('div',{style:{display:'flex',gap:'6px',marginBottom:'20px',paddingTop:'14px'}},
-      isIndividual ? h('button',{
-        style:{
-          flex:'1', padding:'10px', borderRadius:'12px', fontSize:'13px',
-          fontWeight: S.needsTab==='sn' ? '600' : '400',
-          border: S.needsTab==='sn' ? '1px solid var(--c-social)' : '1px solid var(--border)',
-          background: S.needsTab==='sn' ? 'rgba(217,152,117,0.10)' : 'var(--bg2)',
-          color: S.needsTab==='sn' ? 'var(--c-social)' : 'var(--muted)',
-          cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
-        },
-        onclick:()=>{ S.needsTab='sn'; saveSettings(); render(); }
-      }, '🫂 Social Needs') : h('button',{
-        style:{
-          flex:'1', padding:'10px', borderRadius:'12px', fontSize:'13px',
-          fontWeight: S.needsTab==='en' ? '600' : '400',
-          border: S.needsTab==='en' ? '1px solid var(--c-affection)' : '1px solid var(--border)',
-          background: S.needsTab==='en' ? 'rgba(224,133,184,0.10)' : 'var(--bg2)',
-          color: S.needsTab==='en' ? 'var(--c-affection)' : 'var(--muted)',
-          cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
-        },
-        onclick:()=>{ S.needsTab='en'; saveSettings(); render(); }
-      }, '🩷 Love Needs'),
-      h('button',{
-        style:{
-          flex:'1', padding:'10px', borderRadius:'12px', fontSize:'13px',
-          fontWeight: S.needsTab==='pn' ? '600' : '400',
-          border: S.needsTab==='pn' ? '1px solid var(--c-restore)' : '1px solid var(--border)',
-          background: S.needsTab==='pn' ? 'rgba(90,184,212,0.10)' : 'var(--bg2)',
-          color: S.needsTab==='pn' ? 'var(--c-restore)' : 'var(--muted)',
-          cursor:'pointer', fontFamily:"'DM Sans',sans-serif",
-        },
-        onclick:()=>{ S.needsTab='pn'; saveSettings(); render(); }
-      }, '🌊 Personal Needs'),
+    // Hidden when only PN is visible (no point showing a single-tab switcher).
+    (showEnTab || showSnTab) ? h('div',{style:{display:'flex',gap:'6px',marginBottom:'20px',paddingTop:'14px'}},
+      showEnTab ? enTabBtn : null,
+      showSnTab ? snTabBtn : null,
+      pnTabBtn,
     ) : null,
 
-    // ── SN tab (Individual mode only) ─────────────────
-    isIndividual && S.needsTab === 'sn' ? h('div',{},
+    // ── SN tab (Individual mode, or Partner/Dating with trackSocialAxis) ──
+    showSnTab && S.needsTab === 'sn' ? h('div',{},
       h('div',{class:'ins-section'},
         h('div',{class:'ins-section-title',style:{fontWeight:'600'}}, 'Your ranking')
       ),
@@ -574,7 +584,7 @@ function buildNeedsPanel() {
         orderFromCounts:needsSnOrderFromCounts,
         onSaved:        recalculateAllWeights,
         accentColor:    'var(--c-social)',
-        accentTintBg:   'rgba(217,152,117,0.12)',
+        accentTintBg:   'rgba(224,164,104,0.12)',
         modalId:        'needs-sn-calibration-modal',
         savedToastMsg:  '✓ Social needs ranking saved',
         maxSelections:  2,
@@ -618,7 +628,7 @@ function buildNeedsPanel() {
         orderFromCounts:needs2OrderFromCounts,
         onSaved:        recalculateAllWeights,
         accentColor:    'var(--c-affection)',
-        accentTintBg:   'rgba(224,133,184,0.12)',
+        accentTintBg:   'rgba(214,115,156,0.12)',
         modalId:        'needs-calibration-modal',
         savedToastMsg:  '✓ Love needs ranking saved',
         maxSelections:  2,
@@ -698,7 +708,7 @@ function buildNeedsPanel() {
         buildTieGroups: needsPnBuildTieGroups,
         orderFromCounts:needsPnOrderFromCounts,
         accentColor:    'var(--c-restore)',
-        accentTintBg:   'rgba(90,184,212,0.15)',
+        accentTintBg:   'rgba(79,168,196,0.15)',
         modalId:        'needs-pn-calibration-modal',
         savedToastMsg:  '✓ Personal needs ranking saved',
         maxSelections:  2,

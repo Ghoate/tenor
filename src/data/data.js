@@ -27,7 +27,6 @@ function saveSettings(){
   dbPut('settings',{key:'socialTypes',    value:S.socialTypes});
   dbPut('settings',{key:'restoreTypes',   value:S.restoreTypes});
   dbPut('settings',{key:'challengingEmotionTags', value:S.challengingEmotionTags});
-  dbPut('settings',{key:'whomList',       value:S.whomList});
   dbPut('settings',{key:'weights',        value:S.weights});
   dbPut('settings',{key:'needsRanking',   value:S.needsRanking});
   dbPut('settings',{key:'personalNeedsRanking', value:S.personalNeedsRanking});
@@ -39,6 +38,7 @@ function saveSettings(){
   dbPut('settings',{key:'showPhysical',   value:S.showPhysical});
   dbPut('settings',{key:'showBonding',    value:S.showBonding});
   dbPut('settings',{key:'showConflict',   value:S.showConflict});
+  dbPut('settings',{key:'trackSocialAxis',value:S.trackSocialAxis});
   dbPut('settings',{key:'showRepair',     value:S.showRepair});
   dbPut('settings',{key:'showAttachment', value:S.showAttachment});
   dbPut('settings',{key:'horsemenExpanded',        value:S.horsemenExpanded});
@@ -122,10 +122,6 @@ function loadSettings(){
         dbPut('settings',{key:'challengingEmotionTags',value:S.challengingEmotionTags});
       }
     }),
-    dbGet('settings','whomList').then(s=>{
-      if(s&&s.value&&Array.isArray(s.value)) S.whomList = s.value;
-      else S.whomList = [...DEFAULT_WHOM_LIST];
-    }),
     dbGet('settings','weights').then(s=>{
       if(s&&s.value) {
         S.weights = Object.assign({}, S.weights, s.value);
@@ -162,6 +158,9 @@ function loadSettings(){
     }),
     dbGet('settings','showConflict').then(s=>{
       if(s&&s.value!=null) S.showConflict = s.value;
+    }),
+    dbGet('settings','trackSocialAxis').then(s=>{
+      if(s&&s.value!=null) S.trackSocialAxis = s.value;
     }),
     dbGet('settings','showRepair').then(s=>{
       if(s&&s.value!=null) S.showRepair = s.value;

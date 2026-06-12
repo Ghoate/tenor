@@ -589,7 +589,7 @@ function showInlineOnboarding(onComplete) {
       buildTieGroups: needs2BuildTieGroups,
       orderFromCounts: needs2OrderFromCounts,
       accentColor: 'var(--c-affection)',
-      accentTintBg: 'rgba(224,133,184,0.12)',
+      accentTintBg: 'rgba(214,115,156,0.12)',
       maxSelections: 2,
       rerender: osRenderEnQuizModal,
       onClose: osCloseEnQuiz,
@@ -613,7 +613,7 @@ function showInlineOnboarding(onComplete) {
       buildTieGroups: needsPnBuildTieGroups,
       orderFromCounts: needsPnOrderFromCounts,
       accentColor: 'var(--c-restore)',
-      accentTintBg: 'rgba(90,184,212,0.15)',
+      accentTintBg: 'rgba(79,168,196,0.15)',
       maxSelections: 2,
       rerender: osRenderPnQuizModal,
       onClose: osClosePnQuiz,
@@ -698,7 +698,7 @@ function showInlineOnboarding(onComplete) {
       { icon:'🌡️', label:'Mood & Energy',    desc:'Daily check-in that calibrates everything else.',       color:'#e0a040' },
       { icon:'⛈️',  label:'Conflict',         desc:'Hard moments logged — intensity, resolution, repair.',  color:'#e06060' },
       { icon:'🌊',  label:'Restorative',      desc:'Activities that refill your personal meter.',           color:'#4dc4a0' },
-      { icon:'🌹',  label:'Intimacy',         desc:'Desire and closeness, tracked over time.',              color:'#e07a4a' },
+      { icon:'🌹',  label:'Intimacy',         desc:'Desire and closeness, tracked over time.',              color:'#a8324e' },
       { icon:'🌪️',  label:'Wobble',      desc:'Your difficult moments, separate from the relationship.',color:'#7d99c9' },
       { icon:'💨', label:'Steadying',        desc:'When you show up for someone in a hard moment.',        color:'#d4956a' },
     ];
@@ -962,10 +962,10 @@ function showInlineOnboarding(onComplete) {
     const W = 220, H = 220;
     // Quadrant colors (subtle tints)
     const quadrants = [
-      { x:0,    y:H/2, w:W/2, h:H/2, fill:'rgba(77,196,120,0.06)', label:'Secure',       lx:W/4,    ly:H-12 },
+      { x:0,    y:H/2, w:W/2, h:H/2, fill:'rgba(95,190,126,0.06)', label:'Secure',       lx:W/4,    ly:H-12 },
       { x:W/2,  y:H/2, w:W/2, h:H/2, fill:'rgba(212,154,106,0.06)', label:'Avoidant',    lx:3*W/4,  ly:H-12 },
       { x:0,    y:0,   w:W/2, h:H/2, fill:'rgba(212,123,123,0.06)', label:'Anxious',     lx:W/4,    ly:14 },
-      { x:W/2,  y:0,   w:W/2, h:H/2, fill:'rgba(155,127,212,0.06)', label:'Disorganized',lx:3*W/4,  ly:14 },
+      { x:W/2,  y:0,   w:W/2, h:H/2, fill:'rgba(124,139,168,0.06)', label:'Disorganized',lx:3*W/4,  ly:14 },
     ];
     // Sample dots — mostly secure cluster, a couple anxious. Coords as fraction of W/H.
     const dots = [
@@ -979,7 +979,7 @@ function showInlineOnboarding(onComplete) {
     // Compute centroid
     const cx = dots.reduce((s,d)=>s+d.x,0) / dots.length;
     const cy = dots.reduce((s,d)=>s+d.y,0) / dots.length;
-    const colorFor = (axis) => axis === 'secure' ? '#4dc478' : '#d47a7a';
+    const colorFor = (axis) => axis === 'secure' ? '#5fbe7e' : '#d47a7a';
 
     let svg = `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:240px;display:block;margin:0 auto;font-family:'DM Sans',sans-serif;">`;
     // Background quadrants
@@ -1020,7 +1020,7 @@ function showInlineOnboarding(onComplete) {
       name: 'Intimacy',
       body: 'Track physical intimacy and desire over time. Logs shared and solo intimacy with quality and context. Useful when you want to notice patterns in desire — what supports it, what dampens it.',
       demoEl: oSampleEntryCard({
-        color: '#e07a4a', icon: '🌹', title: 'Slow Sunday morning',
+        color: '#a8324e', icon: '🌹', title: 'Slow Sunday morning',
         detail: 'Mutual · desire was high · stayed close all day',
         tagline: 'Over weeks, what supports desire and what dampens it becomes visible.',
       }),
@@ -1214,7 +1214,7 @@ function showInlineOnboarding(onComplete) {
       row.appendChild(tog);
       s.appendChild(row);
     }
-    s.appendChild(h('div',{style:{marginTop:'24px',padding:'14px 16px',borderRadius:'12px',background:'rgba(77,196,120,0.08)',border:'1px solid rgba(77,196,120,0.2)',fontSize:'13px',color:'var(--text)',lineHeight:'1.6'}},
+    s.appendChild(h('div',{style:{marginTop:'24px',padding:'14px 16px',borderRadius:'12px',background:'rgba(95,190,126,0.08)',border:'1px solid rgba(95,190,126,0.2)',fontSize:'13px',color:'var(--text)',lineHeight:'1.6'}},
       h('div',{style:{fontWeight:'500',marginBottom:'4px'}},'Start with Mood & Energy'),
       'Your first entry each day is the 🌡️ check-in. It calibrates the scoring for everything else you log that day.'
     ));

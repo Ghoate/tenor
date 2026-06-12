@@ -80,8 +80,8 @@ function buildTypedPills(winEntries, gaugeType) {
 
   const col = (items, side) => items.length === 0 ? h('div',{style:{flex:'1'}}) : h('div',{style:{
     flex:'1',
-    background: side === 'left' ? 'rgba(224,53,53,0.05)' : 'rgba(77,196,120,0.06)',
-    border: side === 'left' ? '1px solid rgba(224,53,53,0.12)' : '1px solid rgba(77,196,120,0.14)',
+    background: side === 'left' ? 'rgba(224,53,53,0.05)' : 'rgba(95,190,126,0.06)',
+    border: side === 'left' ? '1px solid rgba(224,53,53,0.12)' : '1px solid rgba(95,190,126,0.14)',
     borderRadius:'10px', padding:'6px 10px',
   }}, ...items.map(pill));
 
@@ -136,23 +136,28 @@ function buildLoveBankPanel() {
   // matches the home card's identical formula. Avoids the double-round path that pushed a 14.3
   // underlying value to 15 when averaged from already-whole-rounded inputs.
   const exp = computeExperimentalScores();
-  // In Individual mode, the relational gauge slot is filled by Social.
+  // Gauge layout depends on mode:
+  //   Individual                 — Social fills the Relational slot
+  //   Partner/Dating + 3-axis    — Atmosphere · Relational · Social · Personal
+  //   Partner/Dating default     — Atmosphere · Relational · Personal
   const isIndGauge       = S.relationshipMode === 'individual';
+  const showSocialGauge  = isIndGauge || S.trackSocialAxis;
   const windowGaugeValue = Math.round(isIndGauge ? (exp.soc || 0) : exp.rel);
+  const socGaugeValue    = Math.round(exp.soc || 0);
   const perWindowGauge   = Math.round(exp.per);
-  const comWindowGauge   = Math.round(((isIndGauge ? (exp.soc || 0) : exp.rel) + exp.per) / 2);
+  const comWindowGauge   = Math.round(exp.tenor);
 
   const zones = getBounds();
   const zoneBg = b => {
-    if (b >= zones.thriving)  return 'rgba(77,196,120,0.18)';
-    if (b >= zones.stable)    return 'rgba(77,196,120,0.09)';
+    if (b >= zones.thriving)  return 'rgba(95,190,126,0.18)';
+    if (b >= zones.stable)    return 'rgba(95,190,126,0.09)';
     if (b >= 0)               return 'rgba(210,160,40,0.12)';
     if (b >= zones.strained)  return 'rgba(224,130,40,0.14)';
     if (b >= zones.depleted)  return 'rgba(224,100,40,0.16)';
     return 'rgba(224,53,53,0.18)';
   };
   const band = b => b >= zones.thriving ? { label: 'Thriving', color: 'var(--c-partner)' }
-                  : b >= zones.stable   ? { label: 'Healthy',     color: 'rgba(77,196,120,0.55)' }
+                  : b >= zones.stable   ? { label: 'Healthy',     color: 'rgba(95,190,126,0.55)' }
                   : b >= 0              ? { label: 'Progressing', color: 'var(--c-burnout)' }
                   : b >= zones.strained ? { label: 'Unsettled',  color: 'rgba(210,130,50,1)' }
                   : b >= zones.depleted ? { label: 'Difficult',  color: 'var(--c-warning)' }
@@ -183,11 +188,24 @@ function buildLoveBankPanel() {
       // ── Triple-gauge overview ─────────────────────────
 
       (() => {
-        const gaugeItems = [
-          {label:'Atmosphere',                          value:comWindowGauge,   gn:'tgNeg0', gp:'tgPos0'},
-          {label: isIndGauge ? 'Social' : 'Relational', value:windowGaugeValue, gn:'tgNeg1', gp:'tgPos1'},
-          {label:'Personal',                            value:perWindowGauge,   gn:'tgNeg2', gp:'tgPos2'},
-        ];
+        const gaugeItems = isIndGauge
+          ? [
+              {label:'Atmosphere', value:comWindowGauge,   gn:'tgNeg0', gp:'tgPos0'},
+              {label:'Social',     value:socGaugeValue,    gn:'tgNeg1', gp:'tgPos1'},
+              {label:'Personal',   value:perWindowGauge,   gn:'tgNeg2', gp:'tgPos2'},
+            ]
+          : S.trackSocialAxis
+          ? [
+              {label:'Atmosphere', value:comWindowGauge,   gn:'tgNeg0', gp:'tgPos0'},
+              {label:'Relational', value:windowGaugeValue, gn:'tgNeg1', gp:'tgPos1'},
+              {label:'Social',     value:socGaugeValue,    gn:'tgNeg2', gp:'tgPos2'},
+              {label:'Personal',   value:perWindowGauge,   gn:'tgNeg3', gp:'tgPos3'},
+            ]
+          : [
+              {label:'Atmosphere', value:comWindowGauge,   gn:'tgNeg0', gp:'tgPos0'},
+              {label:'Relational', value:windowGaugeValue, gn:'tgNeg1', gp:'tgPos1'},
+              {label:'Personal',   value:perWindowGauge,   gn:'tgNeg2', gp:'tgPos2'},
+            ];
 
         const makeMiniGauge = ({label, value, gn, gp}) => {
           const bInfo = band(value);
@@ -225,7 +243,7 @@ function buildLoveBankPanel() {
             defs.appendChild(g);
           };
           mkGrad(gn, [['0%','rgba(224,53,53,0.95)'],['30%','rgba(224,53,53,0.95)'],['100%','rgba(210,160,40,0.95)']]);
-          mkGrad(gp, [['0%','rgba(210,160,40,0.95)'],['70%','rgba(77,196,120,0.95)'],['100%','rgba(77,196,120,0.95)']]);
+          mkGrad(gp, [['0%','rgba(210,160,40,0.95)'],['70%','rgba(95,190,126,0.95)'],['100%','rgba(95,190,126,0.95)']]);
           svgEl.appendChild(defs);
 
           [{from:0.00,to:0.50,fill:`url(#${gn})`},{from:0.50,to:1.00,fill:`url(#${gp})`}]
@@ -236,10 +254,15 @@ function buildLoveBankPanel() {
           svgEl.appendChild(mk('circle',{cx:String(cx),cy:String(cy),r:'5',fill:'var(--bg2)',stroke:'var(--pivot-stroke)','stroke-width':'1.5'}));
 
           const zi = _zoneIconFor(value, zones);
-          return h('div',{style:{flex:'1',textAlign:'center',background:zoneBg(value),borderRadius:'10px',padding:'6px 4px 8px'}},
-            h('div',{style:{fontSize:'11px',color:'var(--text-strong)',fontWeight:'400',marginBottom:'2px'}},
+          return h('div',{style:{flex:'1',textAlign:'center',background:zoneBg(value),borderRadius:'10px',padding:'6px 4px 8px',display:'flex',flexDirection:'column',alignItems:'center'}},
+            // Top label — locked to single line at fixed height so longer names
+            // ("Relational", "Atmosphere") don't wrap and shift everything below.
+            h('div',{style:{fontSize:'11px',color:'var(--text-strong)',fontWeight:'400',marginBottom:'2px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',width:'100%',lineHeight:'16px',height:'16px'}},
               label),
             svgEl,
+            // Spacer pushes the band-label row to the bottom of the card so all
+            // four (or three) cards line up regardless of arc/value height drift.
+            h('div',{style:{flex:'1'}}),
             h('div',{style:{fontFamily:"'Libre Baskerville',serif",fontSize:'26px',fontWeight:'400',color:'var(--text-strong)',lineHeight:'1',margin:'6px 0 4px'}},
               (value>=0?'+':'')+value),
             h('div',{style:{display:'flex',alignItems:'center',justifyContent:'center',gap:'5px',marginTop:'2px'}},

@@ -57,7 +57,7 @@ function bankScoreEntry(e, cap) {
     return { score, color: CAT_COLORS.physical, label: '🌹 ' + (e.eventType || 'Intimacy') };
   }
   if (e.category === 'physical' && e.solo) {
-    return { score: 0, color: 'rgba(224,122,74,0.5)', label: '🌹 Solo' };
+    return { score: 0, color: 'rgba(168,50,78,0.5)', label: '🌹 Solo' };
   }
   if (e.category === 'conflict') {
     const condM = CONF_CONDUCT_M[e.conduct] || 0.60;

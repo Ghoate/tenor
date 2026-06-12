@@ -396,13 +396,6 @@ const DEFAULT_CHALLENGING_EMOTION_TAGS = [
   'Angry','Frustrated','Anxious','Apprehensive','Lonely','Disappointed','Ashamed','Embarrassed','Numb','Exhausted','Overwhelmed','Agitated','Run-down','Sleep-deprived'
 ];
 
-// Whom list — names of people the user has logged moments with. Used by
-// Bonding (and potentially other entry types later) to mark "with whom".
-// Seeded with a couple of placeholder names; user edits/removes/adds as needed.
-const DEFAULT_WHOM_LIST = [
-  'Sarah','Emma','Jamie'
-];
-
 const SAMPLE_PHYSICAL_TYPES = [
   {name:'Morning in Bed', description:'Slow morning, no alarms, nowhere to be',
    defaultSolo:false, physIntentionality:2, physEnergy:2, physDesire:4, physNovelty:2, physSetting:3,
@@ -439,6 +432,18 @@ const CONNECTION_QUALITY = [
   {val:3, label:'Warm',      sub:'Noticeably more present than routine'},
   {val:4, label:'Deep',       sub:'Genuinely present, warmth felt mutual — real connection'},
   {val:5, label:'Peak',      sub:'Deep closeness — a moment that stayed with you'},
+];
+
+// Social-specific quality scale — friend/family/community oriented. Phrased
+// to cover activity-based connection (games, hikes, watching something) as
+// well as conversation. Same scoring multipliers as CONNECTION_QUALITY (via
+// BANK_OUTCOME_M); only the user-facing labels and copy differ.
+const SOCIAL_QUALITY = [
+  {val:1, label:'Surface',    sub:'Bodies in the same room, attention elsewhere'},
+  {val:2, label:'Pleasant',   sub:'Easy company — going through the motions together'},
+  {val:3, label:'Engaged',    sub:'Actually present — talking, playing, or in something together'},
+  {val:4, label:'Real',       sub:'Genuine connection — laughing, into it, or saying real things'},
+  {val:5, label:'Memorable',  sub:'A standout moment that stayed with you'},
 ];
 const CONFLICT_RESOLUTION = [
   {val:'breakthrough',label:'Repaired',sub:'Genuine insight emerged — left closer than before the conflict',mult:0.20},
@@ -810,11 +815,11 @@ const DRAIN_LEVELS = [
   {val:5,label:'Severe',   sub:'Completely spent, needed recovery time',      m:1.00},
 ];
 const CAT_COLORS = {
-  physical:'#e07a4a', affection:'#e085b8', libido:'#9b7fd4',
-  conflict:'#e03535', turndown:'#7a9ec4',  partner:'#4dc478', burnout:'#d4a030',
-  restore:'#5ab8d4', regulation:'#a07fd4', repair:'#4dc478',
-  notes:'#88a892', combined:'#5fb89a',
-  social:'#d99875', friction:'#b86f60',
+  physical:'#a8324e', affection:'#d6739c', libido:'#7c8ba8',
+  conflict:'#dc3a3a', turndown:'#b8d4e0',  burnout:'#b8c4c0',
+  restore:'#4fa8c4', regulation:'#6c7884', repair:'#5fbe7e',
+  notes:'#9cae9c', combined:'#7fb89a',
+  social:'#e0a468', friction:'#9c5a4c',
 };
 const CAT_LABELS = {
   physical:'Intimacy',

@@ -691,7 +691,7 @@ function buildRepairLandscape(opts) {
   // ── Reception breakdown ──
   // Color gradient: secure-green for accepted → muted middle → conflict-red for refused
   const recSegments = [
-    { key:'accepted',  label:'Accepted',     count: recCounts.accepted,  color:'#4dc478' },
+    { key:'accepted',  label:'Accepted',     count: recCounts.accepted,  color:'#5fbe7e' },
     { key:'halfway',   label:'Met halfway',  count: recCounts.halfway,   color:'#a8b87a' },
     { key:'postponed', label:'Postponed',    count: recCounts.postponed, color:'#9aa6b8' },
     { key:'deflected', label:'Deflected',    count: recCounts.deflected, color:'#d4a06a' },

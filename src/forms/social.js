@@ -38,28 +38,6 @@ function buildSocialForm() {
     }},'+ Add new'),
   ];
 
-  // Whom is optional for social — friends/family often have names, but
-  // not every hangout needs to be tagged with one. Save gate doesn't require it.
-  const whomChips = (S.whomList || []).slice().sort((a,b)=>a.localeCompare(b)).map(name =>
-    h('div',{
-      class:'chip'+(f.whom===name?' selected sel-social':''),
-      onclick:()=>{ f.whom = (f.whom===name ? null : name); render(); },
-    }, name)
-  );
-  whomChips.push(
-    h('div',{class:'chip add-new',onclick:()=>{
-      S.activeTab='library';
-      S.libWhomExpanded=true;
-      S.libSocialExpanded=false; S.libSocialForm={};
-      S.libBondingExpanded=false; S.libBondingForm={};
-      S.libIntimacyExpanded=false; S.libIntimacyForm={};
-      S.libRestoreExpanded=false; S.libRestoreForm={};
-      S.libSteadyingExpanded=false; S.libSteadyingForm={};
-      S.libWobbleExpanded=false; S.libWobbleForm={};
-      closeModalSilent(); render();
-    }}, '+ Manage names')
-  );
-
   const ok = !!f.eventType && !!f.connectionQuality;
 
   return overlay(h('div',{},
@@ -69,25 +47,9 @@ function buildSocialForm() {
       h('div',{class:'chips'},...typeChips)
     ),
     h('div',{class:'form-section'},
-      h('label',{class:'form-label'},'With whom (optional)'),
-      (S.whomList && S.whomList.length > 0)
-        ? h('div',{class:'chips'}, ...whomChips)
-        : h('div',{style:{fontSize:'12px',color:'var(--muted)',padding:'8px 0'}},
-            'No names in your Whom library yet. ',
-            h('span',{
-              style:{color:'var(--interactive)',cursor:'pointer',textDecoration:'underline'},
-              onclick:()=>{
-                S.activeTab='library';
-                S.libWhomExpanded=true;
-                closeModalSilent(); render();
-              },
-            }, 'Add some →')
-          )
-    ),
-    h('div',{class:'form-section'},
-      h('label',{class:'form-label'},'Connection quality'),
+      h('label',{class:'form-label'},'How was the connection'),
       h('div',{class:'btn-grid-5'},
-        ...CONNECTION_QUALITY.map(q=>h('button',{
+        ...SOCIAL_QUALITY.map(q=>h('button',{
           class:'sel-btn flex1'+(f.connectionQuality===q.val?' sel-social':''),
           onclick:()=>{ f.connectionQuality=q.val; render(); }
         }, q.label, h('span',{class:'sub'},resolveSub(q.sub))))
@@ -135,7 +97,6 @@ function saveSocial(){
     date: S.selectedDate,
     category: 'social',
     eventType: validType,
-    whom: f.whom || null,
     connectionQuality: f.connectionQuality || 3,
     notes: f.notes || '',
   };

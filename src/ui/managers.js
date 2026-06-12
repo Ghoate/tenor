@@ -797,7 +797,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
     if (!isEditing && !isAdding) {
       // Show "Add new" button
       const addBtnAccent = isSocial ? 'var(--c-social)' : 'var(--c-affection)';
-      const addBtnBg     = isSocial ? 'rgba(217,152,117,0.08)' : 'rgba(224,133,184,0.08)';
+      const addBtnBg     = isSocial ? 'rgba(224,164,104,0.08)' : 'rgba(214,115,156,0.08)';
       return h('button',{
         style:{
           width:'100%', marginTop:'10px', padding:'12px',
@@ -890,8 +890,8 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
     // Highlight color for the profile-row buttons. Social activities use
     // their own accent; bonding/intimacy continue to share orange.
     const profileAccent   = isSocial ? 'var(--c-social)' : 'var(--c-physical)';
-    const profileBorderOn = isSocial ? 'rgba(217,152,117,0.6)' : 'rgba(224,122,74,0.6)';
-    const profileBgOn     = isSocial ? 'rgba(217,152,117,0.12)' : 'rgba(224,122,74,0.12)';
+    const profileBorderOn = isSocial ? 'rgba(224,164,104,0.6)' : 'rgba(168,50,78,0.6)';
+    const profileBgOn     = isSocial ? 'rgba(224,164,104,0.12)' : 'rgba(168,50,78,0.12)';
     const descQ = (key) => {
       const cur = f[key] || 1;
       const labels = DESC_SCALES[key] || SCALE_LABELS;
@@ -994,8 +994,8 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
               h('div',{style:{display:'flex',gap:'4px'}},
                 ...[1,2,3,4,5].map(v=>h('button',{
                   style:{flex:'1',padding:'7px 2px',borderRadius:'8px',fontSize:'11px',
-                    border:'1px solid '+(cur===v?'rgba(224,122,74,0.6)':'var(--border)'),
-                    background:cur===v?'rgba(224,122,74,0.12)':'var(--bg3)',
+                    border:'1px solid '+(cur===v?'rgba(168,50,78,0.6)':'var(--border)'),
+                    background:cur===v?'rgba(168,50,78,0.12)':'var(--bg3)',
                     color:cur===v?'var(--c-physical)':'var(--muted)',cursor:'pointer'},
                   onclick:()=>{f[key]=v;markDirty();render();}
                 }, labels[v-1]))
@@ -1209,7 +1209,7 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
         style:{
           width:'100%', marginTop:'10px', padding:'12px',
           borderRadius:'14px', border:'1px solid var(--c-restore)',
-          background:'rgba(90,184,212,0.08)', color:'var(--c-restore)',
+          background:'rgba(79,168,196,0.08)', color:'var(--c-restore)',
           fontSize:'13px', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", fontWeight:'500',
         },
         onclick:()=>{
@@ -1303,8 +1303,8 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
             h('div',{style:{display:'flex',gap:'4px'}},
               ...[1,2,3,4,5].map(v=>h('button',{
                 style:{flex:'1',padding:'7px 2px',borderRadius:'8px',fontSize:'11px',
-                  border:'1px solid '+(cur===v?'rgba(90,184,212,0.6)':'var(--border)'),
-                  background:cur===v?'rgba(90,184,212,0.12)':'var(--bg3)',
+                  border:'1px solid '+(cur===v?'rgba(79,168,196,0.6)':'var(--border)'),
+                  background:cur===v?'rgba(79,168,196,0.12)':'var(--bg3)',
                   color:cur===v?'var(--c-restore)':'var(--muted)',cursor:'pointer'},
                 onclick:()=>{f[key]=v;markDirty();render();}
               }, labels[v-1]))
@@ -1338,8 +1338,8 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
             h('div',{style:{display:'flex',gap:'3px'}},
               ...[1,2,3,4,5].map(v=>h('button',{
                 style:{flex:'1',padding:'5px 2px',borderRadius:'7px',fontSize:'10px',
-                  border:'1px solid '+(cur===v?'rgba(90,184,212,0.6)':'var(--border)'),
-                  background:cur===v?'rgba(90,184,212,0.12)':'var(--bg3)',
+                  border:'1px solid '+(cur===v?'rgba(79,168,196,0.6)':'var(--border)'),
+                  background:cur===v?'rgba(79,168,196,0.12)':'var(--bg3)',
                   color:cur===v?'var(--c-restore)':'var(--muted)',cursor:'pointer'},
                 onclick:()=>{f.needsMap={...(f.needsMap||{})};f.needsMap[need.val]=v;markDirty();render();}
               }, NEEDS_LABELS[v-1]))

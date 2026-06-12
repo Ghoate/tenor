@@ -15,7 +15,7 @@ const CAL_FILTER_DEFS = [
   {key:'libido',        label:'Mood, Energy & Desire', color:CAT_COLORS.libido},
   {key:'regulation',    label:'Wobble', color:CAT_COLORS.regulation},
   {key:'physical',      label:'Intimacy',    color:CAT_COLORS.physical},
-  {key:'notes',         label:'Notes',       color:CAT_COLORS.partner},
+  {key:'notes',         label:'Notes',       color:CAT_COLORS.notes},
   {key:'repair',        label:'Repair',      color:CAT_COLORS.repair},
   {key:'restore',       label:'Restorative', color:CAT_COLORS.restore},
   {key:'turndown',      label:'Turn down',   color:CAT_COLORS.turndown},
@@ -34,8 +34,8 @@ function buildCalFilterModal() {
         if (!S.showRegulation && f.key === 'regulation') return false;
         if (!S.showPhysical  && (f.key === 'physical' || f.key === 'turndown')) return false;
         if (!S.showRepair    && f.key === 'repair') return false;
-        if (S.relationshipMode !== 'individual' && f.key === 'social') return false;
-        if (S.relationshipMode !== 'individual' && f.key === 'friction') return false;
+        if (S.relationshipMode !== 'individual' && !S.trackSocialAxis && f.key === 'social') return false;
+        if (S.relationshipMode !== 'individual' && !S.trackSocialAxis && f.key === 'friction') return false;
         return true;
       }).map(f => {
         const hidden = filters.has(f.key);
@@ -346,7 +346,7 @@ function buildDayPanel() {
   const _miniBg = v => {
     const r = Math.round(v);
     if (r >= _miniZones.thriving)  return 'rgba(30,160,80,0.18)';
-    if (r >= _miniZones.stable)    return 'rgba(77,196,120,0.09)';
+    if (r >= _miniZones.stable)    return 'rgba(95,190,126,0.09)';
     if (r >= 0)                    return 'rgba(210,160,40,0.12)';
     if (r >= _miniZones.strained)  return 'rgba(224,130,40,0.14)';
     if (r >= _miniZones.depleted)  return 'rgba(224,100,40,0.16)';
@@ -358,6 +358,13 @@ function buildDayPanel() {
   const _miniScores = _miniIsIndividual
     ? [
         {label:'Atmosphere', val:_miniCom},
+        {label:'Social',     val:_miniSoc},
+        {label:'Personal',   val:_miniPer},
+      ]
+    : S.trackSocialAxis
+    ? [
+        {label:'Atmosphere', val:_miniCom},
+        {label:'Relational', val:_miniRel},
         {label:'Social',     val:_miniSoc},
         {label:'Personal',   val:_miniPer},
       ]
@@ -468,21 +475,16 @@ function buildCard(e) {
     title = e.eventType || (S.relationshipMode === 'dating' ? 'Date' : 'Bonding moment');
     const cq  = CONNECTION_QUALITY.find(q=>q.val===(e.connectionQuality||3));
     const who = e.initiatedBy==='me'?'I initiated':e.initiatedBy==='her'?`${P.Sub} initiated`:e.initiatedBy==='mutual'?'Mutual':'';
-    // Whom is shown when present — works in both modes (dating-mode entries
-    // will have it, partner-mode entries can be edited to set it later)
-    const whom = e.whom ? 'with '+e.whom : '';
     const scored = bankScoreEntry(e, cardCap);
     const scoreStr = fmtScore(scored.score);
-    // Order matches form: whom (or initiator), connection quality
-    meta  = [whom || who, cq?cq.label:'', scoreStr].filter(Boolean).join(' · ');
+    meta  = [who, cq?cq.label:'', scoreStr].filter(Boolean).join(' · ');
     note  = e.notes;
   } else if (e.category==='social') {
     title = e.eventType || 'Social moment';
-    const cq   = CONNECTION_QUALITY.find(q=>q.val===(e.connectionQuality||3));
-    const whom = e.whom ? 'with '+e.whom : '';
+    const cq   = SOCIAL_QUALITY.find(q=>q.val===(e.connectionQuality||3));
     const scored = bankScoreEntry(e, cardCap);
     const scoreStr = fmtScore(scored.score);
-    meta = [whom, cq?cq.label:'', scoreStr].filter(Boolean).join(' · ');
+    meta = [cq?cq.label:'', scoreStr].filter(Boolean).join(' · ');
     note = e.notes;
   } else if (e.category==='friction') {
     const imp  = FRICTION_IMPACT.find(i=>i.val===e.impact);
@@ -689,9 +691,10 @@ function buildPicker() {
     {key:'combined',   icon:'🔀', name:'Combined',       desc:'One activity — both bonding & restorative'},
   ].filter(c => c.key !== 'turndown' || S.showPhysical)
    .filter(c => c.key !== 'burnout'  || S.showCaretaker)
-   .filter(c => c.key !== 'combined' || S.showBonding);
+   .filter(c => c.key !== 'combined' || S.showBonding || S.relationshipMode === 'individual');
 
   const isIndividual = S.relationshipMode === 'individual';
+  const showSocial   = isIndividual || S.trackSocialAxis;
   const right = [
     {key:'affection',  icon:'🩷', get name(){ return bondingLabel(); }, desc:'Genuine bonding experiences'},
     {key:'social',     icon:'🫂', name:'Social',                desc:'Time with friends, family, community'},
@@ -701,8 +704,8 @@ function buildPicker() {
     {key:'regulation', icon:'🌪️', name:'Wobble',           desc:'Your personal difficult moment'},
     {key:'repair',     icon:'🤝', name:'Repair',                desc:'Reconnection work after a rupture'},
   ].filter(c => c.key !== 'affection'   || S.showBonding)
-   .filter(c => c.key !== 'social'      || isIndividual)
-   .filter(c => c.key !== 'friction'    || isIndividual)
+   .filter(c => c.key !== 'social'      || showSocial)
+   .filter(c => c.key !== 'friction'    || showSocial)
    .filter(c => c.key !== 'physical'    || S.showPhysical)
    .filter(c => c.key !== 'conflict'    || S.showConflict)
    .filter(c => c.key !== 'regulation'  || S.showRegulation)
@@ -752,14 +755,23 @@ function buildPicker() {
 function buildScoreBar() {
   // Lifetime sums via the active scoring model.
   const exp = computeExperimentalScores();
-  // In Individual mode, the Social axis takes the slot Relational normally
-  // occupies — Relational is always 0 there and would be uninformative.
+  // Column layout depends on mode:
+  //   Individual                 — Atmosphere · Social · Personal
+  //   Partner/Dating + 3-axis    — Atmosphere · Relational · Social · Personal
+  //   Partner/Dating default     — Atmosphere · Relational · Personal
   const isIndividual = S.relationshipMode === 'individual';
   const scores = isIndividual
     ? [
         { label:'Atmosphere', val:exp.tenor, key:'combined' },
         { label:'Social',     val:exp.soc,   key:'social'   },
         { label:'Personal',   val:exp.per,   key:'personal' },
+      ]
+    : S.trackSocialAxis
+    ? [
+        { label:'Atmosphere', val:exp.tenor, key:'combined'   },
+        { label:'Relational', val:exp.rel,   key:'relational' },
+        { label:'Social',     val:exp.soc,   key:'social'     },
+        { label:'Personal',   val:exp.per,   key:'personal'   },
       ]
     : [
         { label:'Atmosphere', val:exp.tenor, key:'combined'   },
@@ -774,7 +786,7 @@ function buildScoreBar() {
   const scoreBg = val => {
     const r = Math.round(val);
     if (r >= zones.thriving)  return 'rgba(30,160,80,0.18)';
-    if (r >= zones.stable)    return 'rgba(77,196,120,0.09)';
+    if (r >= zones.stable)    return 'rgba(95,190,126,0.09)';
     if (r >= 0)               return 'rgba(210,160,40,0.12)';
     if (r >= zones.strained)  return 'rgba(224,130,40,0.14)';
     if (r >= zones.depleted)  return 'rgba(224,100,40,0.16)';

@@ -1417,7 +1417,7 @@ const STORM_ZONE_SIZE = {
 // Zone helpers — both need zones7 passed in (caller computes via getBounds()).
 function _zoneIconFor(v, zones7) {
   if (v >= zones7.thriving)   return { icon:'☀️',  label:'Thriving',    color:'var(--c-partner)' };
-  if (v >= zones7.stable)     return { icon:'🌤️', label:'Healthy',     color:'rgba(77,196,120,0.85)' };
+  if (v >= zones7.stable)     return { icon:'🌤️', label:'Healthy',     color:'rgba(95,190,126,0.85)' };
   if (v >= 0)                 return { icon:'⛅',  label:'Progressing', color:'#a8b870' };
   if (v >= zones7.strained)   return { icon:'☁️',  label:'Unsettled',   color:'rgba(210,130,50,1)' };
   if (v >= zones7.depleted)   return { icon:'🌧️', label:'Difficult',   color:'var(--c-warning)' };
@@ -1442,7 +1442,7 @@ function _dailyZoneBounds() {
 }
 function _dailyZoneIconFor(v, dz) {
   if (v >= dz.thriving)   return { icon:'☀️',  label:'Strong gain',  color:'var(--c-partner)' };
-  if (v >= dz.stable)     return { icon:'🌤️', label:'Gain',         color:'rgba(77,196,120,0.85)' };
+  if (v >= dz.stable)     return { icon:'🌤️', label:'Gain',         color:'rgba(95,190,126,0.85)' };
   if (v >= 0)             return { icon:'⛅',  label:'Slight gain',  color:'#a8b870' };
   if (v >= dz.strained)   return { icon:'☁️',  label:'Slight loss',  color:'rgba(210,130,50,1)' };
   if (v >= dz.depleted)   return { icon:'🌧️', label:'Loss',         color:'var(--c-warning)' };
@@ -1487,6 +1487,10 @@ function buildHomePage() {
   const lastPhysical = allEntries.filter(e => e.category === 'physical' && !e.solo).map(e => e.date).sort().pop();
   const daysSincePhysical = lastPhysical ? daysBetween(lastPhysical, S.today) : null;
 
+  // Days since last social (Individual mode)
+  const lastSocial = allEntries.filter(e => e.category === 'social').map(e => e.date).sort().pop();
+  const daysSinceSocial = lastSocial ? daysBetween(lastSocial, S.today) : null;
+
   // This week counts
   const week7Bonding  = last7.filter(e => e.category === 'affection').length;
   const week7Physical = last7.filter(e => e.category === 'physical' && !e.solo).length;
@@ -1494,6 +1498,8 @@ function buildHomePage() {
   const week7Conflict = last7.filter(e => e.category === 'conflict').length;
   const week7Burnout  = last7.filter(e => e.category === 'burnout').length;
   const week7Wobble   = last7.filter(e => e.category === 'regulation').length;
+  const week7Social   = last7.filter(e => e.category === 'social').length;
+  const week7Friction = last7.filter(e => e.category === 'friction').length;
   const conflictYest         = yestEs.some(e => e.category === 'conflict');
   const conflictYestResolved = yestEs.some(e => e.category === 'conflict' && ['resolved','breakthrough'].includes(e.resolution));
   const conflictToday        = todayEs.some(e => e.category === 'conflict');
@@ -1505,6 +1511,7 @@ function buildHomePage() {
   // we shadow relBal7 with the social value so downstream display code "just works."
   const expNow = computeExperimentalScores(S.today);
   const isIndHome = S.relationshipMode === 'individual';
+  const has3AxisHome = !isIndHome && S.trackSocialAxis;
   const relBal7 = Math.round(isIndHome ? (expNow.soc || 0) : expNow.rel);
   const perBal7 = Math.round(expNow.per);
   const socBal7 = Math.round(expNow.soc || 0);
@@ -1518,7 +1525,7 @@ function buildHomePage() {
   const tenorScore7 = hasEnoughData ? Math.round(((isIndHome ? (expNow.soc || 0) : expNow.rel) + expNow.per) / 2) : null;
   const zoneBand7 = tenorScore7 === null ? null
     : tenorScore7 >= zones7.thriving ? { label:'Thriving',  color:'var(--c-partner)' }
-    : tenorScore7 >= zones7.stable   ? { label:'Healthy',   color:'rgba(77,196,120,0.85)' }
+    : tenorScore7 >= zones7.stable   ? { label:'Healthy',   color:'rgba(95,190,126,0.85)' }
     : tenorScore7 >= 0               ? { label:'Progressing',   color:'#a8b870' }
     : tenorScore7 >= zones7.strained ? { label:'Unsettled', color:'rgba(210,130,50,1)' }
     : tenorScore7 >= zones7.depleted ? { label:'Difficult', color:'var(--c-warning)' }
@@ -1575,7 +1582,7 @@ function buildHomePage() {
   // Maps a score to a weather icon + label based on the active zones.
   const _zoneIcon = v =>
       v >= zones7.thriving  ? { icon:'☀️',  label:'Thriving',    color:'var(--c-partner)' }
-    : v >= zones7.stable    ? { icon:'🌤️', label:'Healthy',     color:'rgba(77,196,120,0.85)' }
+    : v >= zones7.stable    ? { icon:'🌤️', label:'Healthy',     color:'rgba(95,190,126,0.85)' }
     : v >= 0                ? { icon:'⛅',  label:'Progressing', color:'#a8b870' }
     : v >= zones7.strained  ? { icon:'☁️',  label:'Unsettled',   color:'rgba(210,130,50,1)' }
     : v >= zones7.depleted  ? { icon:'🌧️', label:'Difficult',   color:'var(--c-warning)' }
@@ -1782,20 +1789,23 @@ function buildHomePage() {
     // Returns null for an empty day so dow averaging can skip it.
     // In Individual mode, the "rel" slot is fed by Social — the rest of the
     // forecast pipeline uses .rel as its positive non-personal axis and just
-    // works when we substitute soc here.
+    // works when we substitute soc here. In 3-axis mode (Partner/Dating +
+    // trackSocialAxis) we keep rel and soc as separate axes.
+    const has3Axis = !isIndHome && S.trackSocialAxis;
     const contributionOnDate = (date) => {
       const dayEs = byDate[date] || [];
       if (dayEs.length === 0) return null;
       const cap = bankDayCap(dayEs.find(le => le.category === 'libido'));
-      let r = 0, p = 0;
+      let r = 0, p = 0, s = 0;
       for (const e of dayEs) {
         const { rel, per, soc } = expEntryScores(e, cap);
         const primary = isIndHome ? (soc || 0) : rel;
         if (primary !== 0) r += expRemaining(primary, 0);
         if (per !== 0) p += expRemaining(per, 0);
+        if (has3Axis && soc !== 0) s += expRemaining(soc, 0);
       }
-      if (r === 0 && p === 0) return null;
-      return { rel: r, per: p };
+      if (r === 0 && p === 0 && s === 0) return null;
+      return { rel: r, per: p, soc: s };
     };
 
     // Per-day-of-week averages over the shared lookback (PCT_WINDOW), ignoring
@@ -1815,6 +1825,7 @@ function buildHomePage() {
       dowAvgs[d] = {
         rel: vs.length ? vs.reduce((s, v) => s + v.rel, 0) / vs.length : 0,
         per: vs.length ? vs.reduce((s, v) => s + v.per, 0) / vs.length : 0,
+        soc: vs.length ? vs.reduce((s, v) => s + (v.soc || 0), 0) / vs.length : 0,
       };
     }
 
@@ -1832,61 +1843,67 @@ function buildHomePage() {
       const decayOnly = computeExperimentalScores(date);
       // In Individual mode the positive-non-personal axis is Social, not Relational.
       const decayPrim = isIndHome ? (decayOnly.soc || 0) : decayOnly.rel;
-      let mornRel, mornPer;
-      let gainRel, gainPer;
+      const decaySoc  = decayOnly.soc || 0;
+      let mornRel, mornPer, mornSoc;
+      let gainRel, gainPer, gainSoc;
 
       if (off < 0) {
         // Past day — morning is decay-only (without that day's logging), afternoon is actual.
-        const dayContrib = contributionOnDate(date) || { rel: 0, per: 0 };
+        const dayContrib = contributionOnDate(date) || { rel: 0, per: 0, soc: 0 };
         gainRel = dayContrib.rel;
         gainPer = dayContrib.per;
+        gainSoc = dayContrib.soc || 0;
         mornRel = decayPrim - gainRel;
         mornPer = decayOnly.per - gainPer;
+        mornSoc = decaySoc - gainSoc;
       } else if (off === 0) {
-        // Today — REACTIVE. Morning still represents the pre-today state; the afternoon uses
-        // today's actual logged contribution if any (so the line flexes with what you've done),
-        // and falls back to the DOW projection when nothing has been logged yet today.
-        const todayContrib = contributionOnDate(date) || { rel: 0, per: 0 };
+        const todayContrib = contributionOnDate(date) || { rel: 0, per: 0, soc: 0 };
         mornRel = decayPrim - todayContrib.rel;
         mornPer = decayOnly.per - todayContrib.per;
+        mornSoc = decaySoc - (todayContrib.soc || 0);
         gainRel = Math.abs(todayContrib.rel) >= 1 ? todayContrib.rel : dowAvgs[dow].rel;
         gainPer = Math.abs(todayContrib.per) >= 1 ? todayContrib.per : dowAvgs[dow].per;
+        gainSoc = Math.abs(todayContrib.soc || 0) >= 1 ? (todayContrib.soc || 0) : dowAvgs[dow].soc;
       } else {
-        // Future day — REACTIVE. Today's logged events propagate forward through decayOnly
-        // normally (they're real history relative to future days), so the future morning is
-        // simply decayOnly plus the expected contributions from intermediate days.
-        let intermediateRel = 0, intermediatePer = 0;
+        let intermediateRel = 0, intermediatePer = 0, intermediateSoc = 0;
         for (let f = 1; f < off; f++) {
           const futureDate = addDays(S.today, f);
           const fDow = new Date(futureDate + 'T00:00:00').getDay();
           const fRel = dowAvgs[fDow].rel;
           const fPer = dowAvgs[fDow].per;
+          const fSoc = dowAvgs[fDow].soc;
           const ageAtTarget = off - f;
           if (Math.abs(fRel) >= 1) intermediateRel += expRemaining(fRel, ageAtTarget);
           if (Math.abs(fPer) >= 1) intermediatePer += expRemaining(fPer, ageAtTarget);
+          if (Math.abs(fSoc) >= 1) intermediateSoc += expRemaining(fSoc, ageAtTarget);
         }
         mornRel = decayPrim + intermediateRel;
         mornPer = decayOnly.per + intermediatePer;
+        mornSoc = decaySoc + intermediateSoc;
         gainRel = dowAvgs[dow].rel;
         gainPer = dowAvgs[dow].per;
+        gainSoc = dowAvgs[dow].soc;
       }
 
       const aftRel = mornRel + gainRel;
       const aftPer = mornPer + gainPer;
-      // Locked afternoon = the start-of-day DOW projection, regardless of what was logged.
-      // Used by the today card's Low/High columns so they stay anchored to the forecast.
-      // For past/future days it's the same as afternoon (no live/locked distinction needed).
+      const aftSoc = mornSoc + gainSoc;
       const lockedAftRel = off === 0 ? mornRel + dowAvgs[dow].rel : aftRel;
       const lockedAftPer = off === 0 ? mornPer + dowAvgs[dow].per : aftPer;
+      const lockedAftSoc = off === 0 ? mornSoc + dowAvgs[dow].soc : aftSoc;
+
+      // Atmosphere math depends on mode. In 3-axis mode it averages 3 axes;
+      // otherwise it averages the 2 visible axes (Individual: soc lives on rel slot).
+      const tenorOf = (r, p, s) => has3Axis ? ((r + s + p) / 3) : ((r + p) / 2);
 
       out.push({
         date, offset: off, dow,
         isPast:  off < 0,
         isToday: off === 0,
-        morning:         { rel: mornRel,      per: mornPer,      tenor: (mornRel + mornPer) / 2 },
-        afternoon:       { rel: aftRel,       per: aftPer,       tenor: (aftRel  + aftPer)  / 2 },
-        lockedAfternoon: { rel: lockedAftRel, per: lockedAftPer, tenor: (lockedAftRel + lockedAftPer) / 2 },
-        gain:            { rel: gainRel,      per: gainPer },
+        morning:         { rel: mornRel,      per: mornPer,      soc: mornSoc,      tenor: tenorOf(mornRel,      mornPer,      mornSoc) },
+        afternoon:       { rel: aftRel,       per: aftPer,       soc: aftSoc,       tenor: tenorOf(aftRel,       aftPer,       aftSoc)  },
+        lockedAfternoon: { rel: lockedAftRel, per: lockedAftPer, soc: lockedAftSoc, tenor: tenorOf(lockedAftRel, lockedAftPer, lockedAftSoc) },
+        gain:            { rel: gainRel,      per: gainPer,      soc: gainSoc },
       });
     }
     // Extra morning value for the day immediately after END_OFFSET — used by the score chart
@@ -1896,17 +1913,19 @@ function buildHomePage() {
     const _extraDate = addDays(S.today, _extraOff);
     const _extraDecay = computeExperimentalScores(_extraDate);
     const _extraDecayPrim = isIndHome ? (_extraDecay.soc || 0) : _extraDecay.rel;
-    let _extraInterRel = 0, _extraInterPer = 0;
+    let _extraInterRel = 0, _extraInterPer = 0, _extraInterSoc = 0;
     for (let f = 1; f < _extraOff; f++) {
       const fDate = addDays(S.today, f);
       const fDow  = new Date(fDate + 'T00:00:00').getDay();
       const ageAtTarget = _extraOff - f;
       if (Math.abs(dowAvgs[fDow].rel) >= 1) _extraInterRel += expRemaining(dowAvgs[fDow].rel, ageAtTarget);
       if (Math.abs(dowAvgs[fDow].per) >= 1) _extraInterPer += expRemaining(dowAvgs[fDow].per, ageAtTarget);
+      if (Math.abs(dowAvgs[fDow].soc) >= 1) _extraInterSoc += expRemaining(dowAvgs[fDow].soc, ageAtTarget);
     }
     const extraMorning = {
       rel: _extraDecayPrim + _extraInterRel,
       per: _extraDecay.per + _extraInterPer,
+      soc: (_extraDecay.soc || 0) + _extraInterSoc,
     };
     return { days: out, dowAvgs, extraMorning };
   })();
@@ -2036,19 +2055,37 @@ function buildHomePage() {
   const perThresh = Math.round(zones7.stable / 2);
 
   // ── Bonding nudges / kudos ──
-  if (hasEnoughData) {
+  if (S.showBonding && hasEnoughData) {
     if (week7Bonding >= 4)
-      kudos.push(card('🩷', 'Strong '+bondingLabel().toLowerCase()+' week', week7Bonding+' '+bondingLabel().toLowerCase()+' entries this week.', 'var(--c-affection)', 'rgba(224,133,184,0.25)', 'rgba(224,133,184,0.06)', goInsights));
+      kudos.push(card('🩷', 'Strong '+bondingLabel().toLowerCase()+' week', week7Bonding+' '+bondingLabel().toLowerCase()+' entries this week.', 'var(--c-affection)', 'rgba(214,115,156,0.25)', 'rgba(214,115,156,0.06)', goInsights));
     else if (week7Bonding >= 1)
       kudos.push(card('🩷', bondingLabel()+' showing up', week7Bonding+' '+bondingLabel().toLowerCase()+' entr'+(week7Bonding===1?'y':'ies')+' this week.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (daysSinceBonding !== null && daysSinceBonding >= 7)
       nudges.push(card('🩷', bondingLabel()+' gap — '+daysSinceBonding+' days', 'It\'s been a while since a '+bondingLabel().toLowerCase()+' entry.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
   }
 
+  // ── Social nudges / kudos (Individual mode) ──
+  if (S.relationshipMode === 'individual' && hasEnoughData) {
+    if (week7Social >= 4)
+      kudos.push(card('🫂', 'Strong social week', week7Social+' social moments this week.', 'var(--c-social)', 'rgba(224,164,104,0.25)', 'rgba(224,164,104,0.06)', goInsights));
+    else if (week7Social >= 1)
+      kudos.push(card('🫂', 'Social showing up', week7Social+' social moment'+(week7Social===1?'':'s')+' this week.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+    else if (daysSinceSocial !== null && daysSinceSocial >= 7)
+      nudges.push(card('🫂', 'Social gap — '+daysSinceSocial+' days', 'It\'s been a while since a social moment. Reach out to someone.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+    else if (daysSinceSocial === null)
+      nudges.push(card('🫂', 'No social moments yet', 'Log time with friends, family, or community to see how it shows up in your atmosphere.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
+
+    // Friction-specific signals
+    if (week7Friction >= 3)
+      nudges.push(card('🌧️', week7Friction+' friction moments this week', 'A rough stretch socially. Worth noticing the pattern.', 'var(--c-friction)', 'rgba(156,90,76,0.18)', 'rgba(156,90,76,0.05)', goInsights));
+    else if (week7Friction === 0 && allEntries.filter(e=>e.category==='friction').length > 0 && week7Social >= 2)
+      kudos.push(card('☀️', 'Calm social week', 'No friction logged, and social moments are showing up.', 'var(--c-partner)', 'rgba(95,190,126,0.20)', 'rgba(95,190,126,0.05)', goInsights));
+  }
+
   // ── Intimacy nudges / kudos ──
   if (S.showPhysical && hasEnoughData) {
     if (week7Physical >= 3)
-      kudos.push(card('🌹', 'Intimate week', week7Physical+' shared intimacy events this week.', 'var(--c-physical)', 'rgba(224,122,74,0.25)', 'rgba(224,122,74,0.06)', goInsights));
+      kudos.push(card('🌹', 'Intimate week', week7Physical+' shared intimacy events this week.', 'var(--c-physical)', 'rgba(168,50,78,0.25)', 'rgba(168,50,78,0.06)', goInsights));
     else if (daysSincePhysical !== null && daysSincePhysical >= 10 && recentTurndowns === 0) {
       const msg = week7Conflict >= 1
         ? daysSincePhysical+' days since last intimacy, and conflict logged this week.'
@@ -2060,9 +2097,9 @@ function buildHomePage() {
   // ── Restorative ──
   if (hasEnoughData) {
     if (week7Restore >= 2)
-      kudos.push(card('🌊', 'Restoring well', week7Restore+' restorative activities this week.', 'var(--c-restore)', 'rgba(90,184,212,0.25)', 'rgba(90,184,212,0.06)', goInsights));
+      kudos.push(card('🌊', 'Restoring well', week7Restore+' restorative activities this week.', 'var(--c-restore)', 'rgba(79,168,196,0.25)', 'rgba(79,168,196,0.06)', goInsights));
     else if (week7Restore === 1)
-      kudos.push(card('🌊', 'Restorative activity logged', 'One restorative activity this week.', 'var(--c-restore)', 'rgba(90,184,212,0.20)', 'rgba(90,184,212,0.04)', goInsights));
+      kudos.push(card('🌊', 'Restorative activity logged', 'One restorative activity this week.', 'var(--c-restore)', 'rgba(79,168,196,0.20)', 'rgba(79,168,196,0.04)', goInsights));
     else if (daysSinceRestore !== null && daysSinceRestore >= 5 && (week7Wobble > 0 || week7Burnout > 0))
       nudges.push(card('🌊', 'Restore overdue', 'Wobble or steadying logged recently, with no restorative activity in '+daysSinceRestore+' days.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (daysSinceRestore !== null && daysSinceRestore >= 7)
@@ -2078,22 +2115,22 @@ function buildHomePage() {
     else if (week7Conflict >= 3)
       nudges.push(card('⛈️', week7Conflict+' conflicts this week', 'A heavy week for conflict.', 'var(--c-conflict)', 'rgba(224,53,53,0.18)', 'rgba(224,53,53,0.05)', goInsights));
     else if (week7Conflict === 0 && last14.filter(e=>e.category==='conflict').length === 0 && allEntries.filter(e=>e.category==='conflict').length > 0)
-      kudos.push(card('✨', 'Two weeks conflict-free', 'No conflict logged in 14 days.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', goInsights));
+      kudos.push(card('✨', 'Two weeks conflict-free', 'No conflict logged in 14 days.', 'var(--c-partner)', 'rgba(95,190,126,0.25)', 'rgba(95,190,126,0.06)', goInsights));
   }
 
   // ── Repair ──
   if (S.showRepair && hasEnoughData && repairToday)
-    kudos.push(card('🤝', 'Repair logged today', 'Reconnection work tracked.', 'var(--c-partner)', 'rgba(77,196,120,0.20)', 'rgba(77,196,120,0.05)', goInsights));
+    kudos.push(card('🤝', 'Repair logged today', 'Reconnection work tracked.', 'var(--c-partner)', 'rgba(95,190,126,0.20)', 'rgba(95,190,126,0.05)', goInsights));
 
   // ── Overall balance ──
   if (hasEnoughData) {
     if (relBal7 >= relThresh)
-      kudos.push(card('💚', (isIndHome ? 'Social' : 'Relational')+' balance positive', 'Balance at +'+relBal7+'. Deposits are outpacing withdrawals.', 'var(--c-partner)', 'rgba(77,196,120,0.25)', 'rgba(77,196,120,0.06)', ()=>goInsightsMode('relational')));
+      kudos.push(card('💚', (isIndHome ? 'Social' : 'Relational')+' balance positive', 'Balance at +'+relBal7+'. Deposits are outpacing withdrawals.', 'var(--c-partner)', 'rgba(95,190,126,0.25)', 'rgba(95,190,126,0.06)', ()=>goInsightsMode('relational')));
     else if (relBal7 < -relThresh)
       nudges.push(card('📉', 'Balance running low', (isIndHome ? 'Social' : 'Relational')+' balance at '+relBal7+'. More withdrawals than deposits recently.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>goInsightsMode('relational')));
 
     if (perBal7 >= perThresh)
-      kudos.push(card('🌿', 'Personal tank healthy', 'Restore is outpacing drain this week.', 'var(--c-restore)', 'rgba(90,184,212,0.25)', 'rgba(90,184,212,0.06)', ()=>goInsightsMode('personal')));
+      kudos.push(card('🌿', 'Personal tank healthy', 'Restore is outpacing drain this week.', 'var(--c-restore)', 'rgba(79,168,196,0.25)', 'rgba(79,168,196,0.06)', ()=>goInsightsMode('personal')));
     else if (perBal7 < -perThresh && week7Restore === 0)
       nudges.push(card('🪫', 'Personal tank depleted', 'Wobble or steadying load without restorative activity this week.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>goInsightsMode('personal')));
   }
@@ -2103,7 +2140,7 @@ function buildHomePage() {
     if (week7Burnout >= 4 && week7Restore === 0)
       nudges.push(card('💨', 'Heavy steadying load', week7Burnout+' steadying entries this week with no restorative activity logged.', 'var(--text)', 'var(--border)', 'var(--bg2)', goInsights));
     else if (week7Burnout >= 2 && week7Restore >= 1)
-      kudos.push(card('💨', 'Caretaking with self-care', 'Steadying for others and restoring yourself this week.', 'var(--c-restore)', 'rgba(90,184,212,0.20)', 'rgba(90,184,212,0.04)', goInsights));
+      kudos.push(card('💨', 'Caretaking with self-care', 'Steadying for others and restoring yourself this week.', 'var(--c-restore)', 'rgba(79,168,196,0.20)', 'rgba(79,168,196,0.04)', goInsights));
   }
 
   // ── New user ──
@@ -2115,29 +2152,51 @@ function buildHomePage() {
   // ── Quick-log chips ──
   const todayMoodEntry  = todayEs.find(e => e.category === 'libido');
 
-  const quickRows = [
-    [
-      { icon:'🌡️', label:'Check-In',     key:'libido',    show: true },
-      { icon:'🌿', label:'Notes',         key:'notes',     show: true },
-      { icon:'🩷', label:bondingLabel(),  key:'affection', show: S.showBonding },
-      { icon:'🫂', label:'Social',         key:'social',    show: S.relationshipMode === 'individual' },
-      { icon:'🌧️', label:'Friction',       key:'friction',  show: S.relationshipMode === 'individual' },
-    ],
-    [
-      { icon:'❄️', label:'Turn Down', key:'turndown', show: S.showPhysical },
-      { icon:'🌹', label:'Intimacy',  key:'physical', show: S.showPhysical },
-      { icon:'🌊', label:'Restore',   key:'restore',  show: true },
-    ],
-    [
-      { icon:'🌪️', label:'Wobble', key:'regulation', show: S.showRegulation },
-      { icon:'💨', label:'Steady', key:'burnout',   show: S.showCaretaker },
-      { icon:'⛈️', label:'Conflict', key:'conflict', show: S.showConflict },
-    ],
-    [
-      { icon:'🤝', label:'Repair',   key:'repair',   show: S.showRepair },
-      { icon:'🔀', label:'Combined', key:'combined', show: S.showBonding },
-    ],
-  ].map(row => row.filter(c => c.show)).filter(row => row.length > 0);
+  // Chip ordering rules:
+  //   • Check-In always slot 1 of row 1.
+  //   • Positives stack on the top rows; negatives on the bottom rows.
+  //   • Notes is a filler — when the positive section's last row has an
+  //     unfilled slot (and isn't row 1, where Check-In is locked first),
+  //     Notes fronts that row leftmost. Otherwise Notes starts a fresh
+  //     row leftmost before the negatives.
+  // Rows are capped at 3 chips, and we minimize total row count while
+  // keeping Notes leftmost wherever it lands.
+  const checkIn   = { icon:'🌡️', label:'Check-In', key:'libido', show: true };
+  const notesChip = { icon:'🌿', label:'Notes',    key:'notes',  show: true };
+  const positives = [
+    { icon:'🩷', label:bondingLabel(), key:'affection', show: S.showBonding },
+    { icon:'🫂', label:'Social',       key:'social',    show: S.relationshipMode === 'individual' || S.trackSocialAxis },
+    { icon:'🌹', label:'Intimacy',     key:'physical',  show: S.showPhysical },
+    { icon:'🌊', label:'Restore',      key:'restore',   show: true },
+    { icon:'🤝', label:'Repair',       key:'repair',    show: S.showRepair },
+    { icon:'🔀', label:'Combined',     key:'combined',  show: S.showBonding || S.relationshipMode === 'individual' },
+  ].filter(c => c.show);
+  const negatives = [
+    { icon:'🌧️', label:'Friction', key:'friction',   show: S.relationshipMode === 'individual' || S.trackSocialAxis },
+    { icon:'⛈️', label:'Conflict', key:'conflict',   show: S.showConflict },
+    { icon:'❄️', label:'Turn Down', key:'turndown',   show: S.showPhysical },
+    { icon:'🌪️', label:'Wobble',   key:'regulation', show: S.showRegulation },
+    { icon:'💨', label:'Steady',   key:'burnout',    show: S.showCaretaker },
+  ].filter(c => c.show);
+
+  const positiveSection = [checkIn, ...positives];
+  const positiveRows = [];
+  for (let i = 0; i < positiveSection.length; i += 3) {
+    positiveRows.push(positiveSection.slice(i, i + 3));
+  }
+  // If the last positive row is partial AND isn't row 1, Notes fronts it.
+  let notesPlaced = false;
+  if (positiveRows.length > 1 && positiveRows[positiveRows.length - 1].length < 3) {
+    positiveRows[positiveRows.length - 1] = [notesChip, ...positiveRows[positiveRows.length - 1]];
+    notesPlaced = true;
+  }
+  // Otherwise Notes starts the negatives section leftmost.
+  const negativeChips = notesPlaced ? negatives : [notesChip, ...negatives];
+  const negativeRows = [];
+  for (let i = 0; i < negativeChips.length; i += 3) {
+    negativeRows.push(negativeChips.slice(i, i + 3));
+  }
+  const quickRows = [...positiveRows, ...negativeRows];
 
   return h('div',{class:'insights-panel'},
 
@@ -2173,17 +2232,19 @@ function buildHomePage() {
           // Compute today's actual contribution per series from entries dated today.
           const todayEs = allEntries.filter(e => e.date === S.today);
           const todayCap = bankDayCap(todayEs.find(le => le.category === 'libido'));
-          let todayLogRel = 0, todayLogPer = 0;
+          let todayLogRel = 0, todayLogPer = 0, todayLogSoc = 0;
           for (const e of todayEs) {
             const { rel, per, soc } = expEntryScores(e, todayCap);
             // In Individual mode, social entries fill the "rel" slot.
             const primary = isIndHome ? (soc || 0) : rel;
             if (primary !== 0) todayLogRel += expRemaining(primary, 0);
             if (per !== 0) todayLogPer += expRemaining(per, 0);
+            if (has3AxisHome && soc !== 0) todayLogSoc += expRemaining(soc, 0);
           }
           const hasLoggedRel   = Math.abs(todayLogRel) >= 1;
           const hasLoggedPer   = Math.abs(todayLogPer) >= 1;
-          const hasLoggedTenor = hasLoggedRel || hasLoggedPer;
+          const hasLoggedSoc   = Math.abs(todayLogSoc) >= 1;
+          const hasLoggedTenor = hasLoggedRel || hasLoggedPer || hasLoggedSoc;
 
           // Low/High = the two end-of-day bounds anchored on the LOCKED start-of-day projection
           // (not the live afternoon). Today's logging shifts the NOW value and the chart, but the
@@ -2192,12 +2253,21 @@ function buildHomePage() {
           const rng = (a, b) => ({ low: Math.min(a, b), high: Math.max(a, b) });
           const rRel = rng(todayDay.morning.rel,   todayDay.lockedAfternoon.rel);
           const rPer = rng(todayDay.morning.per,   todayDay.lockedAfternoon.per);
+          const rSoc = rng(todayDay.morning.soc || 0, todayDay.lockedAfternoon.soc || 0);
           const rTen = rng(todayDay.morning.tenor, todayDay.lockedAfternoon.tenor);
-          const rows = [
-            { name:'Atmosphere',                         key:'tenor', low:rTen.low, high:rTen.high, actual:tenorScore7, hasLogged:hasLoggedTenor },
-            { name: isIndHome ? 'Social' : 'Relational', key:'rel',   low:rRel.low, high:rRel.high, actual:relBal7,     hasLogged:hasLoggedRel   },
-            { name:'Personal',                           key:'per',   low:rPer.low, high:rPer.high, actual:perBal7,     hasLogged:hasLoggedPer   },
-          ];
+          const socBal7 = Math.round(expNow.soc || 0);
+          const rows = has3AxisHome
+            ? [
+                { name:'Atmosphere', key:'tenor', low:rTen.low, high:rTen.high, actual:tenorScore7, hasLogged:hasLoggedTenor },
+                { name:'Relational', key:'rel',   low:rRel.low, high:rRel.high, actual:relBal7,     hasLogged:hasLoggedRel   },
+                { name:'Social',     key:'soc',   low:rSoc.low, high:rSoc.high, actual:socBal7,     hasLogged:hasLoggedSoc   },
+                { name:'Personal',   key:'per',   low:rPer.low, high:rPer.high, actual:perBal7,     hasLogged:hasLoggedPer   },
+              ]
+            : [
+                { name:'Atmosphere',                         key:'tenor', low:rTen.low, high:rTen.high, actual:tenorScore7, hasLogged:hasLoggedTenor },
+                { name: isIndHome ? 'Social' : 'Relational', key:'rel',   low:rRel.low, high:rRel.high, actual:relBal7,     hasLogged:hasLoggedRel   },
+                { name:'Personal',                           key:'per',   low:rPer.low, high:rPer.high, actual:perBal7,     hasLogged:hasLoggedPer   },
+              ];
           // Stash data the Details modal will consume (today's chart day index, per-row breakdowns).
           const _todayChartIdx = wxDays.findIndex(d => d.isToday);
           // Unified forecast details. Each storm combo uses ITS OWN balance's zone (conflict
@@ -2239,7 +2309,16 @@ function buildHomePage() {
                 lockedAfternoon: todayDay.lockedAfternoon.per,
                 zone: _perZoneKey, hasLogged: hasLoggedPer, loggedAmount: todayLogPer },
             ],
-            combos: ['conflict', 'turndown', 'wobble', 'steadying'].map(_comboInfo),
+            combos: ['conflict', 'turndown', 'wobble', 'steadying', 'friction']
+              .filter(c => {
+                if (c === 'conflict')  return S.showConflict;
+                if (c === 'turndown')  return S.showPhysical;
+                if (c === 'wobble')    return S.showRegulation;
+                if (c === 'steadying') return S.showCaretaker;
+                if (c === 'friction')  return S.relationshipMode === 'individual' || S.trackSocialAxis;
+                return true;
+              })
+              .map(_comboInfo),
           };
           const headerCell = (txt, align = 'right') => h('div',{style:{
             fontSize:'9px', fontWeight:'600', letterSpacing:'0.07em', textTransform:'uppercase',
@@ -2348,8 +2427,9 @@ function buildHomePage() {
           };
           const relPts = samplesFor('rel');
           const perPts = samplesFor('per');
+          const socPts = has3AxisHome ? samplesFor('soc') : [];
 
-          // Shared Y scale across Rel and Per.
+          // Shared Y scale across all visible positive series.
           const scaleFor = (pts) => {
             const ys = pts.map(p => p.y);
             const lo = Math.min(...ys);
@@ -2358,7 +2438,7 @@ function buildHomePage() {
             const pad = range * 0.20;
             return { yMin: lo - pad, yMax: hi + pad };
           };
-          const sharedScale = scaleFor([...relPts, ...perPts]);
+          const sharedScale = scaleFor([...relPts, ...perPts, ...socPts]);
           const relScale = sharedScale;
           const perScale = sharedScale;
 
@@ -2424,20 +2504,21 @@ function buildHomePage() {
           // Snow triggers only when TODAY's rel or per is predicted to fall to 0 or lower —
           // either its morning (decay-only state) or afternoon (locked DOW projection). Future
           // days' cumulative projections aren't enough; only the today reading switches us cold.
-          // Line stays blue (cold precipitation is still water); fill switches to purply-pink.
+          // Rain = saturated mid-blue. Snow = icy slate-blue with violet undertone so it reads
+          // distinctly cold without straying into purple territory.
           const _todayWxDay = wxDays.find(d => d.isToday);
           const _isFreezing = !!_todayWxDay && (
             _todayWxDay.morning.rel <= 0 || _todayWxDay.afternoon.rel <= 0 ||
             _todayWxDay.morning.per <= 0 || _todayWxDay.afternoon.per <= 0
           );
-          const precipLabel  = _isFreezing ? 'Snow' : 'Rain';
-          const precipColor  = '#3b7dd8';                                 // line color — always blue
-          const precipFillC  = _isFreezing ? '#a440b8' : '#3b7dd8';        // fill color — deeper purply-pink when freezing
+          const precipLabel  = _isFreezing ? 'Precipitation' : 'Rain';
+          const precipColor  = _isFreezing ? '#7a8cb8' : '#3b7dd8';        // line color — icy slate when snow, mid blue when rain
+          const precipFillC  = _isFreezing ? '#9eb0d8' : '#3b7dd8';        // fill color — pale frost when snow, blue when rain
           // Positive lines stay individual; negative load is summarized by Cloudcover/Precipitation (filled).
           const PCT_SERIES = [
             { cat: 'affection',  color: CAT_COLORS.affection,  label: bondingLabel(),  show: S.showBonding,
               dateSet: datesWithCatScored('affection') },
-            { cat: 'social',     color: CAT_COLORS.social,     label: 'Social',        show: S.relationshipMode === 'individual',
+            { cat: 'social',     color: CAT_COLORS.social,     label: 'Social',        show: S.relationshipMode === 'individual' || S.trackSocialAxis,
               dateSet: datesWithCatScored('social') },
             { cat: 'physical',   color: CAT_COLORS.physical,   label: 'Intimacy',      show: S.showPhysical,
               dateSet: datesWithCatScored('physical') },
@@ -2686,6 +2767,11 @@ function buildHomePage() {
           // In Individual mode, wxDays' .rel slot is populated with Social
           // values upstream — recolor the line so it reads as Social.
           drawSeries(relPts, yOfRel, isIndHome ? 'var(--c-social)' : 'var(--c-affection)', 1.9);
+          // 3-axis mode (Partner/Dating + trackSocialAxis): draw the Social
+          // line as a third series in its own color.
+          if (has3AxisHome) {
+            drawSeries(socPts, yOfRel, 'var(--c-social)', 1.9);
+          }
 
           // Past-day storm icons — for any prior day where a storm-class event was logged,
           // render ONE icon per balance line (max two icons per day). When multiple combos
@@ -3267,6 +3353,7 @@ function buildHomePage() {
                   S.relationshipMode === 'individual'
                     ? legendItem('var(--c-social)', 'Social')
                     : legendItem('var(--c-affection)', 'Relational'),
+                  has3AxisHome ? legendItem('var(--c-social)', 'Social') : null,
                   legendItem('var(--c-restore)', 'Personal'),
                 ),
                 // Chart 2: percentage line chart
@@ -3873,9 +3960,9 @@ function buildPositivityRatioCard() {
   // lighter tints so black text reads cleanly across every band.
   const ratioBand = (pos, neg) => {
     if (pos === 0 && neg === 0) return { color:'transparent',          label:'No data' };
-    if (neg === 0) return                { color:'rgba(77,196,120,0.55)', label:'Thriving' };
+    if (neg === 0) return                { color:'rgba(95,190,126,0.55)', label:'Thriving' };
     const r = pos / neg;
-    if (r >= 5) return                   { color:'rgba(77,196,120,0.55)', label:'Thriving' };
+    if (r >= 5) return                   { color:'rgba(95,190,126,0.55)', label:'Thriving' };
     if (r >= 4) return                   { color:'rgba(168,196,140,0.55)', label:'Healthy' };
     if (r >= 3) return                   { color:'rgba(210,200,120,0.55)', label:'Progressing' };
     if (r >= 2) return                   { color:'rgba(224,160,80,0.55)',  label:'Unsettled' };
@@ -3919,7 +4006,7 @@ function buildPositivityRatioCard() {
       display:'flex', flexWrap:'wrap', gap:'8px 12px',
       fontSize:'10px', color:'var(--muted)', marginBottom:'10px',
     }},
-      h('span',{}, swatch('rgba(77,196,120,0.55)'),  '≥ 5:1 Thriving'),
+      h('span',{}, swatch('rgba(95,190,126,0.55)'),  '≥ 5:1 Thriving'),
       h('span',{}, swatch('rgba(168,196,140,0.55)'), '≥ 4:1 Healthy'),
       h('span',{}, swatch('rgba(210,200,120,0.55)'), '≥ 3:1 Progressing'),
       h('span',{}, swatch('rgba(224,160,80,0.55)'),  '≥ 2:1 Unsettled'),
@@ -3990,7 +4077,7 @@ function buildStormMatrixDebug() {
     if (combo === 'turndown')  return S.showPhysical;
     if (combo === 'wobble')    return S.showRegulation;
     if (combo === 'steadying') return S.showCaretaker;
-    if (combo === 'friction')  return S.relationshipMode === 'individual';
+    if (combo === 'friction')  return S.relationshipMode === 'individual' || S.trackSocialAxis;
     return true;
   };
   const combos = Object.keys(STORM_MATRIX).filter(isComboEnabled);
@@ -4224,13 +4311,20 @@ function buildHistoricalChart(opts) {
   // Y-axis range — shared by rel and per so the two series are directly
   // comparable (one rel-spike vs. a same-magnitude per-spike read at the
   // same height).
+  // Only include axes that are actually being drawn in the y-range. Soc gets
+  // drawn only when the Social line is visible (Individual mode); including it
+  // otherwise would inflate the range without a corresponding line, blowing
+  // out the upper bound when historical social/friction entries exist.
+  const includeSocInRange = S.relationshipMode === 'individual';
   let lo = 0, hi = 0;
   for (const d of days) {
     const v = valFor(d);
-    // Include soc in the y-axis range so the Social line/bar fits the scale
-    // in Individual mode (it's 0 in other modes, no effect).
-    lo = Math.min(lo, v.rel, v.per, v.soc || 0);
-    hi = Math.max(hi, v.rel, v.per, v.soc || 0);
+    lo = Math.min(lo, v.rel, v.per);
+    hi = Math.max(hi, v.rel, v.per);
+    if (includeSocInRange) {
+      lo = Math.min(lo, v.soc || 0);
+      hi = Math.max(hi, v.soc || 0);
+    }
   }
   // Pad range; keep zero visible
   const padRange = (a, b) => {
@@ -4281,7 +4375,36 @@ function buildHistoricalChart(opts) {
     if (S._stormPopup) { S._stormPopup = null; render(); }
   });
 
-  // Horizontal zero line
+  // Compute which axis ticks will actually render (same logic as buildAxis
+  // below), so we can draw a matching horizontal gridline for each one.
+  const computeVisibleTicks = (lo, hi) => {
+    const baseTicks = isVelocity
+      ? [-100, -50, -dailyZones.thriving, -dailyZones.stable, 0, dailyZones.stable, dailyZones.thriving, 50, 100]
+      : [-100, -75, -50, -25, 0, 25, 50, 75, 100];
+    const inRange = Array.from(new Set(baseTicks))
+      .filter(t => t >= lo && t <= hi)
+      .sort((a, b) => a - b);
+    const filtered = [];
+    const minPx = 12;
+    for (const t of inRange) {
+      const y = chartBot - ((t - lo) / (hi - lo)) * (chartBot - chartTop);
+      if (filtered.length === 0 || Math.abs(filtered[filtered.length - 1].y - y) >= minPx) {
+        filtered.push({ t, y });
+      }
+    }
+    return filtered;
+  };
+  // Light horizontal gridlines at each visible y-tick — zero gets a slightly
+  // stronger line below to keep the sign boundary readable.
+  const visibleTicks = computeVisibleTicks(relLo, relHi);
+  for (const { t, y } of visibleTicks) {
+    if (t === 0) continue; // zero handled separately below
+    svgEl.appendChild(mk('line', {
+      x1:'0', y1: y.toFixed(1), x2: String(TOTAL_W), y2: y.toFixed(1),
+      stroke:'var(--surface-2)', 'stroke-width':'0.5', opacity:'0.6',
+    }));
+  }
+  // Horizontal zero line — slightly stronger than the regular gridlines.
   const zeroYRel = yOfRel(0);
   svgEl.appendChild(mk('line', {
     x1:'0', y1: zeroYRel.toFixed(1), x2: String(TOTAL_W), y2: zeroYRel.toFixed(1),
@@ -4490,8 +4613,8 @@ function buildHistoricalChart(opts) {
     // In Individual mode, the "rel" slot is occupied by Social — so use the
     // social color and the per-day soc value instead of rel.
     const isIndChart = S.relationshipMode === 'individual';
-    const REL_POS_RGB = isIndChart ? '217,152,117' : '224,133,184'; // --c-social vs --c-affection
-    const PER_POS_RGB = '90,184,212';                                // --c-restore
+    const REL_POS_RGB = isIndChart ? '224,164,104' : '214,115,156'; // --c-social vs --c-affection
+    const PER_POS_RGB = '79,168,196';                                // --c-restore
     const PRIM_POS_VAR = isIndChart ? 'var(--c-social)' : 'var(--c-affection)';
     // Pull the "positive relational-slot" value off the day record — soc in
     // Individual mode, rel otherwise. Used by the bar drawing below.
@@ -4728,16 +4851,18 @@ function buildHistoricalChart(opts) {
     if (picks.length === 0) continue;
     if (isVelocity) {
       // Both balances always render — only Tenor and Combined modes remain.
-      // Tenor mode: icons under the single bar, offset ±11 when both rel and
-      // per events fired, centered otherwise.
+      // Tenor mode: icons under the single bar, offset ±half-column when both
+      // rel and per events fired, centered otherwise.
       // Combined mode: each icon sits on its bar's side of the column divide,
       // y anchored to that bar's bottom.
       const mode = S._weatherBarMode || 'tenor';
       const zeroY = yOfRel(0);
       const cx = xOf(i);
-      // 30px icons need ~17px half-offset so two glyphs don't overlap, and
-      // ~18px clearance from the bar's edge so they read as below the bar.
-      const ICON_HALF_OFFSET = 17;
+      // Horizontal offset for the two-icon layout scales with column width
+      // (~quarter the column) so icons always sit within their own day
+      // regardless of zoom. Pinned to a sensible floor so they don't overlap
+      // visually at extreme zoom-out.
+      const ICON_HALF_OFFSET = Math.max(10, Math.round(DAY_W * 0.22));
       const ICON_GAP_FROM_BAR = 18;
       const ICON_BOTTOM_MARGIN = 16;
       for (const { balance, pick } of picks) {
@@ -4875,7 +5000,7 @@ function buildHistoricalChart(opts) {
             );
             if (mode === 'split') {
               const isIndLegend = S.relationshipMode === 'individual';
-              const primRgb   = isIndLegend ? '217,152,117' : '224,133,184';
+              const primRgb   = isIndLegend ? '224,164,104' : '214,115,156';
               const primVar   = isIndLegend ? 'var(--c-social)' : 'var(--c-affection)';
               const primLabel = isIndLegend ? 'Social' : 'Relational';
               return [
@@ -4886,7 +5011,7 @@ function buildHistoricalChart(opts) {
                 ),
                 h('div',{style:{display:'flex',alignItems:'center',gap:'4px'}},
                   negStrip(),
-                  posStrip('90,184,212', 'var(--c-restore)'),
+                  posStrip('79,168,196', 'var(--c-restore)'),
                   h('span',{style:{fontSize:'10px',color:'var(--muted)'}}, 'Personal'),
                 ),
               ];

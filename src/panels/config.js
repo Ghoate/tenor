@@ -96,7 +96,7 @@ function buildConfigPanel() {
       h('div',{style:{flex:'1',minWidth:'180px'}},
         h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Relationship mode'),
         h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px',lineHeight:'1.5'}},
-          'Individual hides every relational category for personal-only tracking. Committed tracks one ongoing relationship. Dating renames Bonding to Dating and tags each entry with whom (from your Whom library).')
+          'Individual hides every relational category for personal-only tracking. Committed tracks one ongoing relationship. Dating renames Bonding to Dating for casual / multiple-person contexts.')
       ),
       h('div',{style:{display:'flex',gap:'6px',flexShrink:'0',flexWrap:'wrap'}},
         ...['individual','partner','dating'].map(mode => {
@@ -147,6 +147,33 @@ function buildConfigPanel() {
         })
       )
     ),
+    // Track Social as a third axis (Partner/Dating mode only — Individual mode
+    // already uses Social in place of Relational).
+    S.relationshipMode !== 'individual' ? h('div',{style:{
+      display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',
+      padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'
+    }},
+      h('div',{style:{flex:'1',minWidth:'180px'}},
+        h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Track Social separately'),
+        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px',lineHeight:'1.5'}},
+          'Adds Social as a third axis alongside Relational and Personal. Atmosphere becomes the average of all three. Useful when you want to track friend/family/community connection separately from your partner relationship.')
+      ),
+      h('button',{
+        style:{
+          padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
+          fontFamily:"'DM Sans',sans-serif",flexShrink:'0',
+          border: S.trackSocialAxis ? '1px solid var(--c-social)' : '1px solid var(--border)',
+          background: S.trackSocialAxis ? 'rgba(224,164,104,0.15)' : 'var(--bg3)',
+          color: S.trackSocialAxis ? 'var(--c-social)' : 'var(--muted)',
+        },
+        onclick:()=>{
+          S.trackSocialAxis = !S.trackSocialAxis;
+          saveSettings();
+          render();
+        }
+      }, S.trackSocialAxis ? 'On' : 'Off')
+    ) : null,
+
     h('div',{style:{
       display:'flex',alignItems:'center',justifyContent:'space-between',
       padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'

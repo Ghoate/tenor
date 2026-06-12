@@ -85,7 +85,15 @@ function computeExperimentalScores(refDate) {
   rel = Math.round(rel * 10) / 10;
   per = Math.round(per * 10) / 10;
   soc = Math.round(soc * 10) / 10;
+  // Atmosphere math:
+  //   Individual mode        — avg(soc, per)
+  //   Partner/Dating + 3-axis — avg(rel, soc, per)
+  //   Partner/Dating default — avg(rel, per)
   const isIndividual = S.relationshipMode === 'individual';
-  const tenor = Math.round((isIndividual ? (soc + per) : (rel + per)) / 2 * 10) / 10;
+  let tenor;
+  if (isIndividual) tenor = (soc + per) / 2;
+  else if (S.trackSocialAxis) tenor = (rel + soc + per) / 3;
+  else tenor = (rel + per) / 2;
+  tenor = Math.round(tenor * 10) / 10;
   return { rel, per, soc, tenor };
 }

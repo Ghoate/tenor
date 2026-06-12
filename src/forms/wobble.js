@@ -67,7 +67,7 @@ function buildWobbleForm() {
     const sel = f.regulationEmotions.includes(tag);
     return h('div',{
       class:'chip'+(sel?' selected':''),
-      style: sel ? {borderColor:'var(--c-wobble)',color:'var(--c-wobble)',background:'rgba(160,127,212,0.12)'} : {},
+      style: sel ? {borderColor:'var(--c-wobble)',color:'var(--c-wobble)',background:'rgba(108,120,132,0.12)'} : {},
       onclick:()=>{
         f.regulationEmotions = sel
           ? f.regulationEmotions.filter(x=>x!==tag)
@@ -238,7 +238,7 @@ function buildWobbleForm() {
       const displayScore = hasBalanceImpact ? score : (hasRestoreImpact ? wRestoreScore : 0);
       const scoreColor = hasBalanceImpact ? 'var(--c-conflict)' : 'var(--c-restore)';
       const badge = hasRestoreImpact
-          ? h('div',{style:{padding:'3px 10px',borderRadius:'20px',fontSize:'12px',fontWeight:'600',background:'rgba(90,184,212,0.12)',border:'1px solid rgba(90,184,212,0.35)',color:'var(--c-restore)'}}, '→ Personal only')
+          ? h('div',{style:{padding:'3px 10px',borderRadius:'20px',fontSize:'12px',fontWeight:'600',background:'rgba(79,168,196,0.12)',border:'1px solid rgba(79,168,196,0.35)',color:'var(--c-restore)'}}, '→ Personal only')
           : h('div',{style:{padding:'3px 10px',borderRadius:'20px',fontSize:'12px',fontWeight:'600',background:'var(--surface-2)',border:'1px solid var(--border)',color:'var(--muted)'}}, 'No impact yet');
       return h('div',{style:{
         background:'var(--bg3)', border:'1px solid var(--border)',
@@ -372,7 +372,7 @@ function buildWobbleEmotionGuide() {
         h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'7px'}}, 'Selected · ' + sel.length),
         h('div',{class:'chips'}, ...sel.slice().sort((a,b)=>a.localeCompare(b)).map(tag =>
           h('div',{class:'chip selected',
-            style:{borderColor:'var(--c-wobble)',color:'var(--c-wobble)',background:'rgba(160,127,212,0.12)'},
+            style:{borderColor:'var(--c-wobble)',color:'var(--c-wobble)',background:'rgba(108,120,132,0.12)'},
             onclick:()=>{ f.regulationEmotions = f.regulationEmotions.filter(x => x !== tag); render(); }},
             tag + '  ×')))
       )
