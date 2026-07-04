@@ -35,9 +35,9 @@
   --c-libido:    #7c8ba8;
   --c-conflict:  #dc3a3a;
   --c-warning:   #a02020;
-  --c-turndown:  #b8d4e0;
+  --c-turndown:  #5f8ea8;
   --c-partner:   #5fbe7e;
-  --c-burnout:   #b8c4c0;
+  --c-burnout:   #6b7d76;
   --c-restore:   #4fa8c4;
   --c-wobble:    #6c7884;
   --safe-top:    env(safe-area-inset-top,    0px);
@@ -163,7 +163,7 @@ textarea.form-input      { resize: none; line-height: 1.5; }
 .chip.sel-physical  { background: rgba(168, 50, 78,0.15); border-color: rgba(168, 50, 78,0.5); color: var(--c-physical); }
 .chip.sel-bonding   { background: rgba(214,115,156,0.15); border-color: rgba(214,115,156,0.5); color: var(--c-affection); }
 .chip.sel-restore   { background: rgba( 79,168,196,0.15); border-color: rgba( 79,168,196,0.5); color: var(--c-restore); }
-.chip.sel-steadying { background: rgba(184,196,192,0.15); border-color: rgba(184,196,192,0.5); color: var(--c-burnout); }
+.chip.sel-steadying { background: rgba(107,125,118,0.15); border-color: rgba(107,125,118,0.5); color: var(--c-burnout); }
 .chip.sel-wobble    { background: rgba(108,120,132,0.15); border-color: rgba(108,120,132,0.5); color: var(--c-wobble); }
 .chip.sel-conflict  { background: rgba(224, 53, 53,0.15); border-color: rgba(224, 53, 53,0.5); color: var(--c-conflict); }
 .chip.sel-social    { background: rgba(224,164,104,0.15); border-color: rgba(224,164,104,0.5); color: var(--c-social); }
@@ -180,9 +180,9 @@ textarea.form-input      { resize: none; line-height: 1.5; }
 .sel-btn.sel-physical  { background: rgba(168, 50, 78,0.15); border-color: rgba(168, 50, 78,0.5); color: var(--c-physical); }
 .sel-btn.sel-bonding   { background: rgba(214,115,156,0.15); border-color: rgba(214,115,156,0.5); color: var(--c-affection); }
 .sel-btn.sel-conflict  { background: rgba(224, 53, 53,0.15); border-color: rgba(224, 53, 53,0.5); color: var(--c-conflict); }
-.sel-btn.sel-turndown  { background: rgba(184,212,224,0.15); border-color: rgba(184,212,224,0.5); color: var(--c-turndown); }
+.sel-btn.sel-turndown  { background: rgba( 95,142,168,0.15); border-color: rgba( 95,142,168,0.5); color: var(--c-turndown); }
 .sel-btn.sel-partner   { background: rgba( 95,190,126,0.15); border-color: rgba( 95,190,126,0.5); color: var(--c-partner); }
-.sel-btn.sel-steadying { background: rgba(184,196,192,0.15); border-color: rgba(184,196,192,0.5); color: var(--c-burnout); }
+.sel-btn.sel-steadying { background: rgba(107,125,118,0.15); border-color: rgba(107,125,118,0.5); color: var(--c-burnout); }
 .sel-btn.sel-restore   { background: rgba( 79,168,196,0.15); border-color: rgba( 79,168,196,0.5); color: var(--c-restore); }
 .sel-btn.sel-wobble    { background: rgba(108,120,132,0.15); border-color: rgba(108,120,132,0.5); color: var(--c-wobble); }
 .sel-btn.sel-social    { background: rgba(224,164,104,0.15); border-color: rgba(224,164,104,0.5); color: var(--c-social); }

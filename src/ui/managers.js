@@ -954,8 +954,9 @@ function buildManageTypes(listKey, returnModal, title, inline=false, formObj=nul
         }, f.newTypeDesc||'')
       ),
 
-      // Shared/solo default — physical only
-      isPhysical ? h('div',{style:{marginBottom:'12px'}},
+      // Shared/solo default — physical only, and only when Solo Intimacy
+      // is enabled. Otherwise every physical activity is shared.
+      isPhysical && S.showSoloIntimacy ? h('div',{style:{marginBottom:'12px'}},
         h('label',{class:'form-label'},'Default'),
         h('div',{class:'btn-grid-2'},
           h('button',{class:'sel-btn'+(f.newDefaultSolo===false?' sel-physical':''),

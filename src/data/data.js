@@ -39,6 +39,9 @@ function saveSettings(){
   dbPut('settings',{key:'showBonding',    value:S.showBonding});
   dbPut('settings',{key:'showConflict',   value:S.showConflict});
   dbPut('settings',{key:'trackSocialAxis',value:S.trackSocialAxis});
+  dbPut('settings',{key:'showObservations',value:S.showObservations});
+  dbPut('settings',{key:'showCheckIn',    value:S.showCheckIn});
+  dbPut('settings',{key:'showSoloIntimacy',value:S.showSoloIntimacy});
   dbPut('settings',{key:'showRepair',     value:S.showRepair});
   dbPut('settings',{key:'showAttachment', value:S.showAttachment});
   dbPut('settings',{key:'horsemenExpanded',        value:S.horsemenExpanded});
@@ -161,6 +164,15 @@ function loadSettings(){
     }),
     dbGet('settings','trackSocialAxis').then(s=>{
       if(s&&s.value!=null) S.trackSocialAxis = s.value;
+    }),
+    dbGet('settings','showObservations').then(s=>{
+      if(s&&s.value!=null) S.showObservations = s.value;
+    }),
+    dbGet('settings','showCheckIn').then(s=>{
+      if(s&&s.value!=null) S.showCheckIn = s.value;
+    }),
+    dbGet('settings','showSoloIntimacy').then(s=>{
+      if(s&&s.value!=null) S.showSoloIntimacy = s.value;
     }),
     dbGet('settings','showRepair').then(s=>{
       if(s&&s.value!=null) S.showRepair = s.value;

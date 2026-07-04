@@ -1252,17 +1252,17 @@ function buildForecastDetailsModal() {
     }},
       // Header row
       h('span',{}, ''),
-      h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.05em'}}, 'Now'),
-      h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.05em'}}, 'Morning'),
-      h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.05em'}}, 'Forecast'),
-      h('span',{style:{textAlign:'right',color:'var(--muted-2)',fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.05em'}}, 'Logged'),
+      h('span',{style:{textAlign:'center',color:'var(--muted-2)',fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.05em'}}, 'Now'),
+      h('span',{style:{textAlign:'center',color:'var(--muted-2)',fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.05em'}}, 'Morning'),
+      h('span',{style:{textAlign:'center',color:'var(--muted-2)',fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.05em'}}, 'Forecast'),
+      h('span',{style:{textAlign:'center',color:'var(--muted-2)',fontSize:'9px',textTransform:'uppercase',letterSpacing:'0.05em'}}, 'Logged'),
       // Data rows
       ...data.values.flatMap(v => {
         const hi = Math.max(v.morning, v.lockedAfternoon);
         const lo = Math.min(v.morning, v.lockedAfternoon);
         const loggedStr = (v.loggedAmount > 0 ? '+' : '') +
           (Math.abs(v.loggedAmount) < 0.1 ? '0' : (Math.round(v.loggedAmount * 10) / 10));
-        const valStyle = {textAlign:'right',fontFamily:"'Libre Baskerville', serif",color:'var(--text-strong)'};
+        const valStyle = {textAlign:'center',fontFamily:"'Libre Baskerville', serif",color:'var(--text-strong)'};
         return [
           h('span',{style:{color:'var(--text)',fontSize:'11px'}},
             v.name + (v.zone ? ' · ' + zoneLabel(v.zone) : '')),
@@ -2047,8 +2047,8 @@ function buildHomePage() {
   const nudges  = []; // suggestions
   const kudos   = []; // positive reinforcement
 
-  // ── Daily check-in reminder ──
-  if (!loggedMoodToday)
+  // ── Daily check-in reminder ── (only when check-in feature is enabled)
+  if (S.showCheckIn && !loggedMoodToday)
     nudges.push(card('🌡️', 'Daily check-in', 'Keeps your capacity score accurate.', 'var(--text)', 'var(--border)', 'var(--bg2)', ()=>openModal('libido')));
 
   const relThresh = zones7.stable;
@@ -2161,7 +2161,7 @@ function buildHomePage() {
   //     row leftmost before the negatives.
   // Rows are capped at 3 chips, and we minimize total row count while
   // keeping Notes leftmost wherever it lands.
-  const checkIn   = { icon:'🌡️', label:'Check-In', key:'libido', show: true };
+  const checkIn   = { icon:'🌡️', label:'Check-In', key:'libido', show: S.showCheckIn };
   const notesChip = { icon:'🌿', label:'Notes',    key:'notes',  show: true };
   const positives = [
     { icon:'🩷', label:bondingLabel(), key:'affection', show: S.showBonding },
@@ -2179,7 +2179,7 @@ function buildHomePage() {
     { icon:'💨', label:'Steady',   key:'burnout',    show: S.showCaretaker },
   ].filter(c => c.show);
 
-  const positiveSection = [checkIn, ...positives];
+  const positiveSection = [checkIn, ...positives].filter(c => c.show);
   const positiveRows = [];
   for (let i = 0; i < positiveSection.length; i += 3) {
     positiveRows.push(positiveSection.slice(i, i + 3));
@@ -3701,19 +3701,20 @@ function buildHomePage() {
       )
     ),
 
-    // Nudges (no header — most fire on weekly stats, not "today" signals)
-    nudges.length > 0 ? h('div',{style:{marginBottom:'6px'}},
+    // Nudges + Kudos ("What's going well" + nudges) — gated on the same
+    // toggle as the Insights tab's Observations/Correlations sections.
+    // Same job (pattern-detection cards), same off-by-default behavior.
+    S.showObservations && nudges.length > 0 ? h('div',{style:{marginBottom:'6px'}},
       section(nudges)
     ) : null,
 
-    // Kudos
-    kudos.length > 0 ? h('div',{style:{marginBottom:'6px'}},
+    S.showObservations && kudos.length > 0 ? h('div',{style:{marginBottom:'6px'}},
       h('div',{style:{fontSize:'11px',fontWeight:'600',color:'var(--muted)',letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:'10px'}}, 'What\'s going well'),
       section(kudos)
     ) : null,
 
-    // Nothing to show
-    nudges.length === 0 && kudos.length === 0 ?
+    // Empty state — only show when the toggle is on but nothing fired.
+    S.showObservations && nudges.length === 0 && kudos.length === 0 ?
       h('div',{style:{textAlign:'center',padding:'32px 20px',color:'var(--muted)',fontSize:'13px',lineHeight:'1.7'}},
         'All quiet today.',h('br',{}),'Keep logging and insights will appear here.'
       ) : null,
@@ -3960,11 +3961,11 @@ function buildPositivityRatioCard() {
   // lighter tints so black text reads cleanly across every band.
   const ratioBand = (pos, neg) => {
     if (pos === 0 && neg === 0) return { color:'transparent',          label:'No data' };
-    if (neg === 0) return                { color:'rgba(95,190,126,0.55)', label:'Thriving' };
+    if (neg === 0) return                { color:'rgba(60,160,95,0.55)',   label:'Thriving' };
     const r = pos / neg;
-    if (r >= 5) return                   { color:'rgba(95,190,126,0.55)', label:'Thriving' };
-    if (r >= 4) return                   { color:'rgba(168,196,140,0.55)', label:'Healthy' };
-    if (r >= 3) return                   { color:'rgba(210,200,120,0.55)', label:'Progressing' };
+    if (r >= 5) return                   { color:'rgba(60,160,95,0.55)',   label:'Thriving' };
+    if (r >= 4) return                   { color:'rgba(155,210,145,0.55)', label:'Healthy' };
+    if (r >= 3) return                   { color:'rgba(215,220,145,0.55)', label:'Progressing' };
     if (r >= 2) return                   { color:'rgba(224,160,80,0.55)',  label:'Unsettled' };
     if (r >= 1) return                   { color:'rgba(224,100,80,0.55)',  label:'Difficult' };
     return                                { color:'rgba(224,53,53,0.55)',   label:'Hurting' };
@@ -4553,11 +4554,14 @@ function buildHistoricalChart(opts) {
         filtered.push({ t, y });
       }
     }
+    // Right-justify the labels regardless of which side the axis is on, so the
+    // numbers align on their last digit — keeps "-25" and "25" visually flush
+    // instead of "25" hanging into the column.
     for (const { t, y } of filtered) {
       ax.appendChild(mk('text', {
-        x: side === 'left' ? (AXIS_W - 3) : 3,
+        x: String(AXIS_W - 3),
         y: y.toFixed(1),
-        'text-anchor': side === 'left' ? 'end' : 'start',
+        'text-anchor': 'end',
         'dominant-baseline':'central',
         'font-size':'10', 'font-family':"'Libre Baskerville', serif",
         fill: color,
@@ -5078,12 +5082,11 @@ function buildInsightsPanel() {
     (() => { try { return buildPositivityRatioCard(); } catch(e) { console.error('Positivity ratio error:', e); return null; } })(),
     // ── Storm matrix debug — only when debug panels are enabled ──
     S.showDebug ? (() => { try { return buildStormMatrixDebug(); } catch(e) { console.error('Storm matrix debug error:', e); return null; } })() : null,
-    // ── Observations (always visible — threshold-based weekly observations) ──
-    // Threshold alerts surfaced as cards, mirroring the visual style of
-    // Correlations below but without strength badges (these aren't statistical).
-    (() => {
-      // Threshold observations look at what's still alive — events whose
-      // decayed score is non-zero — matching the lifetime-sum Tenor gauge.
+    // ── Observations (threshold-based weekly observations) ──
+    // Threshold alerts surfaced as cards. Gated on S.showObservations
+    // (config toggle, off by default) since the Climate/Weather charts and
+    // home-page kudos/nudges already do most of the "what should I notice" job.
+    S.showObservations ? (() => {
       const obsWin  = aliveEntries(S.today);
       const obsPrev = aliveEntries(addDays(S.today, -7));
       const wLabel  = 'Active right now';
@@ -5095,14 +5098,14 @@ function buildInsightsPanel() {
         h('div',{style:{fontSize:'11px',color:'var(--muted)',marginBottom:'10px',lineHeight:'1.6'}}, hint),
         buildWindowSummary(obsWin, obsPrev, wLabel, pRef, pRefCap, S.today, 'observationCards')
       );
-    })(),
+    })() : null,
 
     !hasData ? h('div',{class:'ins-empty',style:{marginTop:'40px'}},
       'No entries in this window yet.\nStart logging to see patterns emerge.'
     ) : h('div',{},
 
-      /* ── Correlations (cross-event statistical patterns) ── */
-      (() => {
+      /* ── Correlations (cross-event statistical patterns) — gated on S.showObservations ── */
+      S.showObservations ? (() => {
         const physicalIcons = ['🌹','❄️'];
         const strengthRank = {strong:0, moderate:1, weak:2};
         const allCards = (S.showPhysical
@@ -5151,7 +5154,7 @@ function buildInsightsPanel() {
             })
           )
         );
-      })(),
+      })() : null,
 
     )
   );

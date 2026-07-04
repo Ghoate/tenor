@@ -17,7 +17,8 @@ function buildPhysicalForm() {
       style:{opacity:'0.5',cursor:'default',textDecoration:'line-through',pointerEvents:'none'},
       title: physTypeNames.includes(f.eventType) ? 'This type is hidden — unhide it in Library to re-select' : 'This type was removed from your library'
     }, '⚠️ '+f.eventType) : null,
-    ...S.physicalTypes.filter(t=>!t.hidden).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(t=>h('div',{
+    // Filter out solo-tagged types when the Solo Intimacy feature is off.
+    ...S.physicalTypes.filter(t=>!t.hidden && (S.showSoloIntimacy || !t.defaultSolo)).slice().sort((a,b)=>a.name.localeCompare(b.name)).map(t=>h('div',{
       class:'chip'+(f.eventType===t.name?' selected sel-physical':''),
       onclick:()=>{
         f.eventType=t.name;

@@ -110,6 +110,9 @@ const S = {
   showBonding:     true,  // show/hide Bonding entry type (and Combined) in the picker
   showConflict:    true,  // show/hide Conflict entry type in the picker
   trackSocialAxis: false, // Partner/Dating mode: track Social as a 3rd axis (rel + soc + per). Off by default.
+  showObservations: false,// Show Observations + Correlations sections on the Insights tab. Off by default.
+  showCheckIn:      false,// Show Daily Check-In (mood/energy/desire) entry type. Off by default — when off, day capacity defaults to neutral (1.0).
+  showSoloIntimacy: false,// Show solo intimacy option in the physical form + library. Off by default (solo scores 0 and isn't chart-visible).
   showRepair:      false, // show/hide Repair entry type in the picker
   showAttachment:  false, // show/hide Attachment tab in the tab bar
   attachmentRefExpanded: false, // collapsible reference layer on Attachment tab

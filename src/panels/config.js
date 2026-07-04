@@ -179,6 +179,46 @@ function buildConfigPanel() {
       padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'
     }},
       h('div',{},
+        h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Daily check-in'),
+        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},
+          'Show the daily 🌡️ Check-In entry type (mood, energy'+(S.showPhysical?', desire':'')+'). When off, day capacity is treated as neutral.')
+      ),
+      h('button',{
+        style:{
+          padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
+          fontFamily:"'DM Sans',sans-serif",
+          border: S.showCheckIn ? '1px solid var(--c-partner)' : '1px solid var(--border)',
+          background: S.showCheckIn ? 'var(--c-partner-tint)' : 'var(--bg3)',
+          color: S.showCheckIn ? 'var(--c-partner)' : 'var(--muted)',
+        },
+        onclick:()=>{ S.showCheckIn=!S.showCheckIn; saveSettings(); render(); }
+      }, S.showCheckIn ? 'On' : 'Off')
+    ),
+    S.showPhysical ? h('div',{style:{
+      display:'flex',alignItems:'center',justifyContent:'space-between',
+      padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'
+    }},
+      h('div',{},
+        h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Solo intimacy'),
+        h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},
+          'Show solo option on the Intimacy form and in the Intimacy activities library. Solo events log for personal record only — they do not score.')
+      ),
+      h('button',{
+        style:{
+          padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
+          fontFamily:"'DM Sans',sans-serif",
+          border: S.showSoloIntimacy ? '1px solid var(--c-partner)' : '1px solid var(--border)',
+          background: S.showSoloIntimacy ? 'var(--c-partner-tint)' : 'var(--bg3)',
+          color: S.showSoloIntimacy ? 'var(--c-partner)' : 'var(--muted)',
+        },
+        onclick:()=>{ S.showSoloIntimacy=!S.showSoloIntimacy; saveSettings(); render(); }
+      }, S.showSoloIntimacy ? 'On' : 'Off')
+    ) : null,
+    h('div',{style:{
+      display:'flex',alignItems:'center',justifyContent:'space-between',
+      padding:'12px 0',borderBottom:'1px solid var(--border)',marginBottom:'4px'
+    }},
+      h('div',{},
         h('div',{style:{fontSize:'14px',color:'var(--text)'}},'Bonding logging'),
         h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},
           'Show '+bondingLabel()+' and Combined entry types in the log picker — turn off for personal-only tracking')
@@ -374,6 +414,20 @@ function buildConfigPanel() {
             color: S.showDebug ? 'var(--c-partner)' : 'var(--muted)'},
           onclick:()=>{ S.showDebug=!S.showDebug; saveSettings(); render(); }
         }, S.showDebug ? 'On' : 'Off')
+      ),
+      h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderTop:'1px solid var(--border)'}},
+        h('div',{},
+          h('div',{style:{fontSize:'13px',color:'var(--text)'}},'Pattern cards'),
+          h('div',{style:{fontSize:'11px',color:'var(--muted)',marginTop:'2px'}},'Show the home page "What\'s going well" + nudges and the Insights tab Observations + Correlations sections. The Climate/Weather charts already surface most of these signals visually.')
+        ),
+        h('button',{
+          style:{padding:'6px 16px',borderRadius:'20px',fontSize:'12px',cursor:'pointer',
+            fontFamily:"'DM Sans',sans-serif",
+            border: S.showObservations ? '1px solid var(--c-partner)' : '1px solid var(--border)',
+            background: S.showObservations ? 'var(--c-partner-tint)' : 'var(--bg3)',
+            color: S.showObservations ? 'var(--c-partner)' : 'var(--muted)'},
+          onclick:()=>{ S.showObservations=!S.showObservations; saveSettings(); render(); }
+        }, S.showObservations ? 'On' : 'Off')
       ),
       h('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 0',borderTop:'1px solid var(--border)'}},
         h('div',{},

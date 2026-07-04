@@ -28,6 +28,7 @@ function buildCalFilterModal() {
     h('div',{class:'sheet-title'},'Show / hide on calendar'),
     h('div',{style:{display:'flex',flexDirection:'column',gap:'2px'}},
       ...CAL_FILTER_DEFS.filter(f => {
+        if (!S.showCheckIn   && f.key === 'libido') return false;
         if (!S.showBonding   && f.key === 'affection') return false;
         if (!S.showConflict  && f.key === 'conflict') return false;
         if (!S.showCaretaker && f.key === 'burnout') return false;
@@ -689,7 +690,8 @@ function buildPicker() {
     {key:'burnout',    icon:'💨', name:'Steadying',      desc:'You showed up to steady someone'},
     {key:'notes',    icon:'🌿', name:'Notes', desc:'Log anything worth remembering today'},
     {key:'combined',   icon:'🔀', name:'Combined',       desc:'One activity — both bonding & restorative'},
-  ].filter(c => c.key !== 'turndown' || S.showPhysical)
+  ].filter(c => c.key !== 'libido'   || S.showCheckIn)
+   .filter(c => c.key !== 'turndown' || S.showPhysical)
    .filter(c => c.key !== 'burnout'  || S.showCaretaker)
    .filter(c => c.key !== 'combined' || S.showBonding || S.relationshipMode === 'individual');
 

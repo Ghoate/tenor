@@ -816,7 +816,7 @@ const DRAIN_LEVELS = [
 ];
 const CAT_COLORS = {
   physical:'#a8324e', affection:'#d6739c', libido:'#7c8ba8',
-  conflict:'#dc3a3a', turndown:'#b8d4e0',  burnout:'#b8c4c0',
+  conflict:'#dc3a3a', turndown:'#5f8ea8',  burnout:'#6b7d76',
   restore:'#4fa8c4', regulation:'#6c7884', repair:'#5fbe7e',
   notes:'#9cae9c', combined:'#7fb89a',
   social:'#e0a468', friction:'#9c5a4c',
